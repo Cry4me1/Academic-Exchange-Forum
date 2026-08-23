@@ -22,6 +22,10 @@
   🔗 <b>线上体验地址</b>: <a href="https://scholarly.wiki">https://scholarly.wiki</a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/home_preview.png" alt="Scholarly 首页与前沿学术讨论流" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
+
 ---
 
 ## 📸 系统架构概览
@@ -65,6 +69,10 @@ graph TD
 - **学术元数据与文献导出**：内置 DOI、期刊名、引用格式管理，支持一键生成规范的 **BibTeX 引用代码** 与 **学术排版 PDF 导出**。
 - **问答与采纳机制 (Accepted Answer)**：提问者可一键采纳最佳解决方案，并自动为回答学者增加学术声誉值。
 
+<p align="center">
+  <img src="docs/screenshots/post_detail_preview.png" alt="学术长文详情、专栏收录与深度学术排版" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
+
 ### 2. ⚔️ 学术对决与辩论竞技场 (Academic Duels)
 - **多轮辩论与实时交锋**：支持发起指定或公开的学术对决，支持双方多轮发言、AI 阶段性辅助分析与观众 **Realtime 弹幕** 互动。
 - **LP 保证金质押与观众预测下注 (Bets)**：对决双方质押保证金，观众可参与预测押注；比赛结束后通过 Postgres 原子事务自动执行 **1:2 奖池清算分账**。
@@ -100,6 +108,14 @@ graph TD
   - 邀请码生成与授权管理；
   - 敏感操作全程审计日志。
 - **40+ 细粒度 Postgres RLS 策略**：数据权限层层隔离，严防越权与数据泄露。
+
+<p align="center">
+  <img src="docs/screenshots/invite_preview.png" alt="学术邀请码实时抢兑看板与原子防并发核销" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/updates_preview.png" alt="学术出版级 PDF 导出与平台演进全景" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
 
 ---
 

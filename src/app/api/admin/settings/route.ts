@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权修改系统设置" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权修改系统设置" }, { status: 403 });
         }
 
         const body = await request.json();

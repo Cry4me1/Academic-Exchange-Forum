@@ -733,7 +733,7 @@ export function Invite820Client({ initialCodes = [], initialStats }: Props) {
                         <div className="flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-orange-500 shrink-0" />
                             <span>
-                                席位已被抢光？请关注官方后续释放计划，或联系超级管理员 Hansszh 申请专项学者通行席位。
+                                席位已被抢光？请关注官方后续释放计划，或联系社区管理员申请专项学者通行席位。
                             </span>
                         </div>
                         <Link href="/register">

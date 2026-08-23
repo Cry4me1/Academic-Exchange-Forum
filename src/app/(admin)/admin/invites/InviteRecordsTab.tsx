@@ -167,7 +167,7 @@ export function InviteRecordsTab() {
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <span className="text-xs font-medium text-foreground">
-                                                    {r.inviter.username || "Hansszh"}
+                                                    {r.inviter.username || "系统管理员"}
                                                 </span>
                                             </div>
                                         ) : (

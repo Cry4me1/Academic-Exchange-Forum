@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminInvitesPage() {
-    // 严格限制仅超级管理员 (Hansszh) 可访问
+    // 严格限制仅超级管理员 (super_admin) 可访问
     await requireAdmin("super_admin");
 
     return (

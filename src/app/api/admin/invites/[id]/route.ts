@@ -92,7 +92,7 @@ export async function DELETE(
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权操作" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权操作" }, { status: 403 });
         }
 
         const { id } = await context.params;

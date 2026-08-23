@@ -22,6 +22,10 @@
   🔗 <b>Live Demo</b>: <a href="https://scholarly.wiki">https://scholarly.wiki</a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/home_preview.png" alt="Scholarly Homepage and Academic Feed" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
+
 ---
 
 ## 📸 System Architecture
@@ -65,6 +69,10 @@ graph TD
 - **Academic Metadata & Export**: Built-in DOI, journal name, and citation metadata management, supporting one-click **BibTeX citations** and **Nature / IEEE academic formatted PDF export**.
 - **Accepted Answer System**: Post authors can mark the accepted solution, awarding academic reputation scores to contributors.
 
+<p align="center">
+  <img src="docs/screenshots/post_detail_preview.png" alt="Academic Article Details and LaTeX Formatting" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
+
 ### 2. ⚔️ Academic Duels & Debate Arena
 - **Multi-Round Debate & Realtime Interaction**: Initiate open or targeted academic debates with multi-round rebuttal speeches, AI stage-by-stage debate analysis, and **Realtime spectator Danmaku** (bullet comments).
 - **LP Staking & Prediction Bets**: Debaters stake LP guarantees, and spectators can place prediction bets. After resolution, a Postgres atomic transaction automatically distributes **1:2 pool payouts**.
@@ -100,6 +108,14 @@ graph TD
   - Invitation code generation & usage tracking;
   - Full audit logging of administrative actions.
 - **40+ Granular PostgreSQL RLS Policies**: Strict multi-tenant data isolation and anti-privilege escalation.
+
+<p align="center">
+  <img src="docs/screenshots/invite_preview.png" alt="Realtime Academic Invitation Board" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/updates_preview.png" alt="Academic Publishing Grade PDF Export and Updates Feed" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+</p>
 
 ---
 

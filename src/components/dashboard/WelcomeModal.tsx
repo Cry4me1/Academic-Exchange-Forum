@@ -22,7 +22,7 @@ const V1_LAUNCH_DATE = "2026-08-22T00:00:00Z";
 // 老用户弹窗：v1.1.6 四大更新
 const v1_1_6Features = [
     { icon: Printer, label: "Nature/IEEE 学术 PDF 导出", color: "text-purple-500" },
-    { icon: Lock, label: "Hansszh 专属学术邀请制", color: "text-amber-500" },
+    { icon: Lock, label: "学术邀请准入制", color: "text-amber-500" },
     { icon: Shield, label: "多模态 AI 审稿与安全拦截", color: "text-emerald-500" },
     { icon: BookOpen, label: "60FPS 沉浸阅读 & 要素索引", color: "text-blue-500" },
 ];

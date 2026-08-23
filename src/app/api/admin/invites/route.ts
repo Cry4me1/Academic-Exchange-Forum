@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权访问邀请码管理中心" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权访问邀请码管理中心" }, { status: 403 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -123,12 +123,12 @@ export async function GET(request: NextRequest) {
             creator: item.creator_id
                 ? profileMap.get(item.creator_id) || {
                       id: item.creator_id,
-                      username: "Hansszh",
+                      username: "系统管理员",
                       avatar_url: null,
                   }
                 : {
                       id: "system",
-                      username: "Hansszh",
+                      username: "系统管理员",
                       avatar_url: null,
                   },
         }));
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权批量签发邀请码" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权批量签发邀请码" }, { status: 403 });
         }
 
         const body = await request.json();
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
                 used_count: 0,
                 expires_at: expiresAt,
                 is_active: true,
-                note: note || "Hansszh 签发",
+                note: note || "官方签发",
             });
         }
 
@@ -239,7 +239,7 @@ export async function DELETE(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权批量删除邀请码" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权批量删除邀请码" }, { status: 403 });
         }
 
         const body = await request.json();
