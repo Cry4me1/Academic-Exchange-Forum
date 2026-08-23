@@ -10,13 +10,9 @@ async function verifySuperAdminAuth() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("username, email")
+        .select("username, email, is_developer")
         .eq("id", user.id)
         .maybeSingle();
-
-    const isHansszhUser = 
-        profile?.username?.toLowerCase() === "hansszh" || 
-        user.email?.toLowerCase().includes("hansszh");
 
     const { data: adminRole } = await supabase
         .from("admin_roles")
@@ -24,17 +20,18 @@ async function verifySuperAdminAuth() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-    const isAdmin = adminRole?.role === "super_admin" || adminRole?.role === "admin" || isHansszhUser;
+    const isDeveloper = profile?.is_developer === true;
+    const isAdmin = adminRole?.role === "super_admin" || adminRole?.role === "admin" || isDeveloper;
     if (!isAdmin) return null;
 
-    return { user, role: adminRole?.role || "super_admin", username: profile?.username || "Hansszh" };
+    return { user, role: adminRole?.role || (isDeveloper ? "super_admin" : "admin"), username: profile?.username || "管理员" };
 }
 
 export async function GET() {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权访问系统设置" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权访问系统设置" }, { status: 403 });
         }
 
         const adminClient = createAdminClient();
