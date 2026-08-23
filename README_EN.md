@@ -140,7 +140,7 @@ graph TD
 
 ```bash
 # Clone the repository
-git clone https://github.com/Cry4me1/Academic-Exchange-Forum.
+git clone https://github.com/Cry4me1/Academic-Exchange-Forum.git
 
 # Enter project directory
 cd Academic-Exchange-Forum

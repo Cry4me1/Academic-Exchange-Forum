@@ -140,7 +140,7 @@ graph TD
 
 ```bash
 # 克隆代码库
-git clone https://github.com/Cry4me1/Academic-Exchange-Forum.
+git clone https://github.com/Cry4me1/Academic-Exchange-Forum.git
 
 # 进入项目目录
 cd Academic-Exchange-Forum
