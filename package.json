@@ -1,6 +1,6 @@
 {
   "name": "academic_forum",
-  "version": "0.1.0",
+  "version": "1.1.6",
   "private": true,
   "scripts": {
     "dev": "next dev",
