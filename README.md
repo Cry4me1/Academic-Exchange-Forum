@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="README.md">简体中文</a> | <a href="README_EN.md">English</a>
+</p>
+
+<p align="center">
   <b>Scholarly</b> 是一个专为学者、研究人员及高校学生打造的高性能、学术友好型全栈论坛系统。<br />
   融合了 <b>LaTeX 实时渲染</b>、<b>学术版本修订对比</b>、<b>实时学术对决 (Duels)</b>、<b>1024 维向量知识网络</b>、<b>同行评审</b>、<b>实验室共创</b> 以及 <b>代币与 VIP 激励体系</b>。
 </p>
