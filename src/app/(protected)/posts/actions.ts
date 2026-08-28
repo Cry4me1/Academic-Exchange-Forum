@@ -57,6 +57,7 @@ export async function createPost(data: {
         authorId: user.id,
         title: data.title,
         content: data.content,
+        coverImage: data.cover_image,
         tags: data.tags,
     });
 
@@ -180,17 +181,19 @@ export async function updatePost(
     let contentToReview: any = null;
     let tagsToReview: string[] = [];
 
-    // 若修改了标题或正文，重新走审核
-    if (data.title || data.content) {
+    // 若修改了标题、正文或封面图，重新走审核
+    if (data.title || data.content || data.cover_image !== undefined) {
         titleToReview = data.title || oldPost.title;
         contentToReview = data.content || oldPost.content;
         tagsToReview = data.tags || oldPost.tags || [];
+        const coverImageToReview = data.cover_image !== undefined ? data.cover_image : oldPost.cover_image;
 
         const moderation = await moderatePostContent({
             postId,
             authorId: user.id,
             title: titleToReview,
             content: contentToReview,
+            coverImage: coverImageToReview,
             tags: tagsToReview,
         });
 

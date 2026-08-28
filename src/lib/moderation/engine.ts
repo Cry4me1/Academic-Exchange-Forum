@@ -24,9 +24,10 @@ export async function moderatePostContent(params: {
   authorId: string;
   title: string;
   content: any;
+  coverImage?: string | null;
   tags?: string[];
 }): Promise<ModerationResult> {
-  const { postId, authorId, title, content, tags = [] } = params;
+  const { postId, authorId, title, content, coverImage, tags = [] } = params;
   const startTime = Date.now();
   const contentText = extractPlainTextFromContent(content);
   const fullText = `${title}\n${contentText}`;
@@ -101,14 +102,20 @@ export async function moderatePostContent(params: {
   // ==========================================
   // Layer 2: 图片内容安全审核 (Baidu AI Image Censor)
   // ==========================================
-  const imageUrls = extractImageUrls(content);
+  const contentImages = extractImageUrls(content);
+  const allImages = [...contentImages];
+  if (coverImage && typeof coverImage === "string" && coverImage.trim()) {
+    allImages.unshift(coverImage.trim()); // 优先审核封面图
+  }
+  const imageUrls = Array.from(new Set(allImages));
+
   if (imageUrls.length > 0) {
     try {
       const imageAudit = await auditPostImages(imageUrls);
 
       // 图片存在严重违规（色情/暴恐/违禁）
       if (imageAudit.hasDangerous) {
-        const reason = imageAudit.reasons[0] || "文章配图中包含严重违规内容";
+        const reason = imageAudit.reasons[0] || "文章配图或封面中包含严重违规内容";
         const latencyMs = Date.now() - startTime;
 
         const result: ModerationResult = {
@@ -122,7 +129,7 @@ export async function moderatePostContent(params: {
           isCached: false,
           latencyMs,
           canPublish: false,
-          errorMessage: `发布失败：${reason}，请更换配图后重新发布。`,
+          errorMessage: `发布失败：${reason}，请更换配图或封面后重新发布。`,
         };
 
         await logModerationRecord(supabase, {
@@ -138,7 +145,7 @@ export async function moderatePostContent(params: {
 
       // 图片疑似敏感
       if (imageAudit.hasSensitive) {
-        const reason = imageAudit.reasons[0] || "文章配图疑似存在违规风险，转入人工审核";
+        const reason = imageAudit.reasons[0] || "文章配图或封面疑似存在违规风险，转入人工审核";
         const latencyMs = Date.now() - startTime;
 
         const result: ModerationResult = {
@@ -152,7 +159,7 @@ export async function moderatePostContent(params: {
           isCached: false,
           latencyMs,
           canPublish: false,
-          errorMessage: "帖子配图疑似敏感，已提交人工审核",
+          errorMessage: "帖子配图或封面疑似敏感，已提交人工审核",
         };
 
         await logModerationRecord(supabase, {
