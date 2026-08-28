@@ -12,8 +12,13 @@ import { Step3DuelTour } from "./steps/Step3DuelTour";
 import { Step4MessagesTour } from "./steps/Step4MessagesTour";
 import { Step5CreditsTour } from "./steps/Step5CreditsTour";
 import { Step6AiReviewTour } from "./steps/Step6AiReviewTour";
+import { useI18n } from "@/i18n/context";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 export function TutorialsClient() {
+    const { t } = useI18n();
+    const tTut = t.tutorials;
+
     const [currentStep, setCurrentStep] = useState<number>(1);
     const [mounted, setMounted] = useState(false);
 
@@ -48,14 +53,18 @@ export function TutorialsClient() {
                         <Link href="/dashboard">
                             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground rounded-full px-3.5 bg-muted/30">
                                 <ArrowLeft className="h-4 w-4" />
-                                返回仪表盘
+                                {tTut.backToDashboard}
                             </Button>
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/40 dark:bg-card/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-border/40">
-                        <Sparkles className="h-3.5 w-3.5 text-primary" />
-                        <span>研学者互动实训营 · 沉浸式宽幅向导</span>
+                    <div className="flex items-center gap-3">
+                        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground bg-white/40 dark:bg-card/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-border/40">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            <span>{tTut.tag}</span>
+                        </div>
+
+                        <LanguageSwitcher variant="toggle" />
                     </div>
                 </div>
 
@@ -65,13 +74,13 @@ export function TutorialsClient() {
                         <GraduationCap className="h-6 w-6" />
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                        Scholarly 学术社区{" "}
+                        {tTut.mainTitle}{" "}
                         <span className="bg-gradient-to-r from-primary via-violet-600 to-indigo-600 bg-clip-text text-transparent">
-                            全真实操训练营
+                            {tTut.titleHighlight}
                         </span>
                     </h1>
                     <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
-                        采用 1:1 真实业务组件打造的交互沙盒，带您轻松掌握学术写作、出版排版、竞技决斗、私聊时效与 AI 审校
+                        {tTut.subTitle}
                     </p>
                 </div>
 
@@ -177,14 +186,14 @@ export function TutorialsClient() {
             <footer className="relative z-10 text-center py-6 text-xs text-muted-foreground/70">
                 <div className="flex items-center justify-center gap-3">
                     <Link href="/rules?tab=terms" className="hover:text-primary transition-colors">
-                        用户服务协议
+                        {tTut.termsOfService}
                     </Link>
                     <span>•</span>
                     <Link href="/rules?tab=guidelines" className="hover:text-primary transition-colors">
-                        社区行为公约
+                        {tTut.communityGuidelines}
                     </Link>
                     <span>•</span>
-                    <span>Scholarly Academic Community</span>
+                    <span>{tTut.communityName}</span>
                 </div>
             </footer>
         </div>

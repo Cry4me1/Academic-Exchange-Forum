@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PenSquare } from "lucide-react";
+import { Plus } from "lucide-react";
+import { useI18n } from "@/i18n/context";
 
 export function QuickPostButton() {
+    const { t } = useI18n();
+
     return (
-        <Link href="/posts/new">
+        <Link href="/posts/new" className="block">
             <Button
-                size="lg"
-                className="w-full gap-2 h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                className="w-full gap-2 h-10 text-sm font-medium rounded-lg bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-xs hover:shadow-sm active:scale-[0.99] transition-all duration-150 border border-zinc-800 dark:border-zinc-200"
             >
-                <PenSquare className="h-5 w-5" />
-                发布新帖
+                <Plus className="h-4 w-4" strokeWidth={2} />
+                {t.dashboardComponents.quickPost}
             </Button>
         </Link>
     );

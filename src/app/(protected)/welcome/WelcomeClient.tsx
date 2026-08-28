@@ -7,6 +7,8 @@ import { Step1Guidelines } from "./steps/Step1Guidelines";
 import { Step2ProfileQuickStart, ProfileFormData } from "./steps/Step2ProfileQuickStart";
 import { Step3ThemeStudio } from "./steps/Step3ThemeStudio";
 import { GraduationCap } from "lucide-react";
+import { useI18n } from "@/i18n/context";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 interface WelcomeClientProps {
     userId: string;
@@ -27,6 +29,8 @@ interface WelcomeClientProps {
 }
 
 export function WelcomeClient({ userId, email, initialData }: WelcomeClientProps) {
+    const { t } = useI18n();
+
     // 初始步骤决策：若已签公约且未完成全部，进入 Step 2，否则进入 Step 1
     const initialStepNumber = initialData.terms_accepted_at ? Math.min(Math.max(initialData.onboarding_step, 2), 3) : 1;
     const [step, setStep] = useState<number>(initialStepNumber);
@@ -87,6 +91,11 @@ export function WelcomeClient({ userId, email, initialData }: WelcomeClientProps
                 <div className="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
             </div>
 
+            {/* 顶部全局浮动语言切换器 */}
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-8 z-30">
+                <LanguageSwitcher variant="toggle" />
+            </div>
+
             <div className="relative z-10 max-w-4xl w-full mx-auto space-y-6">
                 {/* 顶部 Brand 徽标与 Welcome 标题 */}
                 <div className="text-center space-y-2 pt-2">
@@ -94,13 +103,13 @@ export function WelcomeClient({ userId, email, initialData }: WelcomeClientProps
                         <GraduationCap className="h-6 w-6" />
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                        欢迎入驻{" "}
+                        {t.welcome.mainTitle}
                         <span className="bg-gradient-to-r from-primary via-violet-600 to-indigo-600 bg-clip-text text-transparent">
-                            Scholarly
+                            {t.welcome.titleHighlight}
                         </span>
                     </h1>
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                        面向全球学者的专业研讨、同行评议与学术共识社区
+                        {t.welcome.subTitle}
                     </p>
                 </div>
 
@@ -144,7 +153,7 @@ export function WelcomeClient({ userId, email, initialData }: WelcomeClientProps
 
             {/* 页面极简底栏 */}
             <div className="relative z-10 text-center py-4 text-xs text-muted-foreground/70">
-                Scholarly Academic Community · 学术自由 · 理性质疑 · 互信共进
+                {t.welcome.footer}
             </div>
         </div>
     );

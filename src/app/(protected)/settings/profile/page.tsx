@@ -21,6 +21,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LinkedAccountsCard } from "@/components/settings/linked-accounts-card";
+import { useI18n } from "@/i18n/context";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { Locale } from "@/i18n/types";
 
 interface ProfileData {
     id: string;
@@ -36,6 +39,9 @@ interface ProfileData {
 }
 
 export default function ProfileSettingsPage() {
+    const { t, setLocale, isZh } = useI18n();
+    const tSettings = t.settings;
+
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -71,7 +77,7 @@ export default function ProfileSettingsPage() {
 
             if (error) {
                 console.error("Failed to load profile:", error);
-                toast.error("加载个人资料失败");
+                toast.error(tSettings.loadError);
             } else if (data) {
                 setProfile(data);
                 setFormData({
@@ -86,7 +92,15 @@ export default function ProfileSettingsPage() {
             setLoading(false);
         }
         loadProfile();
-    }, [supabase, router]);
+    }, [supabase, router, tSettings.loadError]);
+
+    // 语言变更联动
+    const handleLanguageChange = (val: string) => {
+        setFormData((prev) => ({ ...prev, language: val }));
+        if (val === "zh" || val === "en") {
+            setLocale(val as Locale);
+        }
+    };
 
     // 头像上传
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,11 +108,11 @@ export default function ProfileSettingsPage() {
         if (!file || !profile) return;
 
         if (!file.type.startsWith("image/")) {
-            toast.error("请选择图片文件");
+            toast.error(t.welcome.step2.imageTypeError);
             return;
         }
         if (file.size > 2 * 1024 * 1024) {
-            toast.error("图片大小不能超过 2MB");
+            toast.error(t.welcome.step2.imageSizeError);
             return;
         }
 
@@ -125,10 +139,10 @@ export default function ProfileSettingsPage() {
             if (updateError) throw updateError;
 
             setProfile({ ...profile, avatar_url: publicUrl });
-            toast.success("头像更新成功");
+            toast.success(t.welcome.step2.uploadSuccess);
         } catch (error: any) {
             console.error("Avatar upload error:", error);
-            toast.error("头像上传失败: " + error.message);
+            toast.error(t.welcome.step2.uploadFail + error.message);
         } finally {
             setUploading(false);
         }
@@ -155,10 +169,10 @@ export default function ProfileSettingsPage() {
 
             if (error) throw error;
 
-            toast.success("个人资料已保存");
+            toast.success(tSettings.saveSuccess);
         } catch (error: any) {
             console.error("Save error:", error);
-            toast.error("保存失败: " + error.message);
+            toast.error(tSettings.saveError + error.message);
         } finally {
             setSaving(false);
         }
@@ -185,15 +199,17 @@ export default function ProfileSettingsPage() {
             </div>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
-                {/* 返回按钮 */}
-                <div className="mb-6 flex">
+                {/* 顶栏控制 */}
+                <div className="mb-6 flex items-center justify-between">
                     <Link
                         href="/dashboard"
-                        className="inline-flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground bg-white/30 hover:bg-white/50 backdrop-blur-md px-4 py-2 rounded-full transition-all shadow-sm hover:shadow-md w-fit"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground bg-white/30 hover:bg-white/50 dark:bg-card/40 dark:hover:bg-card/60 backdrop-blur-md px-4 py-2 rounded-full transition-all shadow-sm hover:shadow-md w-fit"
                     >
                         <ArrowLeft className="h-4 w-4" />
-                        返回仪表盘
+                        {tSettings.backToDashboard}
                     </Link>
+
+                    <LanguageSwitcher variant="toggle" />
                 </div>
 
                 <Card className="shadow-lg border-border/30 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
@@ -213,6 +229,7 @@ export default function ProfileSettingsPage() {
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={uploading}
                                         className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                        title={t.welcome.step2.changeAvatar}
                                     >
                                         {uploading ? (
                                              <Loader2 className="h-6 w-6 animate-spin text-white" />
@@ -230,7 +247,7 @@ export default function ProfileSettingsPage() {
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-bold">
-                                        {formData.username || "未设置用户名"}
+                                        {formData.username || (isZh ? "未设置用户名" : "Unnamed Scholar")}
                                     </h1>
                                     <p className="text-sm text-muted-foreground">{profile?.email}</p>
                                 </div>
@@ -241,7 +258,7 @@ export default function ProfileSettingsPage() {
                                 ) : (
                                     <Save className="h-4 w-4 mr-2" />
                                 )}
-                                保存
+                                {saving ? tSettings.saving : tSettings.saveProfile}
                             </Button>
                         </div>
                     </CardHeader>
@@ -251,10 +268,10 @@ export default function ProfileSettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* 用户名/昵称 */}
                             <div className="space-y-2">
-                                <Label htmlFor="username">学者用户名 / 匿名标识</Label>
+                                <Label htmlFor="username">{tSettings.usernameLabel}</Label>
                                 <Input
                                     id="username"
-                                    placeholder="请输入您的学者用户名"
+                                    placeholder={tSettings.usernamePlaceholder}
                                     value={formData.username}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                 />
@@ -262,29 +279,29 @@ export default function ProfileSettingsPage() {
 
                             {/* 性别 */}
                             <div className="space-y-2">
-                                <Label htmlFor="gender">性别</Label>
+                                <Label htmlFor="gender">{tSettings.genderLabel}</Label>
                                 <Select
                                     value={formData.gender}
                                     onValueChange={(value) => setFormData({ ...formData, gender: value })}
                                 >
                                     <SelectTrigger id="gender">
-                                        <SelectValue placeholder="选择性别" />
+                                        <SelectValue placeholder={tSettings.genderPlaceholder} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="male">男</SelectItem>
-                                        <SelectItem value="female">女</SelectItem>
-                                        <SelectItem value="other">其他</SelectItem>
-                                        <SelectItem value="private">不公开</SelectItem>
+                                        <SelectItem value="male">{t.welcome.step2.genderMale}</SelectItem>
+                                        <SelectItem value="female">{t.welcome.step2.genderFemale}</SelectItem>
+                                        <SelectItem value="other">{t.welcome.step2.genderOther}</SelectItem>
+                                        <SelectItem value="private">{t.welcome.step2.genderPrivate}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             {/* 国家/地区 */}
                             <div className="space-y-2">
-                                <Label htmlFor="country">国家/地区</Label>
+                                <Label htmlFor="country">{tSettings.countryLabel}</Label>
                                 <Input
                                     id="country"
-                                    placeholder="请输入您的国家或地区"
+                                    placeholder={tSettings.countryPlaceholder}
                                     value={formData.country}
                                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                                 />
@@ -292,39 +309,39 @@ export default function ProfileSettingsPage() {
 
                             {/* 语言 */}
                             <div className="space-y-2">
-                                <Label htmlFor="language">语言</Label>
+                                <Label htmlFor="language">{tSettings.languageLabel}</Label>
                                 <Select
                                     value={formData.language}
-                                    onValueChange={(value) => setFormData({ ...formData, language: value })}
+                                    onValueChange={handleLanguageChange}
                                 >
                                     <SelectTrigger id="language">
-                                        <SelectValue placeholder="选择语言" />
+                                        <SelectValue placeholder={tSettings.languagePlaceholder} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="zh">中文</SelectItem>
-                                        <SelectItem value="en">English</SelectItem>
-                                        <SelectItem value="ja">日本語</SelectItem>
-                                        <SelectItem value="ko">한국어</SelectItem>
+                                        <SelectItem value="zh">{t.common.chinese}</SelectItem>
+                                        <SelectItem value="en">{t.common.english}</SelectItem>
+                                        <SelectItem value="ja">{t.common.japanese}</SelectItem>
+                                        <SelectItem value="ko">{t.common.korean}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             {/* 时区 */}
                             <div className="space-y-2">
-                                <Label htmlFor="timezone">时区</Label>
+                                <Label htmlFor="timezone">{tSettings.timezoneLabel}</Label>
                                 <Select
                                     value={formData.timezone}
                                     onValueChange={(value) => setFormData({ ...formData, timezone: value })}
                                 >
                                     <SelectTrigger id="timezone">
-                                        <SelectValue placeholder="选择时区" />
+                                        <SelectValue placeholder={tSettings.timezonePlaceholder} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Asia/Shanghai">中国标准时间 (UTC+8)</SelectItem>
-                                        <SelectItem value="Asia/Tokyo">日本标准时间 (UTC+9)</SelectItem>
-                                        <SelectItem value="America/New_York">美国东部时间 (UTC-5)</SelectItem>
-                                        <SelectItem value="America/Los_Angeles">美国太平洋时间 (UTC-8)</SelectItem>
-                                        <SelectItem value="Europe/London">格林威治时间 (UTC+0)</SelectItem>
+                                        <SelectItem value="Asia/Shanghai">{tSettings.timezones.beijing}</SelectItem>
+                                        <SelectItem value="Asia/Tokyo">{tSettings.timezones.tokyo}</SelectItem>
+                                        <SelectItem value="Europe/London">{tSettings.timezones.london}</SelectItem>
+                                        <SelectItem value="America/New_York">{tSettings.timezones.newYork}</SelectItem>
+                                        <SelectItem value="America/Los_Angeles">{tSettings.timezones.losAngeles}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -332,10 +349,10 @@ export default function ProfileSettingsPage() {
 
                         {/* 个人简介 - 全宽 */}
                         <div className="space-y-2">
-                            <Label htmlFor="bio">个人简介</Label>
+                            <Label htmlFor="bio">{tSettings.bioLabel}</Label>
                             <Textarea
                                 id="bio"
-                                placeholder="介绍一下你自己，你的研究方向、兴趣爱好等..."
+                                placeholder={tSettings.bioPlaceholder}
                                 value={formData.bio}
                                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                                 rows={4}
@@ -345,7 +362,7 @@ export default function ProfileSettingsPage() {
 
                         {/* 邮箱显示 */}
                         <div className="pt-4 border-t border-border/50">
-                            <h3 className="text-sm font-semibold mb-3">邮箱地址</h3>
+                            <h3 className="text-sm font-semibold mb-3">{tSettings.emailTitle}</h3>
                             <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                                     <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -354,7 +371,7 @@ export default function ProfileSettingsPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium">{profile?.email}</p>
-                                    <p className="text-xs text-muted-foreground">主要邮箱</p>
+                                    <p className="text-xs text-muted-foreground">{tSettings.primaryEmail}</p>
                                 </div>
                             </div>
                         </div>

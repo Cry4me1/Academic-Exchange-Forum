@@ -11,12 +11,14 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { VerifiedBadge } from "@/components/ui/verified-badge";
+import { VipBadge } from "@/components/payments/VipBadge";
 
 export interface CommentAuthor {
     id: string;
     username: string;
     avatar_url?: string;
     title?: string;
+    vip_level?: number | null;
     special_title?: string | null;
     badges?: string[] | null;
     is_verified?: boolean;
@@ -182,32 +184,33 @@ export function CommentItem({
 
                     <div className="flex-1 min-w-0">
                         {/* 用户名和时间 */}
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-medium text-sm text-foreground">
                                 {comment.author.username}
                             </span>
                             {comment.author.is_verified && (
                                 <VerifiedBadge provider={comment.author.auth_provider} />
                             )}
+                            <VipBadge vipLevel={comment.author.vip_level || 1} size="xs" />
                             {/* 作者标记 */}
                             {isOriginalPoster && (
-                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                                <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20">
                                     作者
                                 </span>
                             )}
                             {comment.author.title && (
-                                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.2 rounded">
                                     {comment.author.title}
                                 </span>
                             )}
                             {comment.author.special_title && (
-                                <span className="text-xs font-semibold text-white bg-purple-500 shadow-sm px-2 py-0.5 rounded border-0">
+                                <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.2 rounded">
                                     {comment.author.special_title}
                                 </span>
                             )}
                             {isAccepted && (
-                                <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                                    <CheckCircle2 className="h-3 w-3" />
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-500/10 px-1.5 py-0.2 rounded border border-green-500/20">
+                                    <CheckCircle2 className="h-2.5 w-2.5" />
                                     已采纳
                                 </span>
                             )}

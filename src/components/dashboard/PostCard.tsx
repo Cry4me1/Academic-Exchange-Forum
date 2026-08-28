@@ -3,7 +3,6 @@
 import { createShareRecord, toggleBookmarkPost, toggleLikePost } from "@/app/posts/[id]/actions";
 import { VipBadge } from "@/components/payments/VipBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { MathText } from "@/components/ui/math-text";
+import { cleanSummaryText } from "@/lib/extract-text";
 import { motion } from "framer-motion";
 import {
     Bookmark,
@@ -28,25 +28,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { toast } from "sonner";
-
-// ============================================================
-// 学科标签颜色映射
-// ============================================================
-const tagColors: Record<string, { bg: string; text: string; accent: string }> = {
-    "Mathematics": { bg: "bg-blue-500/10", text: "text-blue-600", accent: "bg-blue-500" },
-    "Computer Science": { bg: "bg-emerald-500/10", text: "text-emerald-600", accent: "bg-emerald-500" },
-    "Physics": { bg: "bg-purple-500/10", text: "text-purple-600", accent: "bg-purple-500" },
-    "Biology": { bg: "bg-green-500/10", text: "text-green-600", accent: "bg-green-500" },
-    "Chemistry": { bg: "bg-orange-500/10", text: "text-orange-600", accent: "bg-orange-500" },
-    "Economics": { bg: "bg-amber-500/10", text: "text-amber-600", accent: "bg-amber-500" },
-    "Philosophy": { bg: "bg-rose-500/10", text: "text-rose-600", accent: "bg-rose-500" },
-    "AI": { bg: "bg-cyan-500/10", text: "text-cyan-600", accent: "bg-cyan-500" },
-    "Engineering": { bg: "bg-indigo-500/10", text: "text-indigo-600", accent: "bg-indigo-500" },
-};
-
-const defaultTagColor = { bg: "bg-muted", text: "text-muted-foreground", accent: "bg-muted-foreground" };
+import { useI18n } from "@/i18n/context";
 
 // ============================================================
 // Types
@@ -79,24 +63,6 @@ export interface PostCardProps {
 }
 
 // ============================================================
-// Utils
-// ============================================================
-function formatRelativeTime(date: Date): string {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "刚刚";
-    if (diffMins < 60) return `${diffMins} 分钟前`;
-    if (diffHours < 24) return `${diffHours} 小时前`;
-    if (diffDays < 7) return `${diffDays} 天前`;
-
-    return date.toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
-}
-
-// ============================================================
 // 主组件
 // ============================================================
 export function PostCard({
@@ -118,6 +84,9 @@ export function PostCard({
     collectionNames = [],
     collections = [],
 }: PostCardProps) {
+    const { t, isZh } = useI18n();
+    const tPost = t.postCard;
+
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [likeCount, setLikeCount] = useState(likes);
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
@@ -125,13 +94,32 @@ export function PostCard({
     const [justLiked, setJustLiked] = useState(false);
     const [justBookmarked, setJustBookmarked] = useState(false);
 
+    // 格式化相对时间
+    const formatRelativeTime = (date: Date): string => {
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return tPost.justNow;
+        if (diffMins < 60) return `${diffMins} ${tPost.minsAgo}`;
+        if (diffHours < 24) return `${diffHours} ${tPost.hoursAgo}`;
+        if (diffDays < 7) return `${diffDays} ${tPost.daysAgo}`;
+
+        return date.toLocaleDateString(isZh ? "zh-CN" : "en-US", { month: "numeric", day: "numeric" });
+    };
+
+    // 清洗正文摘要，过滤泄露的 Markdown 语法符号
+    const cleanSummary = useMemo(() => {
+        return cleanSummaryText(content);
+    }, [content]);
+
     const finalCollections: Array<{ id?: string; name: string }> = collections.length > 0
         ? collections
         : collectionNames.map(name => ({ name }));
 
     const hasCover = !!coverImage;
-    const primaryTag = tags[0];
-    const primaryColor = tagColors[primaryTag] || defaultTagColor;
 
     // ---- 事件处理 ----
     const handleLike = (e: React.MouseEvent) => {
@@ -175,7 +163,7 @@ export function PostCard({
                 setIsBookmarked(!newBookmarked);
                 toast.error(result.error);
             } else {
-                toast.success(newBookmarked ? "已添加到收藏" : "已取消收藏");
+                toast.success(newBookmarked ? tPost.bookmarked : tPost.unbookmarked);
             }
         });
     };
@@ -185,10 +173,10 @@ export function PostCard({
         e.stopPropagation();
         try {
             await navigator.clipboard.writeText(`${window.location.origin}/posts/${id}`);
-            toast.success("链接已复制到剪贴板");
+            toast.success(tPost.linkCopied);
             createShareRecord(id, "copy_link");
         } catch {
-            toast.error("复制失败");
+            toast.error(tPost.copyFailed);
         }
     };
 
@@ -196,401 +184,245 @@ export function PostCard({
     if (hasCover) {
         return <CoverCard />;
     }
-    return <CompactCard />;
+    return <TextOnlyCard />;
 
-    // ===============================================
-    // 有封面图 → 竖版卡片
-    // ===============================================
-    function CoverCard() {
+    // ============================================================
+    // 顶部公共作者栏组件
+    // ============================================================
+    function PostHeader() {
         return (
-            <motion.div
-                whileHover={{ y: -3 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="group"
-            >
-                <div className="relative bg-card/80 backdrop-blur-sm border border-border/40 rounded-xl overflow-hidden shadow-sm
-                                hover:border-primary/20 hover:shadow-lg hover:shadow-primary/8
-                                transition-all duration-300 will-change-transform">
+            <div className="flex items-center justify-between gap-2.5 mb-3.5">
+                {/* 左侧：头像 + 昵称 + 身份徽章 + 日期（自然横向排列，严格抗折行） */}
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                    <Link href={`/user/${author.id}`} className="shrink-0 flex items-center gap-2 min-w-0">
+                        <Avatar className="h-7.5 w-7.5 border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
+                            <AvatarImage src={author.avatar} alt={author.name} />
+                            <AvatarFallback className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold">
+                                {author.initials}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[130px]">
+                            {author.name}
+                        </span>
+                    </Link>
 
-                    {/* 左侧色带 (与 CompactCard 一致) */}
-                    <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-xl", primaryColor.accent)} />
+                    {/* 身份徽章 - 低饱和度中性微胶囊 */}
+                    {author.special_title && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700/70 shrink-0">
+                            {author.special_title}
+                        </span>
+                    )}
 
-                    <div className="p-6">
-                        {/* 头部：作者 + 标签 + 更多 (与 CompactCard 一致) */}
-                        <div className="flex items-center justify-between mb-4">
-                            <Link href={`/user/${author.id}`} className="flex items-center gap-2.5 group/author min-w-0">
-                                <Avatar className="h-9 w-9 border-2 border-background shadow-sm group-hover/author:ring-2 group-hover/author:ring-primary/20 transition-all shrink-0">
-                                    <AvatarImage src={author.avatar} alt={author.name} />
-                                    <AvatarFallback className="text-xs bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
-                                        {author.initials}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                        <p className="text-sm font-semibold text-foreground group-hover/author:text-primary transition-colors truncate">
-                                            {author.name}
-                                        </p>
-                                        {author.special_title && (
-                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0 shrink-0 whitespace-nowrap">
-                                                {author.special_title}
-                                            </Badge>
-                                        )}
-                                        <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} className="shrink-0" />
-                                    </div>
-                                    <p className="text-[11px] text-muted-foreground/60" suppressHydrationWarning>
-                                        {formatRelativeTime(createdAt)}
-                                    </p>
-                                </div>
-                            </Link>
+                    {/* LV.X 徽章 */}
+                    <VipBadge vipLevel={authorVipLevel} size="sm" className="shrink-0" />
 
-                            <div className="flex items-center gap-2 shrink-0">
-                                {/* 更多操作 */}
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>举报</DropdownMenuItem>
-                                        <DropdownMenuItem>屏蔽作者</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={handleShare}>复制链接</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </div>
-
-                        {/* 封面图 (头部下方, 16:9 圆角) */}
-                        <Link href={`/posts/${id}`} className="block">
-                            <div className="relative w-full aspect-[3/2] rounded-xl overflow-hidden mb-4">
-                                <Image
-                                    src={coverImage!}
-                                    alt={title}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                    placeholder="blur"
-                                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQyNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTVlN2ViIi8+PC9zdmc+"
-                                />
-                                {/* 状态角标 */}
-                                {(isPinned || isSolved || isHelpWanted) && (
-                                    <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end">
-                                        {isPinned && (
-                                            <Badge className="bg-amber-500/90 text-white border-0 gap-1 text-[10px] font-semibold shadow-lg">
-                                                <Pin className="h-3 w-3" /> 置顶
-                                            </Badge>
-                                        )}
-                                        {isSolved ? (
-                                            <Badge className="bg-emerald-500/90 text-white border-0 gap-1 text-[10px] font-semibold shadow-lg">
-                                                <CheckCircle2 className="h-3 w-3" /> 已解决
-                                            </Badge>
-                                        ) : isHelpWanted ? (
-                                            <Badge className="bg-amber-500/90 text-white border-0 gap-1 text-[10px] font-semibold shadow-lg animate-pulse">
-                                                <HelpCircle className="h-3 w-3" /> 求助
-                                            </Badge>
-                                        ) : null}
-                                    </div>
-                                )}
-                            </div>
-                        </Link>
-
-                        {/* 状态标签 (无封面图上的角标时在此展示) */}
-                        {!isSolved && !isHelpWanted ? null : null}
-
-                        {/* 所属专栏指示条 */}
-                        {finalCollections.length > 0 && (
-                            <div className="mb-2">
-                                <Link
-                                    href={`/collections/${finalCollections[0].id || ''}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-primary/[0.07] hover:bg-primary/[0.13] text-primary border border-primary/20 transition-all duration-200 group/col max-w-full"
-                                >
-                                    <span className="flex items-center gap-1 shrink-0 text-primary/80 font-normal">
-                                        <BookOpen className="h-3 w-3 text-primary" />
-                                        专栏
-                                    </span>
-                                    <span className="text-primary/30 font-light">·</span>
-                                    <span className="font-semibold text-foreground/90 group-hover/col:text-primary transition-colors truncate max-w-[200px]">
-                                        {finalCollections[0].name}
-                                    </span>
-                                    {finalCollections.length > 1 && (
-                                        <span className="text-[10px] bg-primary/15 text-primary px-1 rounded font-normal shrink-0">
-                                            +{finalCollections.length - 1}
-                                        </span>
-                                    )}
-                                    <ChevronRight className="h-3 w-3 text-primary/50 group-hover/col:translate-x-0.5 group-hover/col:text-primary transition-transform ml-0.5 shrink-0" />
-                                </Link>
-                            </div>
-                        )}
-
-                        {/* 标题 */}
-                        <Link href={`/posts/${id}`}>
-                            <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors duration-200">
-                                <MathText text={title} inlineOnly />
-                            </h3>
-                        </Link>
-
-                        {/* 摘要 */}
-                        <p className="text-sm text-muted-foreground/80 line-clamp-2 mt-2.5 leading-relaxed break-words">
-                            <MathText text={content} inlineOnly />
-                        </p>
-
-                        {/* 帖子标签 */}
-                        {tags.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                                {tags.slice(0, 3).map((tag) => {
-                                    const c = tagColors[tag] || defaultTagColor;
-                                    return (
-                                        <Badge
-                                            key={tag}
-                                            variant="outline"
-                                            className={cn(
-                                                "text-[10px] px-2 py-0 h-5 font-medium border-0",
-                                                c.bg, c.text
-                                            )}
-                                        >
-                                            {tag}
-                                        </Badge>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {/* 底栏：互动按钮 (与 CompactCard 一致) */}
-                        <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-border/30">
-                            <div className="flex items-center gap-1">
-                                <ActionButton
-                                    icon={<Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} strokeWidth={2} />}
-                                    count={likeCount}
-                                    active={isLiked}
-                                    activeColor="text-red-500"
-                                    onClick={handleLike}
-                                    disabled={isPending}
-                                    animate={justLiked}
-                                    particleType="heart"
-                                />
-                                <Link href={`/posts/${id}#comments`}>
-                                    <ActionButton
-                                        icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={2} />}
-                                        count={comments}
-                                        hoverColor="hover:text-primary"
-                                    />
-                                </Link>
-                                <ActionButton
-                                    icon={<Share2 className="h-3.5 w-3.5" strokeWidth={2} />}
-                                    onClick={handleShare}
-                                    hoverColor="hover:text-primary"
-                                />
-                            </div>
-
-                            <ActionButton
-                                icon={<Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} strokeWidth={2} />}
-                                active={isBookmarked}
-                                activeColor="text-primary"
-                                onClick={handleBookmark}
-                                disabled={isPending}
-                                hoverColor="hover:text-primary"
-                                animate={justBookmarked}
-                                particleType="star"
-                            />
-                        </div>
-                    </div>
+                    {/* 点隔断与发布时间 */}
+                    <span className="text-zinc-300 dark:text-zinc-700 text-xs select-none shrink-0">·</span>
+                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal shrink-0 whitespace-nowrap" suppressHydrationWarning>
+                        {formatRelativeTime(createdAt)}
+                    </span>
                 </div>
-            </motion.div>
+
+                {/* 右侧：所属专栏 / 置顶徽标 / 操作菜单 */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    {/* 所属专栏指示徽章 */}
+                    {finalCollections.length > 0 && (
+                        <Link
+                            href={`/collections/${finalCollections[0].id || ''}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors max-w-[110px]"
+                        >
+                            <BookOpen className="h-2.5 w-2.5 text-zinc-400" strokeWidth={1.75} />
+                            <span className="truncate">{finalCollections[0].name}</span>
+                        </Link>
+                    )}
+
+                    {/* 置顶/已解决/求助徽标 */}
+                    {isPinned && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80">
+                            <Pin className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.75} /> {tPost.pinned}
+                        </span>
+                    )}
+                    {isSolved && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle2 className="h-2.5 w-2.5" strokeWidth={1.75} /> {tPost.solved}
+                        </span>
+                    )}
+                    {isHelpWanted && !isSolved && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            <HelpCircle className="h-2.5 w-2.5" strokeWidth={1.75} /> {tPost.helpWanted}
+                        </span>
+                    )}
+
+                    {/* 更多操作 */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6.5 w-6.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="text-xs">
+                            <DropdownMenuItem>{tPost.report}</DropdownMenuItem>
+                            <DropdownMenuItem>{tPost.blockAuthor}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleShare}>{tPost.copyLink}</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
         );
     }
 
-    // ===============================================
-    // 无封面图 → 横版卡片
-    // ===============================================
-    function CompactCard() {
+    // ============================================================
+    // 底部公共操作栏组件
+    // ============================================================
+    function PostFooter() {
         return (
-            <motion.div
-                whileHover={{ y: -3 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="group"
-            >
-                <div className="relative bg-card/80 backdrop-blur-sm border border-border/40 rounded-xl overflow-hidden shadow-sm
-                                hover:border-primary/20 hover:shadow-lg hover:shadow-primary/8
-                                transition-all duration-300 will-change-transform">
+            <div className="flex items-center justify-between px-5 py-2.5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-900/40">
+                <div className="flex items-center gap-3.5">
+                    <ActionButton
+                        icon={<Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} strokeWidth={1.75} />}
+                        count={likeCount}
+                        active={isLiked}
+                        activeColor="text-rose-500 dark:text-rose-400"
+                        onClick={handleLike}
+                        disabled={isPending}
+                        animate={justLiked}
+                        particleType="heart"
+                    />
+                    <Link href={`/posts/${id}#comments`}>
+                        <ActionButton
+                            icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                            count={comments}
+                            hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
+                        />
+                    </Link>
+                    <ActionButton
+                        icon={<Share2 className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                        onClick={handleShare}
+                        hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
+                    />
+                </div>
 
-                    {/* 左侧色带 */}
-                    <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-xl", primaryColor.accent)} />
+                <ActionButton
+                    icon={<Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} strokeWidth={1.75} />}
+                    active={isBookmarked}
+                    activeColor="text-amber-500 dark:text-amber-400"
+                    onClick={handleBookmark}
+                    disabled={isPending}
+                    hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
+                    animate={justBookmarked}
+                    particleType="star"
+                />
+            </div>
+        );
+    }
 
-                    <div className="p-6">
-                        {/* 头部：作者 + 标签 + 更多 */}
-                        <div className="flex items-center justify-between mb-4">
-                            <Link href={`/user/${author.id}`} className="flex items-center gap-2.5 group/author min-w-0">
-                                <Avatar className="h-9 w-9 border-2 border-background shadow-sm group-hover/author:ring-2 group-hover/author:ring-primary/20 transition-all shrink-0">
-                                    <AvatarImage src={author.avatar} alt={author.name} />
-                                    <AvatarFallback className="text-xs bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
-                                        {author.initials}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                        <p className="text-sm font-semibold text-foreground group-hover/author:text-primary transition-colors truncate">
-                                            {author.name}
-                                        </p>
-                                        {author.special_title && (
-                                            <Badge variant="default" className="h-5 px-1.5 text-[10px] bg-purple-500 hover:bg-purple-600 shadow-sm border-0 shrink-0 whitespace-nowrap">
-                                                {author.special_title}
-                                            </Badge>
-                                        )}
-                                        <VipBadge vipLevel={authorVipLevel} size="sm" showTitle={true} className="shrink-0" />
-                                    </div>
-                                    <p className="text-[11px] text-muted-foreground/60" suppressHydrationWarning>
-                                        {formatRelativeTime(createdAt)}
-                                    </p>
-                                </div>
-                            </Link>
+    // ============================================================
+    // 1. 有封面图/附件 → 竖版卡片 (CoverCard)
+    // ============================================================
+    function CoverCard() {
+        return (
+            <div className="group rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden shadow-2xs hover:shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between">
+                <div className="p-5">
+                    {/* 顶部作者栏 */}
+                    <PostHeader />
 
-                            <div className="flex items-center gap-2 shrink-0">
-                                {/* 更多操作 */}
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>举报</DropdownMenuItem>
-                                        <DropdownMenuItem>屏蔽作者</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={handleShare}>复制链接</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </div>
-
-                        {/* 状态标签 */}
-                        {(isPinned || isSolved || (isHelpWanted && !isSolved)) && (
-                            <div className="flex gap-2 mb-2">
-                                {isPinned && (
-                                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-0 gap-1 text-[10px] font-semibold">
-                                        <Pin className="h-3 w-3" /> 置顶
-                                    </Badge>
-                                )}
-                                {isSolved && (
-                                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 gap-1 text-[10px] font-semibold">
-                                        <CheckCircle2 className="h-3 w-3" /> 已解决
-                                    </Badge>
-                                )}
-                                {isHelpWanted && !isSolved && (
-                                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-0 gap-1 text-[10px] font-semibold">
-                                        <HelpCircle className="h-3 w-3" /> 求助中
-                                    </Badge>
-                                )}
-                            </div>
-                        )}
-
-                        {/* 所属专栏指示条 */}
-                        {finalCollections.length > 0 && (
-                            <div className="mb-2">
-                                <Link
-                                    href={`/collections/${finalCollections[0].id || ''}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-primary/[0.07] hover:bg-primary/[0.13] text-primary border border-primary/20 transition-all duration-200 group/col max-w-full"
-                                >
-                                    <span className="flex items-center gap-1 shrink-0 text-primary/80 font-normal">
-                                        <BookOpen className="h-3 w-3 text-primary" />
-                                        专栏
-                                    </span>
-                                    <span className="text-primary/30 font-light">·</span>
-                                    <span className="font-semibold text-foreground/90 group-hover/col:text-primary transition-colors truncate max-w-[200px]">
-                                        {finalCollections[0].name}
-                                    </span>
-                                    {finalCollections.length > 1 && (
-                                        <span className="text-[10px] bg-primary/15 text-primary px-1 rounded font-normal shrink-0">
-                                            +{finalCollections.length - 1}
-                                        </span>
-                                    )}
-                                    <ChevronRight className="h-3 w-3 text-primary/50 group-hover/col:translate-x-0.5 group-hover/col:text-primary transition-transform ml-0.5 shrink-0" />
-                                </Link>
-                            </div>
-                        )}
-
-                        {/* 标题 */}
-                        <Link href={`/posts/${id}`}>
-                            <h3 className="text-lg font-semibold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors duration-200">
-                                <MathText text={title} inlineOnly />
-                            </h3>
-                        </Link>
-
-                        {/* 摘要 */}
-                        <p className="text-sm text-muted-foreground/80 line-clamp-2 mt-2.5 leading-relaxed break-words">
-                            <MathText text={content} inlineOnly />
-                        </p>
-
-                        {/* 帖子标签 */}
-                        {tags.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                                {tags.slice(0, 3).map((tag) => {
-                                    const c = tagColors[tag] || defaultTagColor;
-                                    return (
-                                        <Badge
-                                            key={tag}
-                                            variant="outline"
-                                            className={cn(
-                                                "text-[10px] px-2 py-0 h-5 font-medium border-0",
-                                                c.bg, c.text
-                                            )}
-                                        >
-                                            {tag}
-                                        </Badge>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {/* 底栏：互动按钮 */}
-                        <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-border/30">
-                            <div className="flex items-center gap-1">
-                                <ActionButton
-                                    icon={<Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} strokeWidth={2} />}
-                                    count={likeCount}
-                                    active={isLiked}
-                                    activeColor="text-red-500"
-                                    onClick={handleLike}
-                                    disabled={isPending}
-                                    animate={justLiked}
-                                    particleType="heart"
-                                />
-                                <Link href={`/posts/${id}#comments`}>
-                                    <ActionButton
-                                        icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={2} />}
-                                        count={comments}
-                                        hoverColor="hover:text-primary"
-                                    />
-                                </Link>
-                                <ActionButton
-                                    icon={<Share2 className="h-3.5 w-3.5" strokeWidth={2} />}
-                                    onClick={handleShare}
-                                    hoverColor="hover:text-primary"
-                                />
-                            </div>
-
-                            <ActionButton
-                                icon={<Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} strokeWidth={2} />}
-                                active={isBookmarked}
-                                activeColor="text-primary"
-                                onClick={handleBookmark}
-                                disabled={isPending}
-                                hoverColor="hover:text-primary"
-                                animate={justBookmarked}
-                                particleType="star"
+                    {/* 图片视窗容器 (16:9 固定比例，微弱内描边，悬停微缩放) */}
+                    <Link href={`/posts/${id}`} className="block">
+                        <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3.5 border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100 dark:bg-zinc-800 ring-1 ring-inset ring-black/5 dark:ring-white/10">
+                            <Image
+                                src={coverImage!}
+                                alt={title}
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                                className="object-cover group-hover:scale-[1.02] transition-transform duration-300 ease-out"
+                                placeholder="blur"
+                                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQyNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTVlN2ViIi8+PC9zdmc+"
                             />
                         </div>
-                    </div>
+                    </Link>
+
+                    {/* 标题 */}
+                    <Link href={`/posts/${id}`} className="block group/title">
+                        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2 group-hover/title:text-primary transition-colors duration-150">
+                            <MathText text={title} inlineOnly />
+                        </h3>
+                    </Link>
+
+                    {/* 正文摘要 (深度清洗无标记纯文本，严格最多 2 行) */}
+                    {cleanSummary && (
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 mt-1.5 break-words font-normal">
+                            {cleanSummary}
+                        </p>
+                    )}
+
+                    {/* 学科/分类 Tag (统一为极简扁平中性胶囊) */}
+                    {tags.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                            {tags.slice(0, 3).map((tag) => (
+                                <span
+                                    key={tag}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-400 transition-colors"
+                                >
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            </motion.div>
+
+                {/* 底部交互栏 */}
+                <PostFooter />
+            </div>
+        );
+    }
+
+    // ============================================================
+    // 2. 无图纯文本 → 极简卡片 (TextOnlyCard)
+    // ============================================================
+    function TextOnlyCard() {
+        return (
+            <div className="group rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden shadow-2xs hover:shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between">
+                <div className="p-5">
+                    {/* 顶部作者栏 */}
+                    <PostHeader />
+
+                    {/* 标题 */}
+                    <Link href={`/posts/${id}`} className="block group/title">
+                        <h3 className="text-base sm:text-[17px] font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2 group-hover/title:text-primary transition-colors duration-150">
+                            <MathText text={title} inlineOnly />
+                        </h3>
+                    </Link>
+
+                    {/* 正文摘要 (深度清洗无标记纯文本，严格最多 2 行，宽裕呼吸行高) */}
+                    {cleanSummary && (
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 mt-1.5 break-words font-normal">
+                            {cleanSummary}
+                        </p>
+                    )}
+
+                    {/* 学科/分类 Tag (统一为极简扁平中性胶囊) */}
+                    {tags.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-3.5">
+                            {tags.slice(0, 3).map((tag) => (
+                                <span
+                                    key={tag}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-400 transition-colors"
+                                >
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* 底部交互栏 */}
+                <PostFooter />
+            </div>
         );
     }
 }
@@ -649,8 +481,8 @@ function ActionButton({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                "relative inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200",
-                "text-muted-foreground/70",
+                "relative inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors duration-150 select-none",
+                "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
                 active ? activeColor : hoverColor,
                 disabled && "opacity-50"
             )}
@@ -682,14 +514,14 @@ function ActionButton({
             )}
 
             <motion.span
-                animate={animate ? { scale: [1, 1.4, 0.9, 1.1, 1] } : {}}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
+                animate={animate ? { scale: [1, 1.3, 0.95, 1.1, 1] } : {}}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
                 className="inline-flex"
             >
                 {icon}
             </motion.span>
             {count !== undefined && count > 0 && (
-                <span className="tabular-nums">{count}</span>
+                <span className="tabular-nums font-mono text-[11px]">{count}</span>
             )}
         </button>
     );

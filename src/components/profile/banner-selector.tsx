@@ -8,55 +8,69 @@ import {
 } from "@/components/ui/popover";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { Check, Palette } from "lucide-react";
+import { Check, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const bannerGradients = [
+export interface BannerPreset {
+    id: string;
+    name: string;
+    class: string;
+    preview: string;
+}
+
+export const bannerGradients: BannerPreset[] = [
     {
         id: "default",
-        name: "默认 (极光)",
-        class: "bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100",
-        preview: "bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100"
+        name: "极光微澜",
+        class: "bg-gradient-to-tr from-indigo-500/20 via-sky-500/15 to-purple-500/25 dark:from-indigo-950/60 dark:via-sky-950/40 dark:to-purple-950/60",
+        preview: "bg-gradient-to-tr from-indigo-400 via-sky-300 to-purple-400"
     },
     {
         id: "sunset",
-        name: "日落 (暖阳)",
-        class: "bg-gradient-to-r from-orange-100 via-amber-100 to-rose-100",
-        preview: "bg-gradient-to-r from-orange-100 via-amber-100 to-rose-100"
+        name: "暖阳暮色",
+        class: "bg-gradient-to-tr from-amber-500/20 via-orange-500/15 to-rose-500/20 dark:from-amber-950/60 dark:via-orange-950/40 dark:to-rose-950/60",
+        preview: "bg-gradient-to-tr from-amber-400 via-orange-300 to-rose-400"
     },
     {
         id: "ocean",
-        name: "海洋 (深蓝)",
-        class: "bg-gradient-to-r from-cyan-100 via-blue-100 to-sky-100",
-        preview: "bg-gradient-to-r from-cyan-100 via-blue-100 to-sky-100"
+        name: "蔚蓝星海",
+        class: "bg-gradient-to-tr from-cyan-500/20 via-blue-500/15 to-teal-500/20 dark:from-cyan-950/60 dark:via-blue-950/40 dark:to-teal-950/60",
+        preview: "bg-gradient-to-tr from-cyan-400 via-blue-300 to-teal-400"
     },
     {
         id: "forest",
-        name: "森林 (清新)",
-        class: "bg-gradient-to-r from-emerald-100 via-green-100 to-teal-100",
-        preview: "bg-gradient-to-r from-emerald-100 via-green-100 to-teal-100"
+        name: "翠林幽谷",
+        class: "bg-gradient-to-tr from-emerald-500/20 via-teal-500/15 to-green-500/20 dark:from-emerald-950/60 dark:via-teal-950/40 dark:to-green-950/60",
+        preview: "bg-gradient-to-tr from-emerald-400 via-teal-300 to-green-400"
     },
     {
         id: "lavender",
-        name: "薰衣草 (梦幻)",
-        class: "bg-gradient-to-r from-fuchsia-100 via-purple-100 to-pink-100",
-        preview: "bg-gradient-to-r from-fuchsia-100 via-purple-100 to-pink-100"
+        name: "梦幻紫罗兰",
+        class: "bg-gradient-to-tr from-fuchsia-500/20 via-purple-500/15 to-pink-500/20 dark:from-fuchsia-950/60 dark:via-purple-950/40 dark:to-pink-950/60",
+        preview: "bg-gradient-to-tr from-fuchsia-400 via-purple-300 to-pink-400"
     },
     {
         id: "midnight",
-        name: "午夜 (深邃)",
-        class: "bg-gradient-to-r from-slate-800 via-zinc-800 to-neutral-800",
-        preview: "bg-gradient-to-r from-slate-800 via-zinc-800 to-neutral-800"
+        name: "暗夜星芒",
+        class: "bg-gradient-to-tr from-zinc-800/80 via-slate-900/90 to-zinc-950 dark:from-zinc-900 dark:via-slate-950 dark:to-black",
+        preview: "bg-gradient-to-tr from-zinc-700 via-slate-800 to-zinc-950"
+    },
+    {
+        id: "minimal",
+        name: "银灰极简",
+        class: "bg-gradient-to-tr from-zinc-200/50 via-zinc-100/40 to-slate-200/60 dark:from-zinc-800/40 dark:via-zinc-900/40 dark:to-slate-900/50",
+        preview: "bg-gradient-to-tr from-zinc-300 via-zinc-200 to-slate-300"
     }
 ];
 
 interface BannerSelectorProps {
     currentStyle: string;
     onStyleChange: (style: string) => void;
+    className?: string;
 }
 
-export function BannerSelector({ currentStyle, onStyleChange }: BannerSelectorProps) {
+export function BannerSelector({ currentStyle, onStyleChange, className }: BannerSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
@@ -75,11 +89,11 @@ export function BannerSelector({ currentStyle, onStyleChange }: BannerSelectorPr
             if (error) throw error;
 
             onStyleChange(gradientId);
-            toast.success("背景已更新");
+            toast.success("封面背景已更新");
             setIsOpen(false);
         } catch (error) {
             console.error("Failed to update banner:", error);
-            toast.error("更新失败，请重试");
+            toast.error("更新封面失败，请重试");
         } finally {
             setLoading(false);
         }
@@ -91,37 +105,47 @@ export function BannerSelector({ currentStyle, onStyleChange }: BannerSelectorPr
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="bg-white/30 hover:bg-white/50 backdrop-blur-md border border-white/20 shadow-sm transition-all"
+                    className={cn(
+                        "h-7 px-2.5 text-xs font-medium backdrop-blur-md bg-white/70 hover:bg-white/90 dark:bg-zinc-900/75 dark:hover:bg-zinc-900/95 text-zinc-800 dark:text-zinc-200 border border-white/40 dark:border-zinc-700/60 shadow-xs rounded-lg transition-all flex items-center gap-1.5",
+                        className
+                    )}
                 >
-                    <Palette className="h-4 w-4 mr-2" />
-                    更换背景
+                    <ImageIcon className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
+                    <span>更换封面</span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-3" align="end">
-                <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground mb-2">选择页面主题</h4>
+            <PopoverContent className="w-72 p-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl" align="end">
+                <div className="space-y-2.5">
+                    <div className="flex items-center justify-between pb-1 border-b border-zinc-100 dark:border-zinc-800">
+                        <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">选择封面主题</h4>
+                        <span className="text-[10px] text-zinc-400">自适应明暗模式</span>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
-                        {bannerGradients.map((gradient) => (
-                            <button
-                                key={gradient.id}
-                                disabled={loading}
-                                onClick={() => handleSelect(gradient.id)}
-                                className={cn(
-                                    "relative h-16 rounded-md overflow-hidden border border-border/50 transition-all hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                                    gradient.preview,
-                                    currentStyle === gradient.id && "ring-2 ring-primary ring-offset-2"
-                                )}
-                            >
-                                {currentStyle === gradient.id && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                                        <Check className="h-4 w-4 text-primary-foreground drop-shadow-md" />
-                                    </div>
-                                )}
-                                <span className="absolute bottom-0 left-0 right-0 py-1 text-[10px] bg-white/80 backdrop-blur-[2px] text-center font-medium">
-                                    {gradient.name}
-                                </span>
-                            </button>
-                        ))}
+                        {bannerGradients.map((gradient) => {
+                            const isSelected = currentStyle === gradient.id;
+                            return (
+                                <button
+                                    key={gradient.id}
+                                    type="button"
+                                    disabled={loading}
+                                    onClick={() => handleSelect(gradient.id)}
+                                    className={cn(
+                                        "group relative h-14 rounded-lg overflow-hidden border border-zinc-200/60 dark:border-zinc-800/80 transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 text-left",
+                                        gradient.preview,
+                                        isSelected && "ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2 dark:ring-offset-zinc-900"
+                                    )}
+                                >
+                                    {isSelected && (
+                                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-zinc-900/80 dark:bg-white/90 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
+                                            <Check className="h-2.5 w-2.5 stroke-[2.5]" />
+                                        </div>
+                                    )}
+                                    <span className="absolute bottom-0 inset-x-0 py-0.5 px-1.5 text-[10px] bg-black/30 dark:bg-black/50 backdrop-blur-[2px] text-white font-medium truncate">
+                                        {gradient.name}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </PopoverContent>

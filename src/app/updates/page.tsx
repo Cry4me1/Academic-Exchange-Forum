@@ -8,30 +8,40 @@ import {
     Award,
     BookOpen,
     CheckCircle2,
+    Code,
     Cloud,
+    Compass,
     Crown,
     EyeOff,
     FileCode,
     FileText,
     GitMerge,
+    Globe,
+    GraduationCap,
     Heart,
+    Image as ImageIcon,
+    Languages,
     Layers,
     LayoutDashboard,
     Lock,
     MessageSquare,
+    MessageSquareCode,
     Palette,
     PenTool,
     Printer,
     Rocket,
+    Search,
     Shield,
     ShieldCheck,
     Sparkles,
     Star,
+    User,
     Users,
     Zap,
 } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
+import { ZoomableImage } from "@/components/ui/zoomable-image";
 
 export const metadata: Metadata = {
     title: "更新日志 - Scholarly",
@@ -84,7 +94,7 @@ export default function UpdatesPage() {
                 <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-4 md:ml-6 space-y-12">
 
                     {/* ╔══════════════════════════════════════════════════╗ */}
-                    {/* ║  v1.1.6 – 出版级学术PDF导出 & 专属邀请与AI审核 🚀 ║ */}
+                    {/* ║  v1.1.7 – 全栈双语国际化 & 封面图与三大UI重构 🚀   ║ */}
                     {/* ╚══════════════════════════════════════════════════╝ */}
                     <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
                         {/* Pulsing timeline dot for the latest version */}
@@ -94,16 +104,330 @@ export default function UpdatesPage() {
                         </div>
 
                         <div className="flex flex-col gap-3 mb-5">
-                            <time className="text-sm text-muted-foreground font-mono">2026-08-22</time>
+                            <time className="text-sm text-muted-foreground font-mono">2026-08-28</time>
                             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
                                 <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
-                                    v1.1.6
+                                    v1.1.7
                                 </span>
-                                <span className="text-foreground">— 学术出版级 PDF 导出 & 邀请制与 AI 审稿</span>
+                                <span className="text-foreground">— 全站双语国际化 & 16:9 封面图与三大 UI 深度重构</span>
                                 <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 animate-[pulse_2s_ease-in-out_infinite] text-xs px-3 py-1">
                                     <Sparkles className="w-3 h-3 mr-1" />
                                     最新版本
                                 </Badge>
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                                迈向国际化学术交流与极致现代美学。v1.1.7 带来了全站中英双语国际化（i18n）架构无缝切换、16:9 帖子封面图上传与正文智能配图提取、主页/编辑器/个人主页三大核心 UI 深度重构，并全新上线沉浸式新手引导、6 步互动教学营、用户搜索学术名片卡与聊天室语法高亮代码块。
+                            </p>
+                        </div>
+
+                        {/* Main Card with gradient border effect */}
+                        <div className="relative group mb-12">
+                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
+                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+
+                                <CardHeader className="pt-8">
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                                        全新功能与重大改进
+                                    </CardTitle>
+                                    <CardDescription>
+                                        中英全站多语言、16:9 封面系统与配图提取、主页/编辑器/个人主页重构、迎新向导、实战教学营与聊天代码高亮。
+                                    </CardDescription>
+                                </CardHeader>
+
+                                <CardContent className="space-y-6 pb-8">
+                                    {/* Feature 1 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                <Globe className="w-4 h-4" />
+                                            </span>
+                                            英、汉语全站国际化多语言体系 (i18n)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>构建轻量级全栈双语架构，打破语言壁垒，助力全球学者无障碍研讨：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>全站双语平滑切换</strong>：搭载轻量化 i18n 状态引擎与静态类型安全字典，覆盖主页导航、控制台模块、个人设置、帖子卡片与迎新向导。</li>
+                                                <li><strong>智能语言持久化</strong>：支持在顶部导航及控制台中一键在“简体中文”与“English”之间快速切换，自动记忆用户偏好并自适应加载。</li>
+                                                <li><strong>国际化学术词汇规范</strong>：针对学术论文导出、同行评审、学术对决等专业模块进行了精确的学术英文术语标准化映射。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 2 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                                                <ImageIcon className="w-4 h-4" />
+                                            </span>
+                                            帖子 16:9 标准封面图系统与智能配图提取
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>大幅增强学术文章的视觉表现力，让优质学术成果更具吸引力：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>多样化封面设置</strong>：支持本地 16:9 比例图片拖拽与极速上传（自带格式与 2MB 大小校验），并支持公开网络图片直链设置。</li>
+                                                <li><strong>正文配图智能提取</strong>：独创富文本 AST 树递归解析引擎，自动侦测并捕获 Novel 富文本正文中的全部学术图表与实验配图，支持一键选取设为封面。</li>
+                                                <li><strong>瀑布流卡片优雅呈现</strong>：在控制台主页（PostCard）及文章详情页中，以标准 16:9 比例与平滑缩放动效呈现高质量封面。</li>
+                                            </ul>
+
+                                            {/* Screenshot: 封面图与编辑器 */}
+                                            <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="relative aspect-[1024/507] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v1-1-7/editor-cover-uploader.png"
+                                                        alt="帖子编辑器 16:9 封面图上传器界面"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 800px"
+                                                        caption="帖子编辑器 16:9 封面图上传与正文智能配图提取面板"
+                                                    />
+                                                </div>
+                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <span>▲ 帖子编辑器中集成的 16:9 封面图上传、网络链接与正文智能配图提取面板</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 3 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                                                <LayoutDashboard className="w-4 h-4" />
+                                            </span>
+                                            全站三大核心 UI 深度重构（主页 / 编辑器 / 个人主页）
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>采用现代化毛玻璃拟态、流光边框（Border Beam）与动态粒子特效，全面重塑视觉与交互体验：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>控制台主页 (Dashboard) 重构</strong>：全新重构了 FeedTabs 标签切换器、StoryBanner 故事横幅、热门标签云（TagCloud）、AI 语义提问卡片与右侧在线好友学术名片。</li>
+                                                <li><strong>帖子编辑器 (Editor) 重构</strong>：全新 Novel 学术级富文本编辑器，工具栏交互升级、封面图快捷面板、学术元数据与侧边栏审稿抽屉深度融合。</li>
+                                                <li><strong>个人主页 (Profile) 重构</strong>：上线个性化学术 Banner 渐变选择器、洛谷 (Luogu) 等第三方账号双向绑定卡片、学术成就与战力勋章展示矩阵。</li>
+                                            </ul>
+
+                                            {/* Screenshots for Dashboard & Profile */}
+                                            <div className="mt-4 space-y-4">
+                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[1024/508] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-7/dashboard-redesign.png"
+                                                            alt="控制台主页 UI 重构界面"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 800px"
+                                                            caption="控制台主页 (Dashboard) 现代化毛玻璃瀑布流与双语切换"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 控制台主页 (Dashboard) 现代化毛玻璃瀑布流、双语切换与多模块交互设计</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[1024/509] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-7/profile-banner-redesign.png"
+                                                            alt="个人主页 UI 重构界面"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 800px"
+                                                            caption="个人主页 (Profile) 学术 Banner 渐变更换与成就勋章"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 个人主页 (Profile) 学术 Banner 渐变更换、战力徽章与帖子归档展示</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 4 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                                                <GraduationCap className="w-4 h-4" />
+                                            </span>
+                                            新手迎新向导 (Onboarding) 与 6 步互动式新手教学营
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>零门槛引导新学者探索平台强大功能，打造沉浸式学术成长旅程：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>3 步迎新向导</strong>：学术诚信准则与条款签署、个人学者名片极速设置、主题工作室个性化定制。</li>
+                                                <li><strong>6 步互动式教学营</strong>：涵盖 Novel 富文本排版、出版级 PDF 导出、学术对决 Arena、实时学术私聊、积分成长体系与 AI 语义审稿实战。</li>
+                                                <li><strong>结业勋章与成就弹窗</strong>：学员通关全部实操关卡后，自动触发高规格结业证书与专属成就勋章弹窗奖励。</li>
+                                            </ul>
+
+                                            {/* Screenshots for Onboarding 3 Steps */}
+                                            <div className="mt-4 space-y-2">
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                    {/* Step 1 */}
+                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs flex flex-col">
+                                                        <div className="relative aspect-[920/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                            <ZoomableImage
+                                                                src="/updates/v1-1-7/onboarding-step1-guidelines.png"
+                                                                alt="迎新向导第 1 步：学术诚信公约与服务协议签署"
+                                                                fill
+                                                                className="object-contain"
+                                                                sizes="(max-width: 768px) 100vw, 300px"
+                                                                caption="迎新向导第 1 步：学术公约与协议签署"
+                                                            />
+                                                        </div>
+                                                        <div className="py-2 px-2.5 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground">
+                                                            <span className="font-medium text-foreground block mb-0.5">第 1 步 · 诚信公约</span>
+                                                            合规自律与法律协议签署
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Step 2 */}
+                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs flex flex-col">
+                                                        <div className="relative aspect-[841/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                            <ZoomableImage
+                                                                src="/updates/v1-1-7/onboarding-step2-profile.png"
+                                                                alt="迎新向导第 2 步：打造学者专属名片快速建档"
+                                                                fill
+                                                                className="object-contain"
+                                                                sizes="(max-width: 768px) 100vw, 300px"
+                                                                caption="迎新向导第 2 步：学者专属名片快速建档"
+                                                            />
+                                                        </div>
+                                                        <div className="py-2 px-2.5 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground">
+                                                            <span className="font-medium text-foreground block mb-0.5">第 2 步 · 学者建档</span>
+                                                            基础资料与研究方向速填
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Step 3 */}
+                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs flex flex-col">
+                                                        <div className="relative aspect-[884/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                            <ZoomableImage
+                                                                src="/updates/v1-1-7/onboarding-step3-theme.png"
+                                                                alt="迎新向导第 3 步：个性化主页背景主题工作室"
+                                                                fill
+                                                                className="object-contain"
+                                                                sizes="(max-width: 768px) 100vw, 300px"
+                                                                caption="迎新向导第 3 步：个性化主页背景主题工作室"
+                                                            />
+                                                        </div>
+                                                        <div className="py-2 px-2.5 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground">
+                                                            <span className="font-medium text-foreground block mb-0.5">第 3 步 · 主题工作室</span>
+                                                            空间氛围色系沉浸定制
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-center text-[11px] text-muted-foreground pt-1 flex items-center justify-center gap-1">
+                                                    <span>▲ 沉浸式 3 步迎新向导流程实景</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
+                                                </div>
+
+                                                {/* Screenshot: 新手实真实训营 */}
+                                                <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[986/1024] w-full max-w-2xl mx-auto overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-7/tutorial-camp.png"
+                                                            alt="Scholarly 学术社区 全真实操训练营实景"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 700px"
+                                                            caption="Scholarly 学术社区 全真实操训练营 (Step 1 学术创作技能实战)"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 1:1 真实业务沙盒驱动的 6 步新手实操训练营交互界面</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 5 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500">
+                                                <MessageSquareCode className="w-4 h-4" />
+                                            </span>
+                                            学术聊天界面 UI 重构与多语言代码块高亮
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>赋能高质量学术代码沟通，打造开发者与学者友好的即时通信环境：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>ChatCodeBlock 高亮组件</strong>：基于 highlight.js 深度定制，支持 C++、Python、TypeScript 等数十种语言的高亮与 Tag 识别。</li>
+                                                <li><strong>一键复制代码与防转义解析</strong>：提供代码块一键复制与反馈动效，内置 HTML 实体反转义解析器，杜绝代码排版错乱。</li>
+                                                <li><strong>气泡排版与附件预览</strong>：聊天气泡与文件/学术论文附件预览卡片全面升级，阅读与下载体验倍增。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 6 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500">
+                                                <Search className="w-4 h-4" />
+                                            </span>
+                                            全局用户搜索卡片 (UserSearchCard)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>快速发现同行学者，促进学术人脉与跨学科合作：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>精致学者搜索卡片</strong>：全局搜索与发现页中呈现学者头像、VIP 标识、学术头衔、粉丝/发帖统计与个人简介。</li>
+                                                <li><strong>一键关注与名片穿梭</strong>：支持在卡片上直接执行关注/取消关注操作，并支持平滑跳转至学者个人主页。</li>
+                                            </ul>
+
+                                            {/* Screenshot: 用户搜索卡片 */}
+                                            <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="relative aspect-[1024/637] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v1-1-7/user-search-card.png"
+                                                        alt="学者用户搜索卡片与名片交互"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 800px"
+                                                        caption="学者用户搜索卡片 (UserSearchCard) 与即时关注互动"
+                                                    />
+                                                </div>
+                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <span>▲ 全局搜索结果中呈现的学者学术名片卡 (UserSearchCard) 与即时关注互动</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* ╔══════════════════════════════════════════════════╗ */}
+                    {/* ║  v1.1.6 – 出版级学术PDF导出 & 专属邀请与AI审核 🚀 ║ */}
+                    {/* ╚══════════════════════════════════════════════════╝ */}
+                    <div className="relative pl-8 md:pl-12 opacity-85 hover:opacity-100 transition-opacity duration-300">
+                        {/* Normal timeline dot */}
+                        <div className="absolute -left-[5px] top-2 flex items-center justify-center">
+                            <span className="h-2.5 w-2.5 rounded-full bg-zinc-300 dark:bg-zinc-600 ring-4 ring-background" />
+                        </div>
+
+                        <div className="flex flex-col gap-3 mb-5">
+                            <time className="text-sm text-muted-foreground font-mono">2026-08-22</time>
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
+                                <span className="text-foreground">
+                                    v1.1.6
+                                </span>
+                                <span className="text-muted-foreground">— 学术出版级 PDF 导出 & 邀请制与 AI 审稿</span>
                             </h2>
                             <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
                                 追求学术严谨与极致阅读。v1.1.6 重磅推出标准学术出版级单栏/双栏 PDF 导出系统与 LaTeX 源码包生成，全面落地超级管理员专属学术邀请制体系，上线多模态 AI 审稿与敏感安全防线，并重构了 60FPS 呼吸式沉浸阅读与学术要素平滑索引。

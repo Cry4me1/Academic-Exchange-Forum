@@ -3,6 +3,7 @@
 import { getMyCredits } from "@/app/(protected)/credits/actions";
 import { Button } from "@/components/ui/button";
 import { extractTextFromJSON, truncateText } from "@/lib/extract-text";
+import { formatCredits } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,6 +17,10 @@ import {
     FileSearch,
     Sparkles,
     Loader2,
+    CheckCircle2,
+    ShieldCheck,
+    Scale,
+    Cpu,
 } from "lucide-react";
 import type { JSONContent } from "novel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,7 +40,6 @@ interface PeerReviewPanelProps {
     isAuthor: boolean;
 }
 
-
 export default function PeerReviewPanel({
     content,
     title,
@@ -43,7 +47,7 @@ export default function PeerReviewPanel({
     postId,
     isAuthor,
 }: PeerReviewPanelProps) {
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false);
     const [creditBalance, setCreditBalance] = useState<number | null>(null);
     const [showReasoning, setShowReasoning] = useState(false);
     const [showDeduction, setShowDeduction] = useState(false);
@@ -76,8 +80,6 @@ export default function PeerReviewPanel({
         }
     }, [isExpanded, isAuthor, refreshCredits]);
 
-
-
     // 初始化时从 localStorage 恢复数据 (仅作者防丢失备用)
     const [initialMessages] = useState(() => {
         if (typeof window !== "undefined" && title && isAuthor) {
@@ -91,7 +93,7 @@ export default function PeerReviewPanel({
         return [];
     });
 
-    // useChat (AI SDK v6): sendMessage / status / messages / setMessages
+    // useChat (AI SDK v6)
     const { messages, sendMessage, status, setMessages } = useChat({
         id: "peer-review",
         messages: initialMessages,
@@ -119,7 +121,6 @@ export default function PeerReviewPanel({
             if (review && postId) {
                 try {
                     await savePeerReview(postId, reasoning, review);
-                    // 清理 localStorage 缓存
                     if (typeof window !== "undefined" && title) {
                         localStorage.removeItem(`peer-review-${title}`);
                     }
@@ -176,6 +177,7 @@ export default function PeerReviewPanel({
                     ];
                     setMessages(dbMessages);
                     setIsPublic(res.data.is_public);
+                    setIsExpanded(true);
                 } else {
                     setMessages([]);
                 }
@@ -211,10 +213,8 @@ export default function PeerReviewPanel({
 
         for (const part of assistantMsg.parts) {
             if (part.type === "reasoning") {
-                // AI SDK v6: ReasoningUIPart.text
                 reasoning += part.text || "";
             } else if (part.type === "text") {
-                // AI SDK v6: TextUIPart.text
                 review += part.text || "";
             }
         }
@@ -222,10 +222,9 @@ export default function PeerReviewPanel({
         return { reasoningText: reasoning, reviewText: review };
     }, [assistantMsg]);
 
-    // 状态检测 (AI SDK v6: status = 'submitted' | 'streaming' | 'ready' | 'error')
+    // 状态检测
     const isActive = status === "submitted" || status === "streaming";
     const hasStarted = messages.length > 0;
-    const isThinking = isActive && !!reasoningText && !reviewText;
     const isWritingReview = isActive && !!reviewText;
     const hasResult = status === "ready" && !!reviewText;
 
@@ -249,11 +248,12 @@ export default function PeerReviewPanel({
 
         const truncatedContent = truncateText(plainText, 8000);
 
-        // 清除之前的评审
+        // 清除之前的评审并展开
         setMessages([]);
         setShowReasoning(false);
+        setIsExpanded(true);
 
-        // 发送评审请求 (AI SDK v6: sendMessage)
+        // 发送评审请求
         await sendMessage(
             { text: "请评审以下文章" },
             {
@@ -268,9 +268,9 @@ export default function PeerReviewPanel({
 
     if (isLoadingDb) {
         return (
-            <div className="rounded-xl border border-border/40 p-4 bg-muted/10 flex items-center justify-center gap-2 h-14">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground">正在加载评审数据...</span>
+            <div className="rounded-2xl border border-violet-200/60 dark:border-violet-950/40 p-4 bg-violet-50/20 dark:bg-violet-950/10 flex items-center justify-center gap-2 h-14">
+                <Loader2 className="h-4 w-4 animate-spin text-violet-600 dark:text-violet-400" />
+                <span className="text-xs text-muted-foreground">正在加载学术评审数据...</span>
             </div>
         );
     }
@@ -283,39 +283,89 @@ export default function PeerReviewPanel({
         creditBalance !== null && creditBalance < MIN_REVIEW_CREDIT_COST;
 
     return (
-        <div className="rounded-xl border border-border/60 bg-gradient-to-br from-violet-500/5 via-background to-indigo-500/5 shadow-lg overflow-hidden">
-            {/* 头部 */}
-            <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors"
-            >
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md">
-                        <Bot className="h-4 w-4 text-white" />
+        <div className="rounded-2xl border border-violet-200/80 dark:border-violet-900/50 bg-gradient-to-br from-violet-50/50 via-white to-zinc-50/50 dark:from-violet-950/20 dark:via-zinc-900/60 dark:to-zinc-950/40 backdrop-blur-sm shadow-xs overflow-hidden transition-all">
+            {/* 头部摘要栏 */}
+            <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setIsExpanded(!isExpanded);
+                        }
+                    }}
+                    className="flex items-start gap-3 text-left cursor-pointer select-none group flex-1"
+                >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-950/80 border border-violet-200/70 dark:border-violet-800/60 text-violet-600 dark:text-violet-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                        <Bot className="h-4 w-4" strokeWidth={1.75} />
                     </div>
-                    <div className="text-left">
-                        <h3 className="text-sm font-semibold text-foreground">
-                            {isAuthor ? "AI 同行评审" : "AI 同行评审 (作者已公开)"}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                            Reviewer #2 · DeepSeek 深度推理模型
-                        </p>
+                    <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                                {isAuthor ? "AI 同行评审" : "AI 同行评审 (作者已公开)"}
+                                <span className="text-[11px] font-normal text-muted-foreground font-mono">
+                                    Reviewer #2 · DeepSeek
+                                </span>
+                            </h3>
+                            {hasResult && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-100/80 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                    评审完成
+                                </span>
+                            )}
+                        </div>
+
+                        {/* 评审维度能力小药丸 */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-100/70 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                                <Scale className="w-2.5 h-2.5" />
+                                论证自洽性
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100/70 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                                <Cpu className="w-2.5 h-2.5" />
+                                算法与边界
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100/70 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                                <ShieldCheck className="w-2.5 h-2.5" />
+                                学术规范
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    {hasResult && (
-                        <span className="text-[10px] font-medium text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
-                            评审完成
-                        </span>
+
+                {/* 右侧控制：折叠切换与紧凑操作按钮 */}
+                <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
+                    {isAuthor && !hasStarted && !isActive && (
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartReview();
+                            }}
+                            disabled={Boolean(insufficientCredits)}
+                            className="h-8 px-3.5 text-xs font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-xs gap-1.5 transition-all"
+                        >
+                            <FileSearch className="h-3.5 w-3.5" strokeWidth={1.75} />
+                            发起初审
+                        </Button>
                     )}
-                    {isExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-violet-100/40 dark:hover:bg-violet-950/40 transition-colors"
+                    >
+                        {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" strokeWidth={1.75} />
+                        ) : (
+                            <ChevronDown className="h-4 w-4" strokeWidth={1.75} />
+                        )}
+                    </button>
                 </div>
-            </button>
+            </div>
 
             {/* 展开内容 */}
             <AnimatePresence>
@@ -324,77 +374,44 @@ export default function PeerReviewPanel({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                     >
-                        <div className="border-t border-border/50">
-                            {/* 积分信息栏（仅作者可见） */}
+                        <div className="border-t border-violet-200/60 dark:border-violet-900/40">
+                            {/* 积分与资费状态栏（仅作者可见） */}
                             {isAuthor && (
-                                <div className="flex items-center justify-between px-5 py-2.5 bg-muted/20">
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Sparkles className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                                <div className="flex items-center justify-between px-5 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 text-xs">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
                                         <span>
-                                            预计消耗 ≥{" "}
-                                            <span className="font-semibold text-violet-500">
-                                                {MIN_REVIEW_CREDIT_COST}
-                                            </span>{" "}
-                                            积分
+                                            单次消耗提示：<strong className="text-violet-700 dark:text-violet-300">≥ {MIN_REVIEW_CREDIT_COST} 积分</strong>
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-1.5 relative">
                                         <Coins className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                        <span className="text-muted-foreground text-[11px]">当前余额:</span>
                                         <AnimatePresence mode="popLayout">
                                             <motion.span
                                                 key={creditBalance}
-                                                initial={{
-                                                    y: -8,
-                                                    opacity: 0,
-                                                    scale: 0.8,
-                                                }}
-                                                animate={{
-                                                    y: 0,
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                }}
-                                                exit={{
-                                                    y: 8,
-                                                    opacity: 0,
-                                                    scale: 0.8,
-                                                }}
-                                                transition={{
-                                                    type: "spring",
-                                                    stiffness: 500,
-                                                    damping: 30,
-                                                }}
-                                                className={`text-xs font-semibold tabular-nums ${insufficientCredits
-                                                    ? "text-red-500"
-                                                    : "text-amber-500"
-                                                    }`}
+                                                initial={{ y: -6, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                exit={{ y: 6, opacity: 0 }}
+                                                className={`font-semibold font-mono tabular-nums ${
+                                                    insufficientCredits ? "text-red-500" : "text-amber-600 dark:text-amber-400"
+                                                }`}
                                             >
-                                                {creditBalance !== null
-                                                    ? creditBalance
-                                                    : "..."}
+                                                {creditBalance !== null ? `${formatCredits(creditBalance)} 积分` : "加载中..."}
                                             </motion.span>
                                         </AnimatePresence>
                                         {/* 扣费飘字 */}
                                         <AnimatePresence>
                                             {showDeduction && (
                                                 <motion.span
-                                                    initial={{
-                                                        opacity: 1,
-                                                        y: 0,
-                                                        x: 4,
-                                                    }}
-                                                    animate={{
-                                                        opacity: 0,
-                                                        y: -24,
-                                                    }}
+                                                    initial={{ opacity: 1, y: 0, x: 4 }}
+                                                    animate={{ opacity: 0, y: -20 }}
                                                     exit={{ opacity: 0 }}
-                                                    transition={{
-                                                        duration: 2,
-                                                        ease: "easeOut",
-                                                    }}
-                                                    className="absolute -top-2 right-0 text-[11px] font-bold text-red-400 pointer-events-none whitespace-nowrap"
+                                                    transition={{ duration: 2, ease: "easeOut" }}
+                                                    className="absolute -top-2 right-0 text-[11px] font-bold text-red-500 pointer-events-none whitespace-nowrap"
                                                 >
                                                     -{deductedAmount}
                                                 </motion.span>
@@ -404,134 +421,92 @@ export default function PeerReviewPanel({
                                 </div>
                             )}
 
-                            {/* ====== 操作按钮（初始状态，仅作者可见） ====== */}
+                            {/* ====== 未开始状态下的详细引导（仅作者可见） ====== */}
                             {isAuthor && !hasStarted && !isActive && (
-                                <div className="px-5 py-4">
+                                <div className="px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                        基于学术论文标准自动检测研究脉络、公式严谨性与潜在缺陷。建议在正文编写超过 50 字后执行。
+                                    </p>
                                     {insufficientCredits ? (
-                                        <div className="space-y-3">
-                                            <p className="text-xs text-red-500/80 text-center">
-                                                余额不足，同行评审需要至少{" "}
-                                                {MIN_REVIEW_CREDIT_COST} 积分
-                                            </p>
-                                            <Button
-                                                onClick={() =>
-                                                    window.dispatchEvent(
-                                                        new CustomEvent(
-                                                            "open-recharge-dialog"
-                                                        )
-                                                    )
-                                                }
-                                                variant="outline"
-                                                className="w-full gap-2 text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
-                                            >
-                                                <Coins className="h-4 w-4" />
-                                                去充值
-                                            </Button>
-                                        </div>
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                window.dispatchEvent(
+                                                    new CustomEvent("open-recharge-dialog")
+                                                )
+                                            }
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-1.5 text-xs text-amber-600 border-amber-500/30 hover:bg-amber-500/10 shrink-0 h-8"
+                                        >
+                                            <Coins className="h-3.5 w-3.5" />
+                                            余额不足，去充值
+                                        </Button>
                                     ) : (
                                         <Button
+                                            type="button"
                                             onClick={handleStartReview}
-                                            className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md"
+                                            size="sm"
+                                            className="h-8 px-4 text-xs font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-xs gap-1.5 shrink-0"
                                         >
-                                            <FileSearch className="h-4 w-4" />
-                                            开始评审（-{MIN_REVIEW_CREDIT_COST}
-                                            + 积分）
+                                            <FileSearch className="h-3.5 w-3.5" />
+                                            开始评审 (≥15 积分)
                                         </Button>
                                     )}
                                 </div>
                             )}
 
-                            {/* ====== 思考中状态 ====== */}
+                            {/* ====== 思考与深度推理状态 ====== */}
                             {isActive && !reviewText && (
                                 <div className="px-5 py-6">
-                                    <div className="flex flex-col items-center gap-4">
-                                        {/* 脉动大脑动画 */}
+                                    <div className="flex flex-col items-center gap-3.5">
                                         <motion.div
                                             animate={{
-                                                scale: [1, 1.1, 1],
-                                                opacity: [0.7, 1, 0.7],
+                                                scale: [1, 1.08, 1],
+                                                opacity: [0.8, 1, 0.8],
                                             }}
                                             transition={{
                                                 duration: 2,
                                                 repeat: Infinity,
                                                 ease: "easeInOut",
                                             }}
-                                            className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-violet-500/20 to-indigo-500/20 border border-violet-500/30"
+                                            className="flex items-center justify-center w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 border border-violet-300 dark:border-violet-800/80 text-violet-600 dark:text-violet-400"
                                         >
-                                            <Brain className="h-7 w-7 text-violet-500" />
+                                            <Brain className="h-6 w-6 animate-pulse" strokeWidth={1.75} />
                                         </motion.div>
-                                        <div className="text-center">
-                                            <p className="text-sm font-semibold text-foreground flex items-center gap-1.5 justify-center">
-                                                Reviewer #2 正在深度思考
+                                        <div className="text-center space-y-1">
+                                            <p className="text-xs sm:text-sm font-semibold text-foreground flex items-center justify-center gap-1.5">
+                                                Reviewer #2 正在进行深度推理
                                                 <motion.span
-                                                    animate={{
-                                                        opacity: [0, 1, 0],
-                                                    }}
-                                                    transition={{
-                                                        duration: 1.5,
-                                                        repeat: Infinity,
-                                                        ease: "easeInOut",
-                                                    }}
+                                                    animate={{ opacity: [0, 1, 0] }}
+                                                    transition={{ duration: 1.2, repeat: Infinity }}
                                                 >
                                                     ...
                                                 </motion.span>
                                             </p>
-                                            <p className="text-xs text-muted-foreground mt-1.5">
-                                                推理模型正在仔细分析文章，这可能需要一些时间
+                                            <p className="text-xs text-muted-foreground">
+                                                正在推演学术论据自洽性，请稍候
                                             </p>
-                                        </div>
-                                        {/* 思考进度点 */}
-                                        <div className="flex gap-1.5">
-                                            {[0, 1, 2].map((i) => (
-                                                <motion.div
-                                                    key={i}
-                                                    animate={{
-                                                        scale: [1, 1.4, 1],
-                                                        backgroundColor: [
-                                                            "rgba(139, 92, 246, 0.3)",
-                                                            "rgba(139, 92, 246, 0.8)",
-                                                            "rgba(139, 92, 246, 0.3)",
-                                                        ],
-                                                    }}
-                                                    transition={{
-                                                        duration: 1.2,
-                                                        repeat: Infinity,
-                                                        delay: i * 0.3,
-                                                        ease: "easeInOut",
-                                                    }}
-                                                    className="w-2 h-2 rounded-full"
-                                                />
-                                            ))}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* ====== 评审结果区域 ====== */}
+                            {/* ====== 评审结果展示区 ====== */}
                             {(reviewText || (hasResult && reasoningText)) && (
-                                <div className="border-t border-border/50">
-                                    {/* 可折叠的思考过程 */}
+                                <div className="border-t border-violet-200/50 dark:border-violet-900/30">
+                                    {/* 深度思考过程折叠 */}
                                     {reasoningText && (
-                                        <div className="border-b border-border/30">
+                                        <div className="border-b border-border/40">
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    setShowReasoning(
-                                                        !showReasoning
-                                                    )
-                                                }
-                                                className="w-full flex items-center gap-2 px-5 py-2.5 text-xs text-muted-foreground hover:bg-muted/30 transition-colors"
+                                                onClick={() => setShowReasoning(!showReasoning)}
+                                                className="w-full flex items-center gap-2 px-5 py-2 text-xs text-muted-foreground hover:bg-violet-50/50 dark:hover:bg-violet-950/30 transition-colors"
                                             >
-                                                <Brain className="h-3.5 w-3.5 text-violet-400 shrink-0" />
-                                                <span className="font-medium">
-                                                    查看思考过程
-                                                </span>
-                                                <span className="text-violet-400/60">
-                                                    (
-                                                    {reasoningText.length > 500
-                                                        ? `${Math.round(reasoningText.length / 100) * 100}+ 字`
-                                                        : `${reasoningText.length} 字`}
-                                                    )
+                                                <Brain className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                                                <span className="font-medium">查看思维链推演 (CoT)</span>
+                                                <span className="text-violet-500/70 text-[11px]">
+                                                    ({reasoningText.length} 字)
                                                 </span>
                                                 {showReasoning ? (
                                                     <ChevronDown className="h-3.5 w-3.5 ml-auto shrink-0" />
@@ -543,26 +518,14 @@ export default function PeerReviewPanel({
                                             <AnimatePresence>
                                                 {showReasoning && (
                                                     <motion.div
-                                                        initial={{
-                                                            height: 0,
-                                                            opacity: 0,
-                                                        }}
-                                                        animate={{
-                                                            height: "auto",
-                                                            opacity: 1,
-                                                        }}
-                                                        exit={{
-                                                            height: 0,
-                                                            opacity: 0,
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.25,
-                                                            ease: "easeInOut",
-                                                        }}
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
                                                         className="overflow-hidden"
                                                     >
-                                                        <div className="max-h-[300px] overflow-y-auto px-5 py-3 bg-violet-500/5 border-t border-violet-500/10">
-                                                            <pre className="text-xs text-muted-foreground/80 whitespace-pre-wrap font-mono leading-relaxed break-words">
+                                                        <div className="max-h-[260px] overflow-y-auto px-5 py-3 bg-violet-500/5 border-t border-violet-500/10">
+                                                            <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed break-words">
                                                                 {reasoningText}
                                                             </pre>
                                                         </div>
@@ -572,38 +535,35 @@ export default function PeerReviewPanel({
                                         </div>
                                     )}
 
-                                    {/* 评审报告 */}
-                                    <div className="max-h-[500px] overflow-y-auto">
-                                        <div className="prose prose-sm dark:prose-invert max-w-none px-5 py-4 prose-headings:text-foreground prose-table:text-sm prose-td:border prose-th:border prose-table:border-collapse prose-th:p-2 prose-td:p-2 prose-th:bg-muted/50">
+                                    {/* 评审正文 Markdown */}
+                                    <div className="max-h-[460px] overflow-y-auto px-5 py-4">
+                                        <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-semibold prose-table:text-xs prose-td:border prose-th:border prose-table:border-collapse prose-th:p-2 prose-td:p-2 prose-th:bg-muted/40">
                                             <Markdown remarkPlugins={[remarkGfm]}>{reviewText}</Markdown>
                                         </div>
                                     </div>
 
-                                    {/* 正在生成指示 */}
+                                    {/* 正在生成流式状态 */}
                                     {isWritingReview && (
                                         <div className="flex items-center gap-2 px-5 py-2 border-t border-border/30 bg-muted/10">
                                             <motion.div
-                                                animate={{
-                                                    opacity: [0.4, 1, 0.4],
-                                                }}
-                                                transition={{
-                                                    duration: 1.5,
-                                                    repeat: Infinity,
-                                                }}
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.5, repeat: Infinity }}
                                                 className="w-1.5 h-1.5 rounded-full bg-violet-500"
                                             />
                                             <span className="text-xs text-muted-foreground">
-                                                正在生成评审报告...
+                                                正在流式生成学术评审意见...
                                             </span>
                                         </div>
                                     )}
 
                                     {/* 公开/隐藏评审切换（仅作者可见） */}
                                     {hasResult && isAuthor && postId && (
-                                        <div className="flex items-center justify-between px-5 py-3 border-t border-border/40 bg-muted/10">
+                                        <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/40 bg-muted/10">
                                             <div className="text-left pr-4">
                                                 <p className="text-xs font-semibold text-foreground">公开此审稿报告</p>
-                                                <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">开启后，所有访问该帖子的用户均可在文章下方查看 AI 同行评审结果</p>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    开启后，读者可在文章正文末尾查阅 Reviewer #2 评审意见
+                                                </p>
                                             </div>
                                             <button
                                                 type="button"
@@ -612,7 +572,7 @@ export default function PeerReviewPanel({
                                                     setIsPublic(newStatus);
                                                     const res = await togglePeerReviewVisibility(postId, newStatus);
                                                     if (res.error) {
-                                                        setIsPublic(!newStatus); // 回滚
+                                                        setIsPublic(!newStatus);
                                                         toast.error(res.error);
                                                     } else {
                                                         toast.success(newStatus ? "已将报告设为公开" : "已将报告设为私密");
@@ -620,12 +580,12 @@ export default function PeerReviewPanel({
                                                 }}
                                                 className={cn(
                                                     "relative w-9 h-5 rounded-full p-0.5 transition-colors focus:outline-none shrink-0",
-                                                    isPublic ? "bg-primary" : "bg-muted-foreground/30"
+                                                    isPublic ? "bg-violet-600" : "bg-muted-foreground/30"
                                                 )}
                                             >
                                                 <motion.div
                                                     layout
-                                                    className="w-4 h-4 rounded-full bg-background shadow"
+                                                    className="w-4 h-4 rounded-full bg-background shadow-xs"
                                                     animate={{ x: isPublic ? 16 : 0 }}
                                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                                 />
@@ -633,32 +593,21 @@ export default function PeerReviewPanel({
                                         </div>
                                     )}
 
-                                    {/* 完成状态栏（仅作者可见） */}
+                                    {/* 重新评审入口（仅作者可见） */}
                                     {hasResult && isAuthor && (
-                                        <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/50 bg-green-500/5">
-                                            <div className="flex items-center gap-2 text-xs text-green-600">
-                                                <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                                                <span>评审完成</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {deductedAmount > 0 && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        消耗{" "}
-                                                        <span className="font-semibold text-violet-500">
-                                                            {deductedAmount}
-                                                        </span>{" "}
-                                                        积分
-                                                    </span>
-                                                )}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={handleStartReview}
-                                                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                                                >
-                                                    重新评审
-                                                </Button>
-                                            </div>
+                                        <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/40 bg-violet-50/20 dark:bg-violet-950/10">
+                                            <span className="text-[11px] text-muted-foreground">
+                                                如已根据意见修改正文，可重新触发评审
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={handleStartReview}
+                                                className="h-7 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-100/50"
+                                            >
+                                                重新发起评审
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -670,3 +619,4 @@ export default function PeerReviewPanel({
         </div>
     );
 }
+

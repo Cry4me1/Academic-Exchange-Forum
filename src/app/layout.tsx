@@ -1,5 +1,6 @@
 
 import { Toaster } from "@/components/ui/sonner";
+import { I18nProvider } from "@/i18n/context";
 import "katex/dist/katex.min.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
@@ -36,7 +37,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        {children}
+        <I18nProvider>
+          {children}
+        </I18nProvider>
         <Toaster />
       </body>
     </html>

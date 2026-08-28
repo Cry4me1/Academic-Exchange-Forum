@@ -426,6 +426,9 @@ CREATE TABLE IF NOT EXISTS public.posts (
     -- 学术元数据（DOI、文献引用、BibTeX、期刊等）
     academic_meta JSONB DEFAULT '{}'::JSONB,
     
+    -- 主页封面图展示
+    cover_image TEXT,
+    
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

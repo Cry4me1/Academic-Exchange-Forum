@@ -25,6 +25,7 @@ export async function createPost(data: {
     content: object;
     tags: string[];
     is_help_wanted?: boolean;
+    cover_image?: string | null;
 }) {
     const supabase = await createClient();
 
@@ -77,6 +78,7 @@ export async function createPost(data: {
             title: data.title,
             content: data.content,
             tags: data.tags,
+            cover_image: data.cover_image || null,
             is_help_wanted: data.is_help_wanted || false,
             is_published: isApproved,
             review_status: moderation.reviewStatus,
@@ -147,6 +149,7 @@ export async function updatePost(
         content?: object;
         tags?: string[];
         is_published?: boolean;
+        cover_image?: string | null;
     }
 ) {
     const supabase = await createClient();
@@ -160,7 +163,7 @@ export async function updatePost(
     let oldContent: JSONContentNode | null = null;
     const { data: oldPost } = await supabase
         .from("posts")
-        .select("title, content, tags, review_status")
+        .select("title, content, tags, cover_image, review_status")
         .eq("id", postId)
         .eq("author_id", user.id)
         .single();
@@ -211,6 +214,13 @@ export async function updatePost(
         updatePayload.matched_sensitive_words = moderation.matchedSensitiveWords;
         updatePayload.academic_meta = academicMeta;
         updatePayload.theorem_count = academicMeta.totalAcademicCount;
+
+        // 如果旧状态是 rejected，重置驳回原因与审核员信息，以便重新审查
+        if (oldPost.review_status === "rejected") {
+            updatePayload.reviewer_note = null;
+            updatePayload.reviewer_id = null;
+            updatePayload.reviewed_at = null;
+        }
     }
 
     const { error } = await supabase
@@ -252,6 +262,13 @@ export async function updatePost(
             },
         }).catch((mailErr) => {
             console.error("[updatePost] 发送待人工审核通知邮件失败:", mailErr);
+        });
+    }
+
+    // 清理被替换或移除的旧封面图
+    if (data.cover_image !== undefined && oldPost.cover_image && oldPost.cover_image !== data.cover_image) {
+        deleteImages([oldPost.cover_image]).catch((err) => {
+            console.error("[updatePost] 清理旧封面图失败:", err);
         });
     }
 
@@ -301,7 +318,7 @@ export async function deletePost(postId: string) {
     // 先获取帖子内容，用于提取图片 URL
     const { data: post } = await supabase
         .from("posts")
-        .select("author_id, content")
+        .select("author_id, content, cover_image")
         .eq("id", postId)
         .single();
 
@@ -313,8 +330,11 @@ export async function deletePost(postId: string) {
         return { error: "无权删除此帖子" };
     }
 
-    // 提取帖子中的所有图片 URL
+    // 提取帖子中的所有图片 URL 以及封面图
     const imageUrls = extractImageUrls(post.content as JSONContentNode);
+    if (post.cover_image && !imageUrls.includes(post.cover_image)) {
+        imageUrls.push(post.cover_image);
+    }
 
     const { error } = await supabase
         .from("posts")
@@ -357,6 +377,7 @@ export async function getPosts(options: {
             title,
             content,
             tags,
+            cover_image,
             view_count,
             like_count,
             comment_count,

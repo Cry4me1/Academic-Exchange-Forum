@@ -23,6 +23,7 @@ async function getPost(id: string) {
                 username,
                 avatar_url,
                 bio,
+                vip_level,
                 reputation_score,
                 is_developer,
                 developer_title,
@@ -108,6 +109,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const authorName = post.author?.username || '未知学者';
     const description = extractTextFromJSONContent(post.content).substring(0, 150);
+    const ogImages = post.cover_image
+        ? [{ url: post.cover_image }]
+        : post.author?.avatar_url
+            ? [{ url: post.author.avatar_url }]
+            : [];
 
     return {
         title: post.title,
@@ -117,7 +123,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             title: post.title,
             description,
             authors: [authorName],
-            images: post.author?.avatar_url ? [{ url: post.author.avatar_url }] : [],
+            images: ogImages,
+        },
+        twitter: {
+            card: post.cover_image ? "summary_large_image" : "summary",
+            title: post.title,
+            description,
+            images: post.cover_image ? [post.cover_image] : [],
         },
         other: {
             "scholarly:author": authorName,
@@ -142,6 +154,7 @@ async function getComments(postId: string) {
                 id,
                 username,
                 avatar_url,
+                vip_level,
                 special_title,
                 badges,
                 is_verified,
@@ -166,6 +179,7 @@ async function getComments(postId: string) {
                 id,
                 username,
                 avatar_url,
+                vip_level,
                 special_title,
                 badges,
                 is_verified,

@@ -16,6 +16,7 @@ import {
     LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/i18n/context";
 
 interface TutorialCompleteModalProps {
     isOpen: boolean;
@@ -23,6 +24,9 @@ interface TutorialCompleteModalProps {
 }
 
 export function TutorialCompleteModal({ isOpen, onClose }: TutorialCompleteModalProps) {
+    const { t } = useI18n();
+    const tModal = t.tutorials.completeModal;
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -79,13 +83,13 @@ export function TutorialCompleteModal({ isOpen, onClose }: TutorialCompleteModal
                         {/* 标题 */}
                         <div className="space-y-1.5">
                             <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs px-3 py-0.5">
-                                🎓 Scholarly 实操训练营 · 结业认证
+                                {tModal.badge}
                             </Badge>
                             <h3 className="text-2xl font-extrabold tracking-tight text-foreground">
-                                恭喜成为全能研学者！
+                                {tModal.title}
                             </h3>
                             <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                                您已亲手实操完成本站全部 6 大板块与学术编辑器的所有核心功能。
+                                {tModal.description}
                             </p>
                         </div>
 
@@ -93,15 +97,15 @@ export function TutorialCompleteModal({ isOpen, onClose }: TutorialCompleteModal
                         <div className="rounded-2xl border border-border/60 bg-muted/30 p-3.5 text-left text-xs space-y-2">
                             <div className="flex items-center gap-2 text-foreground font-semibold">
                                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-                                <span>已点亮学术技能徽章：</span>
+                                <span>{tModal.skillsTitle}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-1.5 text-muted-foreground text-[11px]">
-                                <span className="flex items-center gap-1">✓ Slash与LaTeX公式</span>
-                                <span className="flex items-center gap-1">✓ Nature出版级双栏排版</span>
-                                <span className="flex items-center gap-1">✓ 学术决斗与同行评议</span>
-                                <span className="flex items-center gap-1">✓ 60FPS主题空间定制</span>
-                                <span className="flex items-center gap-1">✓ 积分与7天数据时效</span>
-                                <span className="flex items-center gap-1">✓ 多模态AI审稿风控</span>
+                                <span className="flex items-center gap-1">{tModal.skill1}</span>
+                                <span className="flex items-center gap-1">{tModal.skill2}</span>
+                                <span className="flex items-center gap-1">{tModal.skill3}</span>
+                                <span className="flex items-center gap-1">{tModal.skill4}</span>
+                                <span className="flex items-center gap-1">{tModal.skill5}</span>
+                                <span className="flex items-center gap-1">{tModal.skill6}</span>
                             </div>
                         </div>
 
@@ -110,7 +114,7 @@ export function TutorialCompleteModal({ isOpen, onClose }: TutorialCompleteModal
                             <Link href="/dashboard" onClick={onClose} className="block w-full">
                                 <Button className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 text-white shadow-lg shadow-primary/25 rounded-xl font-bold gap-2">
                                     <LayoutDashboard className="h-4 w-4" />
-                                    前往学术仪表盘探索
+                                    {tModal.goToDashboard}
                                     <ArrowRight className="h-4 w-4" />
                                 </Button>
                             </Link>
@@ -120,7 +124,7 @@ export function TutorialCompleteModal({ isOpen, onClose }: TutorialCompleteModal
                                 onClick={onClose}
                                 className="w-full text-xs text-muted-foreground hover:text-foreground"
                             >
-                                继续留在训练营重温
+                                {tModal.stayInCamp}
                             </Button>
                         </div>
                     </motion.div>

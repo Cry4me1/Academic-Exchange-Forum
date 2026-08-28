@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 // 当前最新版本号 - 每次发布新版本时更新这个值
-export const CURRENT_VERSION = "0.8.0";
+export const CURRENT_VERSION = "1.1.7";
 
 const STORAGE_KEY = "scholarly_last_seen_version";
 

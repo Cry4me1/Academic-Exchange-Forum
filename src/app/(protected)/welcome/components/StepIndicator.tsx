@@ -2,34 +2,37 @@
 
 import { Check, ShieldCheck, UserCheck, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/context";
 
 interface StepIndicatorProps {
     currentStep: number;
     totalSteps?: number;
 }
 
-const steps = [
-    {
-        number: 1,
-        title: "社区公约",
-        subtitle: "合规与自律协议",
-        icon: ShieldCheck,
-    },
-    {
-        number: 2,
-        title: "学者档案",
-        subtitle: "基本信息快速设定",
-        icon: UserCheck,
-    },
-    {
-        number: 3,
-        title: "主页主题",
-        subtitle: "沉浸式空间定制",
-        icon: Palette,
-    },
-];
-
 export function StepIndicator({ currentStep }: StepIndicatorProps) {
+    const { t } = useI18n();
+
+    const steps = [
+        {
+            number: 1,
+            title: t.welcome.stepIndicator.step1Title,
+            subtitle: t.welcome.stepIndicator.step1Subtitle,
+            icon: ShieldCheck,
+        },
+        {
+            number: 2,
+            title: t.welcome.stepIndicator.step2Title,
+            subtitle: t.welcome.stepIndicator.step2Subtitle,
+            icon: UserCheck,
+        },
+        {
+            number: 3,
+            title: t.welcome.stepIndicator.step3Title,
+            subtitle: t.welcome.stepIndicator.step3Subtitle,
+            icon: Palette,
+        },
+    ];
+
     return (
         <div className="w-full max-w-2xl mx-auto px-4 py-4">
             <div className="relative flex items-center justify-between">

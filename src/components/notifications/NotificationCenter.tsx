@@ -67,6 +67,8 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
             // 或者可以直接进入详情页 /duels/${notification.related_id} 如果详情页支持 pending 状态显示
             // 根据需求，邀请卡片在列表页，所以跳转到 /duels 比较合适
             // 已接受的跳转到详情页 /duels/${notification.related_id}
+            case "system":
+                return notification.related_id ? `/posts/${notification.related_id}` : null;
             default:
                 return null;
         }

@@ -1,12 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useUpdateNotification } from "@/hooks/use-update-notification";
 import {
     Bookmark,
     BookMarked,
     Crown,
-    FlaskConical,
     Flame,
     Home,
     MessageSquare,
@@ -19,25 +17,28 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const navItems = [
-    { href: "/dashboard", label: "首页", icon: Home },
-    { href: "/trending", label: "热门学术", icon: Flame },
-    { href: "/leaderboard", label: "排行榜", icon: Trophy },
-    { href: "/duels", label: "决斗场", icon: Swords },
-    // { href: "/lab", label: "研究室", icon: FlaskConical, isLab: true }, // 功能暂未上线，隐藏入口
-    { href: "/messages", label: "私信", icon: MessageSquare },
-    { href: "/friends", label: "好友", icon: Users },
-    { href: "/favorites", label: "我的收藏", icon: Bookmark },
-    { href: "/collections/following", label: "关注专栏", icon: BookMarked },
-    { href: "/updates", label: "更新日志", icon: Zap, isUpdateLog: true },
-    { href: "/profile", label: "个人中心", icon: User },
-    { href: "/vip", label: "Ask AI · VIP", icon: Crown, isVip: true },
-] as { href: string; label: string; icon: typeof Home; isUpdateLog?: boolean; isVip?: boolean; isLab?: boolean }[];
+import { useI18n } from "@/i18n/context";
+import { cn } from "@/lib/utils";
 
 export function MainNav() {
     const pathname = usePathname();
     const { hasNewUpdate, isLoaded, markAsRead } = useUpdateNotification();
+    const { t } = useI18n();
+    const tNav = t.nav;
+
+    const navItems = [
+        { href: "/dashboard", label: tNav.home, icon: Home },
+        { href: "/trending", label: tNav.trending, icon: Flame },
+        { href: "/leaderboard", label: tNav.leaderboard, icon: Trophy },
+        { href: "/duels", label: tNav.duels, icon: Swords },
+        { href: "/messages", label: tNav.messages, icon: MessageSquare },
+        { href: "/friends", label: tNav.friends, icon: Users },
+        { href: "/favorites", label: tNav.favorites, icon: Bookmark },
+        { href: "/collections/following", label: tNav.collections, icon: BookMarked },
+        { href: "/updates", label: tNav.updates, icon: Zap, isUpdateLog: true },
+        { href: "/profile", label: tNav.profile, icon: User },
+        { href: "/vip", label: tNav.vip, icon: Crown, isVip: true },
+    ] as { href: string; label: string; icon: typeof Home; isUpdateLog?: boolean; isVip?: boolean; isLab?: boolean }[];
 
     const handleNavClick = (item: typeof navItems[0]) => {
         // 如果点击的是更新日志，标记为已读
@@ -54,57 +55,64 @@ export function MainNav() {
                 const showHighlight = item.isUpdateLog && hasNewUpdate && isLoaded && !isActive;
 
                 return (
-                    <Button
+                    <Link
                         key={item.href}
-                        variant="ghost"
-                        asChild
-                        className={`w-full justify-start gap-3 h-11 text-base font-medium transition-all duration-200 ${isActive
-                            ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            } ${showHighlight ? "update-highlight !text-yellow-600 dark:!text-yellow-400" : ""}
-                            ${item.isVip && !isActive ? "!text-amber-600 dark:!text-amber-400 hover:!bg-amber-500/10" : ""}
-                            ${item.isVip && isActive ? "!bg-amber-500/15 !text-amber-600 dark:!text-amber-400" : ""}
-                            ${item.isLab && !isActive ? "!text-violet-600 dark:!text-violet-400 hover:!bg-violet-500/10" : ""}
-                            ${item.isLab && isActive ? "!bg-violet-500/15 !text-violet-600 dark:!text-violet-400" : ""}`}
+                        href={item.href}
                         onClick={() => handleNavClick(item)}
+                        className={cn(
+                            "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 relative select-none",
+                            isActive
+                                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold shadow-2xs"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50",
+                            item.isVip && !isActive && "text-amber-600/90 dark:text-amber-400/90 hover:bg-amber-500/5",
+                            item.isVip && isActive && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                        )}
                     >
-                        <Link href={item.href}>
-                            <span className="relative">
-                                <Icon className={`h-5 w-5 ${isActive ? "text-primary" : ""} ${showHighlight ? "text-yellow-500" : ""} ${item.isVip ? "!text-amber-500" : ""}`} />
-                                {showHighlight && (
-                                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-yellow-500 animate-ping" />
+                        <span className="relative flex items-center justify-center shrink-0">
+                            <Icon
+                                className={cn(
+                                    "h-4.5 w-4.5 transition-colors",
+                                    isActive
+                                        ? "text-zinc-900 dark:text-zinc-100"
+                                        : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
+                                    item.isVip && "text-amber-500",
+                                    showHighlight && "text-amber-500"
                                 )}
-                                {showHighlight && (
-                                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-yellow-500" />
-                                )}
-                            </span>
-                            {item.label}
+                                strokeWidth={1.75}
+                            />
                             {showHighlight && (
-                                <span className="ml-auto text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                    NEW
-                                </span>
+                                <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                             )}
-                            {item.isVip && (
-                                <span className="ml-auto text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold">
-                                    VIP
-                                </span>
-                            )}
-                        </Link>
-                    </Button>
+                        </span>
+
+                        <span className="truncate flex-1 tracking-tight">{item.label}</span>
+
+                        {showHighlight && (
+                            <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.2 rounded font-medium">
+                                新
+                            </span>
+                        )}
+
+                        {item.isVip && (
+                            <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.2 rounded font-semibold tracking-wider">
+                                VIP
+                            </span>
+                        )}
+                    </Link>
                 );
             })}
 
-            <div className="pt-4 mt-4 border-t border-border">
-                <Button
-                    variant="ghost"
-                    asChild
-                    className="w-full justify-start gap-3 h-11 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
+            <div className="pt-2 mt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
+                <Link
+                    href="/settings"
+                    className="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-all duration-150"
                 >
-                    <Link href="/settings">
-                        <Settings className="h-5 w-5" />
-                        设置
-                    </Link>
-                </Button>
+                    <Settings
+                        className="h-4.5 w-4.5 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors"
+                        strokeWidth={1.75}
+                    />
+                    <span className="truncate tracking-tight">{tNav.settings}</span>
+                </Link>
             </div>
         </nav>
     );

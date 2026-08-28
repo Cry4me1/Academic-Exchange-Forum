@@ -17,6 +17,7 @@ import {
     Quote
 } from "lucide-react";
 import { MathText } from "@/components/ui/math-text";
+import { useI18n } from "@/i18n/context";
 
 interface ShowcaseItem {
     id: string;
@@ -270,7 +271,9 @@ function SingleCurvedCard({ item }: { item: ShowcaseItem }) {
 
 // 具有轻柔、雾透、渐隐消散意境的学术打字机组件
 function MistTypewriter() {
-    const words = [
+    const { isZh } = useI18n();
+
+    const wordsZh = [
         "探索真理",
         "沉淀思想",
         "推导本质",
@@ -281,6 +284,18 @@ function MistTypewriter() {
         "叩问未知",
     ];
 
+    const wordsEn = [
+        "Rigorous Proof",
+        "Deep Insights",
+        "First Principles",
+        "Breakthroughs",
+        "Pure Reasoning",
+        "Illuminating Wisdom",
+        "Exploring Unknowns",
+    ];
+
+    const words = isZh ? wordsZh : wordsEn;
+
     const [index, setIndex] = useState(0);
 
     useEffect(() => {
@@ -290,7 +305,7 @@ function MistTypewriter() {
         return () => clearInterval(timer);
     }, [words.length]);
 
-    const currentWord = words[index];
+    const currentWord = words[index] || words[0];
 
     return (
         <span className="inline-flex items-center text-left">
@@ -390,6 +405,7 @@ const flightCardVariants = {
 };
 
 export function Features() {
+    const { t } = useI18n();
     const topRowList = [...TOP_ITEMS, ...TOP_ITEMS, ...TOP_ITEMS];
     const bottomRowList = [...BOTTOM_ITEMS, ...BOTTOM_ITEMS, ...BOTTOM_ITEMS];
 
@@ -421,14 +437,14 @@ export function Features() {
             >
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white/80 dark:bg-white/[0.05] text-orange-600 dark:text-amber-300 border border-slate-200/80 dark:border-white/10 mb-4 shadow-xs">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    前沿学术全景 · 思想回响
+                    {t.landing.panoramaBadge}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4 text-slate-900 dark:text-white flex flex-wrap items-center justify-center">
-                    <span>在碰撞中演进，在严谨中</span>
+                    <span>{t.landing.evolutionTitle}</span>
                     <MistTypewriter />
                 </h2>
                 <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed font-medium">
-                    汇聚各学科前沿学者的深邃洞见与专为严谨交流打造的核心学术生态。
+                    {t.landing.evolutionSubtitle}
                 </p>
             </motion.div>
 
