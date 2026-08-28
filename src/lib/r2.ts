@@ -185,6 +185,7 @@ export async function getFileStream(fileName: string): Promise<ReadableStream | 
  * 检查 URL 是否属于 R2
  */
 export function isR2Url(url: string): boolean {
+    if (R2_PUBLIC_URL && url.startsWith(R2_PUBLIC_URL)) return true;
     return url.includes(".r2.dev") || url.includes("r2.cloudflarestorage.com");
 }
 

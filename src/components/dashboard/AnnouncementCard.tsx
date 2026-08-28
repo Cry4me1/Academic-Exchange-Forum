@@ -1,21 +1,22 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { motion } from "framer-motion";
-import { Bell, ChevronRight, Rocket, Sparkles, Wrench, Megaphone, Activity } from "lucide-react";
+import { Bell, ChevronRight, Rocket, Sparkles, Wrench, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Map categories to icons and gradient backgrounds
-const categoryStyles: Record<string, { icon: any, bg: string }> = {
-    update: { icon: Rocket, bg: "from-primary to-violet-500" },
-    activity: { icon: Sparkles, bg: "from-primary to-purple-500" },
-    system: { icon: Megaphone, bg: "from-blue-500 to-indigo-500" },
-    maintenance: { icon: Wrench, bg: "from-amber-500 to-orange-500" },
+import { useI18n } from "@/i18n/context";
+
+// Map categories to icons and low-saturation backgrounds
+const categoryStyles: Record<string, { icon: any; bg: string; text: string }> = {
+    update: { icon: Rocket, bg: "bg-blue-500/10 dark:bg-blue-500/15", text: "text-blue-600 dark:text-blue-400" },
+    activity: { icon: Sparkles, bg: "bg-purple-500/10 dark:bg-purple-500/15", text: "text-purple-600 dark:text-purple-400" },
+    system: { icon: Megaphone, bg: "bg-zinc-500/10 dark:bg-zinc-500/15", text: "text-zinc-600 dark:text-zinc-400" },
+    maintenance: { icon: Wrench, bg: "bg-amber-500/10 dark:bg-amber-500/15", text: "text-amber-600 dark:text-amber-400" },
 };
 
 export function AnnouncementCard() {
+    const { t, isZh } = useI18n();
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
@@ -24,8 +25,6 @@ export function AnnouncementCard() {
         const fetchAnnouncements = async () => {
             const now = new Date().toISOString();
             
-            // Note: RLS might handle the start_time and is_active check, 
-            // but we add it here just to be safe.
             const { data, error } = await supabase
                 .from("system_announcements")
                 .select("*")
@@ -35,7 +34,6 @@ export function AnnouncementCard() {
                 .limit(3);
 
             if (!error && data) {
-                // Filter out ended announcements if RLS doesn't do it automatically
                 const validData = data.filter((a: any) => !a.end_time || a.end_time > now);
                 setAnnouncements(validData);
             }
@@ -47,92 +45,86 @@ export function AnnouncementCard() {
 
     if (loading) {
         return (
-            <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-purple-500/10 border-primary/20 overflow-hidden animate-pulse">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base text-transparent bg-muted rounded w-24">
-                        Loading...
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="h-20 bg-muted/50 rounded-lg"></div>
-                    <div className="h-20 bg-muted/50 rounded-lg"></div>
-                </CardContent>
-            </Card>
+            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-4 sm:p-5 animate-pulse shadow-xs">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    <div className="h-3 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
+                <div className="space-y-3">
+                    <div className="h-16 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg" />
+                    <div className="h-16 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg" />
+                </div>
+            </div>
         );
     }
 
     if (announcements.length === 0) {
-        return null; // Do not show the card if there are no announcements
+        return null;
     }
 
     return (
-        <Card className="bg-gradient-to-br from-primary/5 via-primary/10 to-purple-500/10 border-primary/20 overflow-hidden">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <Bell className="h-4 w-4 text-primary" />
-                    公告通知
-                </CardTitle>
-                <Link href="/announcements" className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center">
-                    全部 <ChevronRight className="h-3 w-3 ml-0.5" />
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-4 sm:p-5 shadow-xs backdrop-blur-md">
+            <div className="flex items-center justify-between mb-3.5">
+                <div className="flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        {t.dashboardComponents.announcement}
+                    </h3>
+                </div>
+                <Link 
+                    href="/announcements" 
+                    className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors flex items-center gap-0.5"
+                >
+                    {t.dashboardComponents.viewMore} <ChevronRight className="h-3 w-3" strokeWidth={1.75} />
                 </Link>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                {announcements.map((announcement, index) => {
+            </div>
+
+            <div className="space-y-2.5">
+                {announcements.map((announcement) => {
                     const style = categoryStyles[announcement.category] || categoryStyles.system;
                     const Icon = style.icon;
-                    // Format date simply
-                    const dateStr = new Date(announcement.start_time).toLocaleDateString();
-                    // Consider new if within last 3 days
+                    const dateStr = new Date(announcement.start_time).toLocaleDateString(isZh ? "zh-CN" : "en-US", { month: "numeric", day: "numeric" });
                     const isNew = (new Date().getTime() - new Date(announcement.start_time).getTime()) < 3 * 24 * 60 * 60 * 1000;
 
                     let href = `/announcements/${announcement.id}`;
-                    if (announcement.title.includes("v1.0.0") || announcement.title.includes("v1.1.0") || announcement.title.includes("v1.1.5") || announcement.title.includes("v1.1.6") || announcement.category === "update") href = "/updates";
+                    if (announcement.title.includes("v1.0.0") || announcement.title.includes("v1.1.0") || announcement.title.includes("v1.1.5") || announcement.title.includes("v1.1.6") || announcement.title.includes("v1.1.7") || announcement.category === "update") href = "/updates";
                     else if (announcement.title.includes("上线啦")) href = "/announcements/launch-2026";
                     else if (announcement.title.includes("新手教程指南")) href = "/announcements/tutorials";
 
                     return (
-                        <Link key={announcement.id} href={href}>
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="p-4 rounded-lg bg-background/60 hover:bg-background/80 transition-all cursor-pointer group border border-primary/10 hover:border-primary/30"
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div className={`h-10 w-10 rounded-full bg-gradient-to-br ${style.bg} flex items-center justify-center shrink-0`}>
-                                        <Icon className="h-5 w-5 text-white" />
+                        <Link key={announcement.id} href={href} className="block group">
+                            <div className="p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-800/40 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 transition-all duration-150">
+                                <div className="flex items-start gap-2.5">
+                                    <div className={`h-7 w-7 rounded-md ${style.bg} ${style.text} flex items-center justify-center shrink-0 mt-0.5`}>
+                                        <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                        <div className="flex items-center gap-1.5">
+                                            <h4 className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate">
                                                 {announcement.title}
                                             </h4>
                                             {isNew && (
-                                                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-red-500 text-white rounded animate-pulse">
+                                                <span className="px-1.5 py-0.2 text-[9px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded shrink-0">
                                                     NEW
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-1 leading-normal font-normal">
                                             {announcement.content}
                                         </p>
-                                        <div className="flex items-center justify-between mt-2">
-                                            <p className="text-xs text-muted-foreground/60">
-                                                {dateStr}
-                                            </p>
-                                            <span className="text-xs text-primary flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                查看详情 <ChevronRight className="h-3 w-3" />
+                                        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-zinc-200/40 dark:border-zinc-700/40 text-[11px] text-zinc-400 dark:text-zinc-500">
+                                            <span>{dateStr}</span>
+                                            <span className="text-zinc-500 dark:text-zinc-400 group-hover:text-primary flex items-center gap-0.5 transition-colors">
+                                                {isZh ? "详情" : "Details"} <ChevronRight className="h-2.5 w-2.5" strokeWidth={1.75} />
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                            </motion.div>
+                            </div>
                         </Link>
                     );
                 })}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }

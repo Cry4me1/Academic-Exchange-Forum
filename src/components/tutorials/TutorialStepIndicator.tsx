@@ -3,15 +3,7 @@
 import { motion } from "framer-motion";
 import { Check, PenTool, BookOpen, Swords, MessageSquare, Coins, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export const tutorialSteps = [
-    { number: 1, title: "学术编辑器", icon: PenTool, desc: "Slash · 公式 · 定理 · 代码" },
-    { number: 2, title: "排版与导出", icon: BookOpen, desc: "Nature双栏 · TOC · PDF" },
-    { number: 3, title: "学术决斗场", icon: Swords, desc: "1v1 切磋 · LP下注 · 声望" },
-    { number: 4, title: "私信与时效", icon: MessageSquare, desc: "真实私聊 · 7天附件销毁" },
-    { number: 5, title: "积分与特权", icon: Coins, desc: "Credits收益 · VIP特权" },
-    { number: 6, title: "AI 同行评审", icon: Bot, desc: "Reviewer#2 · 深度推理" },
-];
+import { useI18n } from "@/i18n/context";
 
 interface TutorialStepIndicatorProps {
     currentStep: number;
@@ -22,6 +14,18 @@ export function TutorialStepIndicator({
     currentStep,
     onStepClick,
 }: TutorialStepIndicatorProps) {
+    const { t } = useI18n();
+    const tSteps = t.tutorials.steps;
+
+    const tutorialSteps = [
+        { number: 1, title: tSteps.step1Title, icon: PenTool, desc: tSteps.step1Desc },
+        { number: 2, title: tSteps.step2Title, icon: BookOpen, desc: tSteps.step2Desc },
+        { number: 3, title: tSteps.step3Title, icon: Swords, desc: tSteps.step3Desc },
+        { number: 4, title: tSteps.step4Title, icon: MessageSquare, desc: tSteps.step4Desc },
+        { number: 5, title: tSteps.step5Title, icon: Coins, desc: tSteps.step5Desc },
+        { number: 6, title: tSteps.step6Title, icon: Bot, desc: tSteps.step6Desc },
+    ];
+
     return (
         <div className="w-full max-w-5xl mx-auto px-2">
             <div className="relative flex items-center justify-between">

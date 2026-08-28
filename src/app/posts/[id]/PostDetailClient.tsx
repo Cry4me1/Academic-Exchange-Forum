@@ -11,6 +11,7 @@ import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
+import { VipBadge } from "@/components/payments/VipBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,6 +92,7 @@ interface PostDetailClientProps {
             username: string;
             avatar_url?: string;
             bio?: string;
+            vip_level?: number | null;
             reputation_score?: number;
             is_developer?: boolean;
             developer_title?: string;
@@ -764,21 +766,34 @@ export default function PostDetailClient({
                                 )}
 
                                 {post.review_status === "rejected" && (
-                                    <div className="mb-6 p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200 flex items-start gap-3 shadow-sm">
-                                        <div className="p-1 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5">
-                                            <ShieldAlert className="h-5 w-5" />
+                                    <div className="mb-6 p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-900 dark:text-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                                        <div className="flex items-start gap-3 flex-1">
+                                            <div className="p-1 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5">
+                                                <ShieldAlert className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-1 flex-1">
+                                                <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                    审核未通过 / 已拦截
+                                                    <Badge variant="destructive" className="text-[10px]">
+                                                        未公开发布
+                                                    </Badge>
+                                                </h4>
+                                                <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">
+                                                    驳回理由：{post.reviewer_note || post.ai_reason || "内容未符合学术社区安全规范"}。请在修改器中修改后重新提交。
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="space-y-1 flex-1">
-                                            <h4 className="font-semibold text-sm flex items-center gap-2">
-                                                审核未通过 / 已拦截
-                                                <Badge variant="destructive" className="text-[10px]">
-                                                    未公开发布
-                                                </Badge>
-                                            </h4>
-                                            <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">
-                                                驳回理由：{post.reviewer_note || post.ai_reason || "内容未符合学术社区安全规范"}。您可以点击右上角「编辑帖子」修改后重新提交。
-                                            </p>
-                                        </div>
+                                        {currentUser?.id === post.author.id && (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                className="gap-1.5 shrink-0 shadow-sm font-medium self-end sm:self-center"
+                                                onClick={() => router.push(`/posts/${post.id}/edit`)}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                                进入修改器编辑
+                                            </Button>
+                                        )}
                                     </div>
                                 )}
 
@@ -873,21 +888,22 @@ export default function PostDetailClient({
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-semibold text-foreground">{authorDisplayName}</p>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <p className="font-semibold text-foreground text-sm sm:text-base">{authorDisplayName}</p>
                                                 {post.author.is_verified && (
                                                     <VerifiedBadge provider={post.author.auth_provider} />
                                                 )}
+                                                <VipBadge vipLevel={post.author.vip_level || 1} size="sm" />
                                                 {post.author.is_developer && (
-                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 text-xs">
-                                                        <Code2 className="h-3 w-3 text-violet-500" />
-                                                        <span className="font-bold bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent">开发者</span>
+                                                    <span className="inline-flex items-center gap-1 h-4.5 px-1.5 rounded-full text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 font-medium">
+                                                        <Code2 className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.75} />
+                                                        开发者
                                                     </span>
                                                 )}
                                                 {post.author.special_title && (
-                                                    <Badge variant="default" className="bg-purple-500 hover:bg-purple-600 shadow-sm border-0 text-white font-semibold h-6">
+                                                    <span className="inline-flex items-center h-4.5 px-1.5 rounded-full text-[10px] font-medium bg-violet-500/8 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/20">
                                                         {post.author.special_title}
-                                                    </Badge>
+                                                    </span>
                                                 )}
                                                 {post.author.reputation_score !== undefined && (
                                                     <ReputationBadgeCompact

@@ -38,7 +38,7 @@ export function BatchGenerateDialog({ onSuccess }: BatchGenerateDialogProps) {
     const [count, setCount] = useState<number>(10);
     const [usageLimit, setUsageLimit] = useState<number>(1);
     const [validDays, setValidDays] = useState<number>(30);
-    const [note, setNote] = useState("Hansszh 官方特邀");
+    const [note, setNote] = useState("官方特邀");
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +53,7 @@ export function BatchGenerateDialog({ onSuccess }: BatchGenerateDialogProps) {
                     count: Number(count) || 1,
                     usageLimit: Number(usageLimit) || 1,
                     validDays: Number(validDays) || 0,
-                    note: note.trim() || "Hansszh 签发",
+                    note: note.trim() || "官方签发",
                 }),
             });
 
@@ -190,7 +190,7 @@ export function BatchGenerateDialog({ onSuccess }: BatchGenerateDialogProps) {
                 ) : (
                     <form onSubmit={handleGenerate} className="space-y-4 py-2">
                         <DialogHeader>
-                            <DialogTitle>签发学术邀请码 (Hansszh 专属)</DialogTitle>
+                            <DialogTitle>签发学术邀请码 (超级管理员专属)</DialogTitle>
                             <DialogDescription>
                                 设定邀请码前缀、数量、使用次数上限与有效期限。
                             </DialogDescription>

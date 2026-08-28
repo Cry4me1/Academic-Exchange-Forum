@@ -40,3 +40,22 @@ export function formatDate(date: string | Date): string {
     minute: "2-digit",
   }).format(target);
 }
+
+/**
+ * 格式化学术积分数值（如 1.0B, 12.5M, 3.2K, 1,200）
+ */
+export function formatCredits(num: number | null | undefined): string {
+  if (num === null || num === undefined) return "0";
+  const abs = Math.abs(num);
+  if (abs >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  }
+  if (abs >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  }
+  if (abs >= 10_000) {
+    return (num / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
+  }
+  return num.toLocaleString();
+}
+

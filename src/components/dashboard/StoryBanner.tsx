@@ -161,7 +161,7 @@ export function StoryBanner() {
         return (
             <div className="flex gap-3 overflow-hidden">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="animate-pulse shrink-0 w-56 h-28 rounded-xl bg-muted/40" />
+                    <div key={i} className="animate-pulse shrink-0 w-60 h-28 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800/60" />
                 ))}
             </div>
         );
@@ -176,9 +176,9 @@ export function StoryBanner() {
                 <button
                     type="button"
                     onClick={() => scroll("left")}
-                    className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-background/90 border border-border/50 shadow-lg flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-110"
+                    className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-105"
                 >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
                 </button>
             )}
 
@@ -187,9 +187,9 @@ export function StoryBanner() {
                 <button
                     type="button"
                     onClick={() => scroll("right")}
-                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-background/90 border border-border/50 shadow-lg flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-110"
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-105"
                 >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
                 </button>
             )}
 
@@ -201,9 +201,9 @@ export function StoryBanner() {
                 {slides.map((slide, i) => (
                     <motion.div
                         key={`${slide.type}-${i}`}
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.06, duration: 0.35, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
+                        transition={{ delay: i * 0.04, duration: 0.3, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
                         className="shrink-0"
                     >
                         {slide.type === "trending" && <TrendingSlide post={slide.data} />}
@@ -228,41 +228,41 @@ export function StoryBanner() {
 function TrendingSlide({ post }: { post: TrendingPost }) {
     return (
         <Link href={`/posts/${post.id}`}>
-            <div className="w-56 h-28 rounded-xl border border-border/40 bg-card/80 backdrop-blur-sm p-4 flex flex-col justify-between cursor-pointer hover:border-border/80 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 group/slide">
+            <div className="w-60 h-28 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md p-3.5 flex flex-col justify-between cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs hover:-translate-y-0.5 transition-all duration-150 group/slide">
                 {/* 顶栏 */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                        <Flame className="h-3.5 w-3.5 text-orange-500" />
+                    <div className="flex items-center gap-1">
+                        <Flame className="h-3 w-3 text-orange-500" strokeWidth={1.75} />
                         <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wider">热门</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <Avatar className="h-5 w-5 border border-background">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <Avatar className="h-4.5 w-4.5 border border-zinc-200/80 dark:border-zinc-700 shrink-0">
                             <AvatarImage src={post.author?.avatar_url || ""} />
                             <AvatarFallback className="text-[8px]">
                                 {(post.author?.username || "?")[0].toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">
+                        <span className="text-[10px] text-zinc-500 truncate max-w-[80px]">
                             {post.author?.username}
                         </span>
                     </div>
                 </div>
 
                 {/* 标题 */}
-                <p className="text-sm font-semibold text-foreground leading-tight line-clamp-2 group-hover/slide:text-primary transition-colors">
+                <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 group-hover/slide:text-primary transition-colors">
                     {post.title}
                 </p>
 
                 {/* 统计 */}
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70">
-                    <span className="flex items-center gap-0.5">
-                        <Heart className="h-3 w-3" /> {post.like_count}
+                <div className="flex items-center gap-3 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+                    <span className="flex items-center gap-1">
+                        <Heart className="h-2.5 w-2.5" strokeWidth={1.75} /> {post.like_count}
                     </span>
-                    <span className="flex items-center gap-0.5">
-                        <MessageCircle className="h-3 w-3" /> {post.comment_count}
+                    <span className="flex items-center gap-1">
+                        <MessageCircle className="h-2.5 w-2.5" strokeWidth={1.75} /> {post.comment_count}
                     </span>
-                    <span className="flex items-center gap-0.5">
-                        <Eye className="h-3 w-3" /> {post.view_count}
+                    <span className="flex items-center gap-1">
+                        <Eye className="h-2.5 w-2.5" strokeWidth={1.75} /> {post.view_count}
                     </span>
                 </div>
             </div>
@@ -274,19 +274,19 @@ function TopPosterSlide({ user }: { user: WeeklyTopPoster }) {
     const displayName = user.username || "学者";
     return (
         <Link href={`/user/${user.id}`}>
-            <div className="w-44 h-28 rounded-xl border border-border/40 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300">
-                <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 uppercase tracking-wider">
-                    <Crown className="h-3 w-3" /> 本周之星
+            <div className="w-48 h-28 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-3.5 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-amber-500/30 hover:shadow-xs hover:-translate-y-0.5 transition-all duration-150">
+                <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                    <Crown className="h-3 w-3" strokeWidth={1.75} /> 本周之星
                 </div>
-                <Avatar className="h-10 w-10 border-2 border-amber-500/30 shadow-sm">
+                <Avatar className="h-8 w-8 border border-amber-500/30">
                     <AvatarImage src={user.avatar_url || ""} alt={displayName} />
-                    <AvatarFallback className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-600 font-bold text-sm">
+                    <AvatarFallback className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-xs">
                         {displayName[0].toUpperCase()}
                     </AvatarFallback>
                 </Avatar>
                 <div className="text-center">
-                    <p className="text-xs font-semibold text-foreground truncate max-w-[120px]">{displayName}</p>
-                    <p className="text-[10px] text-muted-foreground/70">本周 {user.post_count} 篇帖子</p>
+                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[120px]">{displayName}</p>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">本周 {user.post_count} 篇成果</p>
                 </div>
             </div>
         </Link>
@@ -295,14 +295,14 @@ function TopPosterSlide({ user }: { user: WeeklyTopPoster }) {
 
 function EmptyWeeklySlide() {
     return (
-        <div className="w-52 h-28 rounded-xl border border-dashed border-border/60 bg-gradient-to-br from-muted/20 to-muted/5 p-4 flex flex-col items-center justify-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-primary/50" />
+        <div className="w-52 h-28 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 p-3.5 flex flex-col items-center justify-center gap-1.5">
+            <div className="h-7 w-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                <Sparkles className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.75} />
             </div>
             <div className="text-center">
-                <p className="text-[11px] font-semibold text-muted-foreground/70">本周之星虚位以待</p>
-                <p className="text-[10px] text-muted-foreground/50 mt-0.5 flex items-center justify-center gap-1">
-                    <PenSquare className="h-3 w-3" /> 发帖即有机会上榜
+                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">本周之星虚位以待</p>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center justify-center gap-1">
+                    <PenSquare className="h-2.5 w-2.5" strokeWidth={1.75} /> 发帖即有机会上榜
                 </p>
             </div>
         </div>

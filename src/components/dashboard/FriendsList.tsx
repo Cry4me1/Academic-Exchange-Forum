@@ -7,6 +7,7 @@ import { usePresenceContext } from "@/contexts/PresenceContext";
 import { useFriends, type FriendWithProfile } from "@/hooks/useFriends";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useI18n } from "@/i18n/context";
 
 interface FriendItemProps {
     friend: FriendWithProfile["friend"];
@@ -15,41 +16,43 @@ interface FriendItemProps {
 }
 
 function FriendItem({ friend, friendshipId, isOnline }: FriendItemProps) {
+    const { isZh } = useI18n();
     const initials = (friend.username || friend.email || "?").charAt(0).toUpperCase();
-    const displayName = friend.username || friend.email?.split("@")[0] || "未知用户";
+    const displayName = friend.username || friend.email?.split("@")[0] || (isZh ? "未知学者" : "Scholar");
 
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors duration-200 group">
+                    <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors duration-150 group">
                         {/* 头像点击跳转到用户主页 */}
-                        <Link href={`/user/${friend.id}`} className="relative">
-                            <Avatar className="h-9 w-9 border-2 border-background shadow-sm group-hover:ring-2 group-hover:ring-primary/20 transition-all">
+                        <Link href={`/user/${friend.id}`} className="relative shrink-0">
+                            <Avatar className="h-7 w-7 border border-zinc-200/80 dark:border-zinc-700">
                                 <AvatarImage src={friend.avatar_url || undefined} alt={displayName} />
-                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-medium text-sm">
+                                <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
                             {/* 在线状态指示器 */}
                             <span
-                                className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${isOnline
-                                    ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-                                    : "bg-gray-400"
-                                    }`}
+                                className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background ${
+                                    isOnline ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
+                                }`}
                             />
                         </Link>
                         {/* 名字点击跳转到消息页 */}
                         <Link href={`/messages?user=${friend.id}`} className="flex-1 truncate">
-                            <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground truncate">
+                            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 truncate block">
                                 {displayName}
                             </span>
                         </Link>
                     </div>
                 </TooltipTrigger>
-                <TooltipContent side="right">
-                    <p>{displayName} - {isOnline ? "在线" : "离线"}</p>
-                    <p className="text-xs text-muted-foreground">点击头像查看主页，点击名字发消息</p>
+                <TooltipContent side="right" className="text-xs">
+                    <p>{displayName} · {isOnline ? (isZh ? "在线" : "Online") : (isZh ? "离线" : "Offline")}</p>
+                    <p className="text-[10px] text-zinc-400">
+                        {isZh ? "点击头像查看主页，点击名字发私信" : "Click avatar for profile, click name to chat"}
+                    </p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -61,6 +64,7 @@ interface FriendsListProps {
 }
 
 export function FriendsList({ currentUserId }: FriendsListProps) {
+    const { t, isZh } = useI18n();
     const { friends, loading } = useFriends(currentUserId);
     const { isOnline } = usePresenceContext();
 
@@ -70,34 +74,34 @@ export function FriendsList({ currentUserId }: FriendsListProps) {
 
     if (loading) {
         return (
-            <div className="mt-6 flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-zinc-400" strokeWidth={1.75} />
             </div>
         );
     }
 
     if (friends.length === 0) {
         return (
-            <div className="mt-6 text-center py-4">
-                <p className="text-sm text-muted-foreground">暂无好友</p>
-                <Link href="/friends" className="text-xs text-primary hover:underline mt-1 block">
-                    添加好友
+            <div className="text-center py-4">
+                <p className="text-xs text-zinc-400 dark:text-zinc-500">{t.dashboardComponents.friendsEmpty}</p>
+                <Link href="/friends" className="text-xs text-primary hover:underline mt-1.5 inline-block font-medium">
+                    {t.dashboardComponents.friendsFind}
                 </Link>
             </div>
         );
     }
 
     return (
-        <div className="mt-6">
-            <ScrollArea className="h-[calc(100vh-400px)]">
+        <div>
+            <ScrollArea className="max-h-72 pr-1">
                 {/* 在线好友 */}
                 {onlineFriends.length > 0 && (
-                    <div className="mb-4">
-                        <div className="flex items-center gap-2 px-2 mb-2">
-                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                在线好友 ({onlineFriends.length})
-                            </h3>
+                    <div className="mb-3">
+                        <div className="flex items-center gap-1.5 px-2 mb-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            <h4 className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                                {isZh ? "在线" : "Online"} ({onlineFriends.length})
+                            </h4>
                         </div>
                         <div className="space-y-0.5">
                             {onlineFriends.map((f) => (
@@ -115,11 +119,11 @@ export function FriendsList({ currentUserId }: FriendsListProps) {
                 {/* 离线好友 */}
                 {offlineFriends.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 px-2 mb-2">
-                            <span className="h-2 w-2 rounded-full bg-gray-400" />
-                            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                离线好友 ({offlineFriends.length})
-                            </h3>
+                        <div className="flex items-center gap-1.5 px-2 mb-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+                            <h4 className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                                {isZh ? "离线" : "Offline"} ({offlineFriends.length})
+                            </h4>
                         </div>
                         <div className="space-y-0.5">
                             {offlineFriends.map((f) => (

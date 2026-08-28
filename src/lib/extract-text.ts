@@ -100,6 +100,57 @@ export function extractTextFromContent(content: unknown): string {
 }
 
 /**
+ * 清洗 Markdown / 富文本标记，生成干净无标记泄露的纯文本摘要
+ */
+export function cleanSummaryText(rawText: string): string {
+    if (!rawText) return "";
+    let text = rawText;
+
+    // 1. 过滤 HTML 标签
+    text = text.replace(/<[^>]+>/g, " ");
+
+    // 2. 过滤代码块 ```...```
+    text = text.replace(/```[\s\S]*?```/g, " ");
+
+    // 3. 过滤行内代码 `...`
+    text = text.replace(/`([^`]+)`/g, "$1");
+
+    // 4. 过滤图片与链接 ![alt](url) / [text](url)
+    text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, " ");
+    text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
+
+    // 5. 过滤 Markdown 标题行前缀（如 ## Title -> Title）
+    text = text.replace(/^#+\s+/gm, "");
+    text = text.replace(/\n#+\s+/g, " ");
+
+    // 6. 过滤引用符号 >
+    text = text.replace(/^>\s+/gm, "");
+    text = text.replace(/\n>\s+/g, " ");
+
+    // 7. 过滤粗体、斜体、删除线 **text** -> text, *text* -> text, ~~text~~ -> text
+    text = text.replace(/(\*\*|__)(.*?)\1/g, "$2");
+    text = text.replace(/(\*|_)(.*?)\1/g, "$2");
+    text = text.replace(/~~(.*?)~~/g, "$1");
+
+    // 8. 过滤无序列表与有序列表标记 - item / 1. item
+    text = text.replace(/^[\*\-\+]\s+/gm, "");
+    text = text.replace(/^\d+\.\s+/gm, "");
+
+    // 9. 过滤水平分割线 --- / ***
+    text = text.replace(/^[\*\-_]{3,}$/gm, " ");
+
+    // 10. 处理 LaTeX 块公式 $$...$$ 与行内公式 $...$
+    text = text.replace(/\$\$([\s\S]*?)\$\$/g, " $1 ");
+    text = text.replace(/\$([^\$]+)\$/g, " $1 ");
+
+    // 11. 将多个换行符、制表符、连续空格压缩为单个空格
+    text = text.replace(/[\r\n\t]+/g, " ");
+    text = text.replace(/\s{2,}/g, " ");
+
+    return text.trim();
+}
+
+/**
  * 截断文本到指定字符数，确保不会在单词中间截断
  */
 export function truncateText(text: string, maxLength: number = 8000): string {
@@ -117,4 +168,3 @@ export function truncateText(text: string, maxLength: number = 8000): string {
         " 字符的内容]"
     );
 }
-

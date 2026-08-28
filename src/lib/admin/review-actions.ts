@@ -168,6 +168,7 @@ export async function approvePostReview(postId: string, note: string = "") {
       type: "system",
       title: "帖子审核已通过",
       content: `您的文章《${post.title}》已通过审核并在全站公开展出！${note ? `审核备注：${note}` : ""}`,
+      related_id: postId,
     });
   }
 
@@ -224,7 +225,8 @@ export async function rejectPostReview(postId: string, rejectionReason: string) 
       user_id: post.author_id,
       type: "system",
       title: "帖子审核未通过",
-      content: `很抱歉，您的文章《${post.title}》未通过平台安全审核。驳回原因：${rejectionReason}。您可以在个人中心进行修改后重新提交。`,
+      content: `很抱歉，您的文章《${post.title}》未通过平台安全审核。驳回原因：${rejectionReason}。您可以进入个人主页或修改器重新编辑并提交。`,
+      related_id: postId,
     });
   }
 

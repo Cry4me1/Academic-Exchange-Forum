@@ -16,6 +16,12 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { usePresenceContext } from "@/contexts/PresenceContext";
 import { useMessages } from "@/hooks/useMessages";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE, formatFileSize } from "@/lib/file-utils";
@@ -23,14 +29,17 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import {
     ArrowLeft,
+    Code2,
+    FunctionSquare,
     Link as LinkIcon,
     Loader2,
     MessageSquare,
-    MoreVertical,
+    MoreHorizontal,
     Paperclip,
     Send,
     Smile,
     Type,
+    X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -192,49 +201,65 @@ export function ChatWindow({
         setPendingFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
+    // 插入代码块模板
+    const insertCodeBlock = () => {
+        if (useRichEditor) return;
+        setInputValue((prev) => prev + "\n```\n\n```");
+        inputRef.current?.focus();
+    };
+
+    // 插入公式模板
+    const insertFormula = () => {
+        if (useRichEditor) return;
+        setInputValue((prev) => prev + " $$ $$ ");
+        inputRef.current?.focus();
+    };
+
     return (
         <div className={cn("flex flex-col h-full bg-background", className)}>
-            {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b bg-card/50">
+            {/* ===== Header ===== */}
+            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.03)] shrink-0">
                 {onBack && (
-                    <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden">
-                        <ArrowLeft className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden h-8 w-8">
+                        <ArrowLeft className="h-4 w-4" />
                     </Button>
                 )}
 
-                <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                <Avatar className="h-8 w-8">
                     <AvatarImage src={partnerAvatar || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-medium">
                         {partnerInitials}
                     </AvatarFallback>
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate">{partnerName}</p>
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                        {partnerName}
+                    </h3>
                     <div className="flex items-center gap-1.5">
                         <span
                             className={cn(
-                                "h-2 w-2 rounded-full",
+                                "h-1.5 w-1.5 rounded-full",
                                 isPartnerOnline
-                                    ? "bg-green-500 animate-pulse"
-                                    : "bg-gray-400"
+                                    ? "bg-emerald-500"
+                                    : "bg-zinc-400"
                             )}
                         />
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
                             {isPartnerOnline ? "在线" : "离线"}
                         </span>
                     </div>
                 </div>
 
-                <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+                    <MoreHorizontal className="h-4 w-4" />
                 </Button>
             </div>
 
-            {/* Messages */}
+            {/* ===== Messages ===== */}
             {loading ? (
                 <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                 </div>
             ) : (
                 <ChatMessages
@@ -249,25 +274,27 @@ export function ChatWindow({
                 />
             )}
 
-            {/* 待上传文件预览 */}
+            {/* ===== 待上传文件预览 ===== */}
             {pendingFiles.length > 0 && (
-                <div className="px-4 py-2 border-t bg-muted/30">
+                <div className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2">
                     <div className="flex flex-wrap gap-2">
                         {pendingFiles.map((file, index) => (
                             <div
                                 key={index}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border"
+                                className="group flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700"
                             >
-                                <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm truncate max-w-[120px]">{file.name}</span>
-                                <span className="text-xs text-muted-foreground">
+                                <Paperclip className="h-3.5 w-3.5 text-zinc-400" />
+                                <span className="text-xs truncate max-w-[120px] text-zinc-700 dark:text-zinc-300">
+                                    {file.name}
+                                </span>
+                                <span className="text-[10px] text-zinc-400">
                                     {formatFileSize(file.size)}
                                 </span>
                                 <button
                                     onClick={() => removePendingFile(index)}
-                                    className="ml-1 text-muted-foreground hover:text-destructive"
+                                    className="ml-0.5 text-zinc-400 hover:text-red-500 transition-colors"
                                 >
-                                    ×
+                                    <X className="h-3 w-3" />
                                 </button>
                             </div>
                         ))}
@@ -275,10 +302,10 @@ export function ChatWindow({
                 </div>
             )}
 
-            {/* Input Area */}
-            <div className="border-t bg-card/50 p-3">
+            {/* ===== Input Area ===== */}
+            <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
                 {useRichEditor ? (
-                    // 富文本编辑器模式
+                    /* 富文本编辑器模式 */
                     <div className="space-y-2">
                         <ChatEditor
                             ref={editorRef}
@@ -288,18 +315,16 @@ export function ChatWindow({
                         />
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                                {/* 切换到普通模式 */}
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setUseRichEditor(false)}
-                                    className="text-xs"
+                                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                                 >
                                     <MessageSquare className="h-4 w-4 mr-1" />
                                     简单模式
                                 </Button>
 
-                                {/* 文件上传 */}
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -312,15 +337,15 @@ export function ChatWindow({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => fileInputRef.current?.click()}
+                                    className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                                 >
                                     <Paperclip className="h-4 w-4 mr-1" />
                                     附件
                                 </Button>
 
-                                {/* 分享帖子 */}
                                 <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
                                     <DialogTrigger asChild>
-                                        <Button variant="ghost" size="sm">
+                                        <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
                                             <LinkIcon className="h-4 w-4 mr-1" />
                                             分享帖子
                                         </Button>
@@ -338,6 +363,7 @@ export function ChatWindow({
                                 onClick={handleSend}
                                 disabled={(!richContent || richContent === "<p></p>") && pendingFiles.length === 0 || sending}
                                 size="sm"
+                                className="rounded-lg"
                             >
                                 {sending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -351,98 +377,167 @@ export function ChatWindow({
                         </div>
                     </div>
                 ) : (
-                    // 简单输入模式
-                    <div className="flex items-center gap-2">
-                        {/* 表情按钮 */}
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon" className="flex-shrink-0">
-                                    <Smile className="h-5 w-5 text-muted-foreground" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <EmojiPicker
-                                    onSelect={(emoji) => {
-                                        setInputValue((prev) => prev + emoji);
-                                        inputRef.current?.focus();
-                                    }}
+                    /* ===== 简单输入模式 — 全宽精致输入容器 ===== */
+                    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/60 p-1 shadow-2xs">
+                        <div className="flex items-center gap-0.5">
+                            {/* 快捷工具栏 */}
+                            <TooltipProvider delayDuration={300}>
+                                {/* 表情 */}
+                                <Popover>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                                >
+                                                    <Smile className="h-4 w-4" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">表情</TooltipContent>
+                                    </Tooltip>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <EmojiPicker
+                                            onSelect={(emoji) => {
+                                                setInputValue((prev) => prev + emoji);
+                                                inputRef.current?.focus();
+                                            }}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+
+                                {/* 附件 */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    accept={ALLOWED_FILE_TYPES.join(",")}
+                                    onChange={handleFileSelect}
                                 />
-                            </PopoverContent>
-                        </Popover>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <Paperclip className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">附件</TooltipContent>
+                                </Tooltip>
 
-                        {/* 附件按钮 */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            className="hidden"
-                            accept={ALLOWED_FILE_TYPES.join(",")}
-                            onChange={handleFileSelect}
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="flex-shrink-0"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <Paperclip className="h-5 w-5 text-muted-foreground" />
-                        </Button>
+                                {/* 插入代码 */}
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            onClick={insertCodeBlock}
+                                        >
+                                            <Code2 className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">代码块</TooltipContent>
+                                </Tooltip>
 
-                        {/* 分享帖子 */}
-                        <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
-                            <DialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="flex-shrink-0">
-                                    <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent aria-describedby={undefined}>
-                                <DialogHeader>
-                                    <DialogTitle>分享帖子</DialogTitle>
-                                </DialogHeader>
-                                <PostSelector onSelect={handleSharePost} />
-                            </DialogContent>
-                        </Dialog>
+                                {/* 公式 */}
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            onClick={insertFormula}
+                                        >
+                                            <FunctionSquare className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">LaTeX 公式</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
 
-                        {/* 切换富文本模式 */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="flex-shrink-0"
-                            onClick={() => setUseRichEditor(true)}
-                            title="富文本模式"
-                        >
-                            <Type className="h-5 w-5 text-muted-foreground" />
-                        </Button>
+                            {/* 分隔线 */}
+                            <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5 flex-shrink-0" />
 
-                        {/* 输入框 */}
-                        <Input
-                            ref={inputRef}
-                            placeholder="输入消息..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                            onFocus={handleMarkAsRead}
-                            className="flex-1"
-                        />
+                            {/* 输入框 */}
+                            <Input
+                                ref={inputRef}
+                                placeholder="输入消息..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                onFocus={handleMarkAsRead}
+                                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-sm placeholder:text-zinc-400 h-8 px-2"
+                            />
 
-                        {/* 发送按钮 */}
-                        <Button
-                            onClick={handleSend}
-                            disabled={(!inputValue.trim() && pendingFiles.length === 0) || sending}
-                            size="icon"
-                            className="flex-shrink-0"
-                        >
-                            {sending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                        </Button>
+                            {/* 富文本模式切换 */}
+                            <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            onClick={() => setUseRichEditor(true)}
+                                        >
+                                            <Type className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">富文本模式</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            {/* 分享帖子 */}
+                            <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
+                                <DialogTrigger asChild>
+                                    <TooltipProvider delayDuration={300}>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                                >
+                                                    <LinkIcon className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">分享帖子</TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </DialogTrigger>
+                                <DialogContent aria-describedby={undefined}>
+                                    <DialogHeader>
+                                        <DialogTitle>分享帖子</DialogTitle>
+                                    </DialogHeader>
+                                    <PostSelector onSelect={handleSharePost} />
+                                </DialogContent>
+                            </Dialog>
+
+                            {/* 发送按钮 */}
+                            <Button
+                                onClick={handleSend}
+                                disabled={(!inputValue.trim() && pendingFiles.length === 0) || sending}
+                                size="icon"
+                                className="h-7 w-7 flex-shrink-0 rounded-lg ml-0.5"
+                            >
+                                {sending ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                    <Send className="h-3.5 w-3.5" />
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -484,7 +579,7 @@ function PostSelector({
     if (loading) {
         return (
             <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
             </div>
         );
     }
@@ -503,13 +598,13 @@ function PostSelector({
                             <div
                                 key={post.id}
                                 onClick={() => onSelect(post.id, post.title)}
-                                className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                                className="p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
                             >
                                 <p className="font-medium text-sm line-clamp-2">{post.title}</p>
                             </div>
                         ))
                     ) : (
-                        <p className="text-center text-sm text-muted-foreground py-4">
+                        <p className="text-center text-sm text-zinc-500 py-4">
                             暂无帖子
                         </p>
                     )}
@@ -539,7 +634,7 @@ function EmojiPicker({
                 <button
                     key={emoji}
                     onClick={() => onSelect(emoji)}
-                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-muted rounded transition-colors"
+                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                 >
                     {emoji}
                 </button>

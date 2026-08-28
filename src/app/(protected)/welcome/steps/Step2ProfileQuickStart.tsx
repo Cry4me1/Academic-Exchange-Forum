@@ -29,6 +29,8 @@ import {
     Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/context";
+import { Locale } from "@/i18n/types";
 
 export interface ProfileFormData {
     username: string;
@@ -47,28 +49,23 @@ interface Step2ProfileQuickStartProps {
     onNext: (data: ProfileFormData) => void;
 }
 
-const popularRegions = [
-    "中国",
-    "中国香港",
-    "新加坡",
-    "美国",
-    "英国",
-    "日本",
-    "德国",
-    "加拿大",
-    "澳大利亚",
-];
-
 export function Step2ProfileQuickStart({
     userId,
     initialData,
     onPrev,
     onNext,
 }: Step2ProfileQuickStartProps) {
+    const { t, setLocale, isZh } = useI18n();
+    const tStep = t.welcome.step2;
+
     const [formData, setFormData] = useState<ProfileFormData>(initialData);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
+
+    const popularRegions = isZh
+        ? ["中国", "中国香港", "新加坡", "美国", "英国", "日本", "德国", "加拿大", "澳大利亚"]
+        : ["United States", "United Kingdom", "China", "Singapore", "Japan", "Germany", "Canada", "Australia"];
 
     // 处理头像上传至 Supabase Storage
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,11 +73,11 @@ export function Step2ProfileQuickStart({
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-            toast.error("请选择有效的图片文件 (JPG/PNG/WEBP)");
+            toast.error(tStep.imageTypeError);
             return;
         }
         if (file.size > 3 * 1024 * 1024) {
-            toast.error("头像文件大小不能超过 3MB");
+            toast.error(tStep.imageSizeError);
             return;
         }
 
@@ -100,18 +97,25 @@ export function Step2ProfileQuickStart({
                 .getPublicUrl(fileName);
 
             setFormData((prev) => ({ ...prev, avatar_url: publicUrl }));
-            toast.success("头像上传并预览成功！");
+            toast.success(tStep.uploadSuccess);
         } catch (error: any) {
             console.error("Avatar upload failed:", error);
-            toast.error("头像上传失败: " + (error.message || "未知错误"));
+            toast.error(tStep.uploadFail + (error.message || "未知错误"));
         } finally {
             setUploading(false);
         }
     };
 
+    const handleLanguageChange = (val: string) => {
+        setFormData({ ...formData, language: val });
+        if (val === "zh" || val === "en") {
+            setLocale(val as Locale);
+        }
+    };
+
     const handleContinue = () => {
         if (!formData.username.trim()) {
-            toast.error("请填写您的学者昵称或学术标识");
+            toast.error(tStep.usernameRequiredError);
             return;
         }
         onNext(formData);
@@ -125,13 +129,13 @@ export function Step2ProfileQuickStart({
             <div className="text-center space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/5 px-4 py-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400">
                     <UserCheck className="h-4 w-4" />
-                    第二步 · 学者建档 (Quick Start)
+                    {tStep.badge}
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                    打造您的学术学者专属名片
+                    {tStep.title}
                 </h2>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    完善基本资料，让全球同行在论文研讨与学术决斗中更快认识您。
+                    {tStep.description}
                 </p>
             </div>
 
@@ -160,7 +164,7 @@ export function Step2ProfileQuickStart({
                                 ) : (
                                     <>
                                         <Camera className="h-6 w-6" />
-                                        <span className="text-[10px] mt-1 font-medium">更换头像</span>
+                                        <span className="text-[10px] mt-1 font-medium">{tStep.changeAvatar}</span>
                                     </>
                                 )}
                             </button>
@@ -176,13 +180,13 @@ export function Step2ProfileQuickStart({
                         {/* 名字与提示 */}
                         <div className="text-center sm:text-left space-y-1">
                             <h3 className="text-lg font-bold text-foreground flex items-center justify-center sm:justify-start gap-2">
-                                {formData.username || "学者昵称预览"}
+                                {formData.username || (isZh ? "学者昵称预览" : "Scholar Handle Preview")}
                                 <Badge variant="secondary" className="text-[10px] py-0 px-2 font-normal">
-                                    学者认证
+                                    {tStep.scholarTag}
                                 </Badge>
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                                支持随时在个人主页右上角或设置中心修改更新
+                                {tStep.modifyTip}
                             </p>
                         </div>
                     </div>
@@ -195,11 +199,11 @@ export function Step2ProfileQuickStart({
                         <div className="space-y-2">
                             <Label htmlFor="username" className="text-xs font-semibold flex items-center gap-1.5">
                                 <User className="h-3.5 w-3.5 text-primary" />
-                                学者用户名 / 学术标识 <span className="text-rose-500">*</span>
+                                {tStep.usernameLabel} <span className="text-rose-500">*</span>
                             </Label>
                             <Input
                                 id="username"
-                                placeholder="例如：Dr. Turing 或 墨家学者"
+                                placeholder={tStep.usernamePlaceholder}
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                 className="h-10 bg-background/80"
@@ -210,20 +214,20 @@ export function Step2ProfileQuickStart({
                         {/* 性别 */}
                         <div className="space-y-2">
                             <Label htmlFor="gender" className="text-xs font-semibold">
-                                性别标识
+                                {tStep.genderLabel}
                             </Label>
                             <Select
                                 value={formData.gender}
                                 onValueChange={(val) => setFormData({ ...formData, gender: val })}
                             >
                                 <SelectTrigger id="gender" className="h-10 bg-background/80">
-                                    <SelectValue placeholder="请选择性别展示" />
+                                    <SelectValue placeholder={tStep.genderPlaceholder} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="male">男</SelectItem>
-                                    <SelectItem value="female">女</SelectItem>
-                                    <SelectItem value="other">其他</SelectItem>
-                                    <SelectItem value="private">保持私密 (不公开)</SelectItem>
+                                    <SelectItem value="male">{tStep.genderMale}</SelectItem>
+                                    <SelectItem value="female">{tStep.genderFemale}</SelectItem>
+                                    <SelectItem value="other">{tStep.genderOther}</SelectItem>
+                                    <SelectItem value="private">{tStep.genderPrivate}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -233,12 +237,12 @@ export function Step2ProfileQuickStart({
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="country" className="text-xs font-semibold flex items-center gap-1.5">
                                     <Globe className="h-3.5 w-3.5 text-blue-500" />
-                                    国家 / 常驻地区
+                                    {tStep.countryLabel}
                                 </Label>
                             </div>
                             <Input
                                 id="country"
-                                placeholder="例如：中国"
+                                placeholder={tStep.countryPlaceholder}
                                 value={formData.country}
                                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                                 className="h-10 bg-background/80"
@@ -268,20 +272,20 @@ export function Step2ProfileQuickStart({
                             <div className="space-y-2">
                                 <Label htmlFor="language" className="text-xs font-semibold flex items-center gap-1.5">
                                     <Languages className="h-3.5 w-3.5 text-emerald-500" />
-                                    偏好语言
+                                    {tStep.languageLabel}
                                 </Label>
                                 <Select
                                     value={formData.language}
-                                    onValueChange={(val) => setFormData({ ...formData, language: val })}
+                                    onValueChange={handleLanguageChange}
                                 >
                                     <SelectTrigger id="language" className="h-10 bg-background/80">
-                                        <SelectValue placeholder="选择界面语言" />
+                                        <SelectValue placeholder={tStep.languagePlaceholder} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="zh">简体中文 (Chinese)</SelectItem>
-                                        <SelectItem value="en">English (US)</SelectItem>
-                                        <SelectItem value="ja">日本語 (Japanese)</SelectItem>
-                                        <SelectItem value="ko">한국어 (Korean)</SelectItem>
+                                        <SelectItem value="zh">{t.common.chinese}</SelectItem>
+                                        <SelectItem value="en">{t.common.english}</SelectItem>
+                                        <SelectItem value="ja">{t.common.japanese}</SelectItem>
+                                        <SelectItem value="ko">{t.common.korean}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -290,21 +294,21 @@ export function Step2ProfileQuickStart({
                             <div className="space-y-2">
                                 <Label htmlFor="timezone" className="text-xs font-semibold flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                    学术活动时区
+                                    {tStep.timezoneLabel}
                                 </Label>
                                 <Select
                                     value={formData.timezone}
                                     onValueChange={(val) => setFormData({ ...formData, timezone: val })}
                                 >
                                     <SelectTrigger id="timezone" className="h-10 bg-background/80">
-                                        <SelectValue placeholder="选择所在时区" />
+                                        <SelectValue placeholder={tStep.timezonePlaceholder} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Asia/Shanghai">北京/上海时间 (UTC+8)</SelectItem>
-                                        <SelectItem value="Asia/Tokyo">东京时间 (UTC+9)</SelectItem>
-                                        <SelectItem value="Europe/London">格林威治标准时间 (UTC+0)</SelectItem>
-                                        <SelectItem value="America/New_York">美东时间 (UTC-5)</SelectItem>
-                                        <SelectItem value="America/Los_Angeles">太平洋时间 (UTC-8)</SelectItem>
+                                        <SelectItem value="Asia/Shanghai">{t.settings.timezones.beijing}</SelectItem>
+                                        <SelectItem value="Asia/Tokyo">{t.settings.timezones.tokyo}</SelectItem>
+                                        <SelectItem value="Europe/London">{t.settings.timezones.london}</SelectItem>
+                                        <SelectItem value="America/New_York">{t.settings.timezones.newYork}</SelectItem>
+                                        <SelectItem value="America/Los_Angeles">{t.settings.timezones.losAngeles}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -316,7 +320,7 @@ export function Step2ProfileQuickStart({
                         <div className="flex items-center justify-between">
                             <Label htmlFor="bio" className="text-xs font-semibold flex items-center gap-1.5">
                                 <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-                                学术简介 / 研究方向 (Bio)
+                                {tStep.bioLabel}
                             </Label>
                             <span className="text-[11px] text-muted-foreground">
                                 {formData.bio.length} / 300
@@ -324,7 +328,7 @@ export function Step2ProfileQuickStart({
                         </div>
                         <Textarea
                             id="bio"
-                            placeholder="写一句简短的学术寄语，或列出您的研究方向（如：量子计算、大语言模型蒸馏、拓扑学等）..."
+                            placeholder={tStep.bioPlaceholder}
                             value={formData.bio}
                             onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                             rows={3}
@@ -344,7 +348,7 @@ export function Step2ProfileQuickStart({
                     className="gap-2 text-muted-foreground hover:text-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    返回社区公约
+                    {tStep.backToStep1}
                 </Button>
 
                 <Button
@@ -353,7 +357,7 @@ export function Step2ProfileQuickStart({
                     onClick={handleContinue}
                     className="h-12 px-8 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/20 font-semibold group"
                 >
-                    下一步：选择主页主题色
+                    {tStep.nextStep}
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
             </div>

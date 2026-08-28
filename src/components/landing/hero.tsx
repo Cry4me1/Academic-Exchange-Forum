@@ -22,6 +22,10 @@ import { UserCount } from "@/components/UserCount";
 import { MathText } from "@/components/ui/math-text";
 import { NeuralBackground } from "./neural-background";
 import { FloatingGlyphs } from "./floating-glyphs";
+import { Particles } from "@/components/ui/particles";
+import { BorderBeam } from "@/components/ui/border-beam";
+import { useI18n } from "@/i18n/context";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 export interface HeroPostItem {
     id: string;
@@ -132,6 +136,9 @@ interface HeroProps {
 }
 
 export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProps) {
+    const { t, isZh } = useI18n();
+    const tHero = t.hero;
+
     // 选中的精选帖子索引
     const [selectedPostIndex, setSelectedPostIndex] = useState(0);
 
@@ -139,41 +146,41 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
     const fallbackTopics: HeroPostItem[] = [
         {
             id: "physics-1",
-            title: "关于拓扑绝缘体在超低温下的量子反常霍尔效应研究",
-            content: "实验证实了在无外加强磁场条件下，磁性掺杂拓扑绝缘体薄膜表现出精确量子化的霍尔电阻平台 \\(\\sigma_{xy} = e^2/h\\)。",
-            tags: ["量子物理", "凝聚态", "拓扑"],
+            title: isZh ? "关于拓扑绝缘体在超低温下的量子反常霍尔效应研究" : "Quantum Anomalous Hall Effect in Topological Insulators at Millikelvin Temperatures",
+            content: isZh ? "实验证实了在无外加强磁场条件下，磁性掺杂拓扑绝缘体薄膜表现出精确量子化的霍尔电阻平台 \\(\\sigma_{xy} = e^2/h\\)。" : "Experimental observation confirms quantized Hall resistance \\(\\sigma_{xy} = e^2/h\\) in magnetically doped topological insulators without external field.",
+            tags: isZh ? ["量子物理", "凝聚态", "拓扑"] : ["Quantum", "Condensed Matter", "Topology"],
             comment_count: 18,
             like_count: 64,
             view_count: 520,
             author: {
                 username: "quantum_physicist",
-                special_title: "国家杰青 · 高能物理所",
+                special_title: isZh ? "国家杰青 · 高能物理所" : "Senior Fellow · IHEP",
             },
         },
         {
             id: "ai-2",
-            title: "大模型长上下文推理阶段的动态注意力机制优化分析",
-            content: "提出动态注意力剪枝算法，在保持超长文本问答准确率的同时，将注意力矩阵显存开销降低 65%。",
-            tags: ["深度学习", "注意力机制", "LLM"],
+            title: isZh ? "大模型长上下文推理阶段的动态注意力机制优化分析" : "Dynamic Attention Pruning in Long-Context LLM Inference",
+            content: isZh ? "提出动态注意力剪枝算法，在保持超长文本问答准确率的同时，将注意力矩阵显存开销降低 65%。" : "Proposes dynamic sparse attention pruning, reducing memory footprint by 65% while maintaining QA accuracy.",
+            tags: isZh ? ["深度学习", "注意力机制", "LLM"] : ["Deep Learning", "Attention", "LLM"],
             comment_count: 26,
             like_count: 98,
             view_count: 890,
             author: {
                 username: "elena_ai",
-                special_title: "AI 首席科学家",
+                special_title: isZh ? "AI 首席科学家" : "Chief AI Scientist",
             },
         },
         {
             id: "math-3",
-            title: "高维紧致辛流形上的弗洛尔同调与全曲率积分",
-            content: "结合高斯-博内定理 \\(\\chi(M) = \\frac{1}{2\\pi}\\int_M K\\,dA\\)，给出了非退化辛流形相交数的上同调精确刻画。",
-            tags: ["微分几何", "流形", "拓扑"],
+            title: isZh ? "高维紧致辛流形上的弗洛尔同调与全曲率积分" : "Floer Homology and Total Curvature Integrals on Compact Symplectic Manifolds",
+            content: isZh ? "结合高斯-博内定理 \\(\\chi(M) = \\frac{1}{2\\pi}\\int_M K\\,dA\\)，给出了非退化辛流形相交数的上同调精确刻画。" : "By synthesizing Gauss-Bonnet theorem \\(\\chi(M) = \\frac{1}{2\\pi}\\int_M K\\,dA\\), establishes intersection homology invariants.",
+            tags: isZh ? ["微分几何", "流形", "拓扑"] : ["Differential Geometry", "Manifold", "Topology"],
             comment_count: 14,
             like_count: 47,
             view_count: 360,
             author: {
                 username: "topologist",
-                special_title: "应用数学研究员",
+                special_title: isZh ? "应用数学研究员" : "Pure Math Researcher",
             },
         },
     ];
@@ -212,6 +219,11 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
 
     return (
         <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-slate-50/70 dark:bg-[#07090e] transition-colors duration-700">
+            {/* 顶栏快速切换器 (独立悬浮于 Hero 右上角) */}
+            <div className="absolute top-6 right-6 z-30 flex items-center gap-3">
+                <LanguageSwitcher variant="toggle" />
+            </div>
+
             {/* === 1. 柔和极光光晕背景 === */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-18%] left-1/2 -translate-x-1/2 w-[850px] h-[480px] bg-gradient-to-b from-amber-500/15 via-orange-500/10 to-transparent blur-[130px] rounded-full dark:from-amber-400/15 dark:via-purple-600/10 dark:to-transparent" />
@@ -222,10 +234,20 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             {/* === 2. 神经知识网络 Canvas 动画（鼠标引力互动） === */}
             <NeuralBackground />
 
-            {/* === 3. 浮动 LaTeX 景深学术公式 === */}
+            {/* === 3. Magic UI 交互粒子引力层 === */}
+            <Particles
+                className="absolute inset-0 z-0 pointer-events-none"
+                quantity={70}
+                ease={70}
+                size={0.6}
+                color="#f59e0b"
+                refresh
+            />
+
+            {/* === 4. 浮动 LaTeX 景深学术公式 === */}
             <FloatingGlyphs />
 
-            {/* === 4. 精细网格背景 === */}
+            {/* === 5. 精细网格背景 === */}
             <div
                 className="absolute inset-0 opacity-[0.025] dark:opacity-[0.035] pointer-events-none"
                 style={{
@@ -255,11 +277,11 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                                 </span>
                                 <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                                    汇聚前沿思想 · 已有{" "}
+                                    {tHero.badgePrefix}
                                     <span className="text-orange-600 dark:text-amber-400 font-bold">
                                         <UserCount />
-                                    </span>{" "}
-                                    位学者在此研讨
+                                    </span>
+                                    {tHero.badgeSuffix}
                                 </span>
                                 <Sparkles className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-12 transition-transform" />
                             </div>
@@ -269,7 +291,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-amber-400 border border-orange-500/30 text-xs font-semibold shadow-xs transition-all hover:scale-105"
                             >
                                 <span className="text-sm">🎟️</span>
-                                <span>820 邀请码先到先得看板</span>
+                                <span>{tHero.inviteBanner}</span>
                                 <ArrowRight className="w-3 h-3 ml-0.5" />
                             </Link>
                         </motion.div>
@@ -302,7 +324,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                             className="text-2xl md:text-4xl font-bold mb-6 tracking-tight"
                         >
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-amber-500 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-400">
-                                纯粹、严谨、灵动的学术殿堂
+                                {tHero.subTitle}
                             </span>
                         </motion.h2>
 
@@ -311,11 +333,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                             variants={itemVariants}
                             className="text-base md:text-lg max-w-2xl mb-10 leading-relaxed mx-auto lg:mx-0 text-slate-600 dark:text-slate-400"
                         >
-                            专为研究者与学者打造的下一代学术交流平台。原生支持{" "}
-                            <span className="font-semibold text-slate-900 dark:text-slate-100">LaTeX</span>{" "}
-                            深度数学排版、
-                            <span className="font-semibold text-slate-900 dark:text-slate-100">多语言算法高亮</span>与
-                            Mermaid 拓扑图谱，让思想的深邃自由绽放。
+                            {tHero.description}
                         </motion.p>
 
                         {/* 核心 CTA 操作按钮 */}
@@ -329,7 +347,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                 className="h-12 px-8 text-white font-medium rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-orange-500/25 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 dark:from-amber-400 dark:to-orange-500 dark:text-slate-950 font-semibold group border-0"
                             >
                                 <Link href="/register">
-                                    开启学术探索
+                                    {tHero.exploreBtn}
                                     <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </Link>
                             </Button>
@@ -344,7 +362,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                     className="flex items-center gap-2"
                                 >
                                     <Compass className="w-4 h-4" />
-                                    浏览前沿讨论
+                                    {tHero.browseBtn}
                                 </Link>
                             </Button>
                         </motion.div>
@@ -354,9 +372,9 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                             variants={itemVariants}
                             className="mt-12 inline-flex flex-wrap items-center justify-center lg:justify-start rounded-2xl bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 divide-x divide-slate-200/80 dark:divide-white/10 shadow-xs"
                         >
-                            <StatBadge value={formatCount(postsCount, "posts")} label="学术成果/讨论" icon={BookOpen} />
-                            <StatBadge value={formatCount(tagsCount, "tags")} label="学科领域" icon={FlaskConical} />
-                            <StatBadge value="99.9%" label="高可用服务" icon={Zap} />
+                            <StatBadge value={formatCount(postsCount, "posts")} label={tHero.statPosts} icon={BookOpen} />
+                            <StatBadge value={formatCount(tagsCount, "tags")} label={tHero.statTags} icon={FlaskConical} />
+                            <StatBadge value="99.9%" label={tHero.statUptime} icon={Zap} />
                         </motion.div>
                     </motion.div>
 
@@ -391,7 +409,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                                 }`}
                                             >
-                                                精选 {idx + 1}
+                                                {tHero.featuredTag} {idx + 1}
                                             </button>
                                         ))}
                                     </div>
@@ -407,17 +425,17 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                                    {currentPost.author?.username || "认证学者"}
+                                                    {currentPost.author?.username || tHero.defaultAuthor}
                                                     <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
                                                 </div>
                                                 <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                                    {currentPost.author?.special_title || "同行评议学者"}
+                                                    {currentPost.author?.special_title || tHero.defaultTitle}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <span className="text-[11px] font-mono text-orange-600 dark:text-amber-300 font-semibold px-2.5 py-1 rounded-full bg-orange-50 dark:bg-amber-400/10 border border-orange-200 dark:border-amber-400/20">
-                                            热门帖子
+                                            {tHero.hotPostTag}
                                         </span>
                                     </div>
 
@@ -467,12 +485,22 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                             href={`/posts/${currentPost.id}`}
                                             className="text-xs font-bold text-orange-600 dark:text-amber-300 hover:underline inline-flex items-center gap-1"
                                         >
-                                            研读全文
+                                            {tHero.readFullPost}
                                             <ArrowRight className="w-3.5 h-3.5" />
                                         </Link>
                                     </div>
 
                                 </div>
+
+                                {/* Magic UI 3D 卡片流光边框 */}
+                                <BorderBeam
+                                    size={280}
+                                    duration={8}
+                                    delay={0}
+                                    colorFrom="#f59e0b"
+                                    colorTo="#a855f7"
+                                    borderWidth={1.5}
+                                />
                             </div>
                         </Interactive3DCard>
                     </motion.div>

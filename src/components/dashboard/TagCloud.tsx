@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/i18n/context";
 
 interface TagData {
     name: string;
@@ -14,12 +13,13 @@ interface TagData {
 }
 
 const heatStyles = {
-    hot: "bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-600 border-red-500/30 hover:from-red-500/30 hover:to-orange-500/30",
-    warm: "bg-gradient-to-r from-amber-500/15 to-yellow-500/15 text-amber-600 border-amber-500/25 hover:from-amber-500/25 hover:to-yellow-500/25",
-    normal: "bg-muted/50 text-muted-foreground border-muted hover:bg-muted",
+    hot: "bg-rose-500/8 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 hover:bg-rose-500/15",
+    warm: "bg-amber-500/8 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/15",
+    normal: "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60",
 };
 
 export function TagCloud() {
+    const { t, isZh } = useI18n();
     const [tags, setTags] = useState<TagData[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -64,40 +64,38 @@ export function TagCloud() {
     }, []);
 
     return (
-        <Card>
-            <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    热门话题
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                {loading ? (
-                    <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                ) : tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                        {tags.map((tag) => (
-                            <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`}>
-                                <Badge
-                                    variant="outline"
-                                    className={`cursor-pointer transition-all duration-200 text-xs px-2.5 py-1 ${heatStyles[tag.heat]}`}
-                                >
-                                    {tag.name}
-                                    <span className="ml-1.5 opacity-60 text-[10px]">
-                                        {tag.count >= 1000 ? `${(tag.count / 1000).toFixed(1)}k` : tag.count}
-                                    </span>
-                                </Badge>
-                            </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                        暂无热门话题
-                    </p>
-                )}
-            </CardContent>
-        </Card>
+        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-4 sm:p-5 shadow-xs backdrop-blur-md">
+            <div className="flex items-center gap-2 mb-3.5">
+                <TrendingUp className="h-4 w-4 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                    {t.dashboardComponents.trendingTags}
+                </h3>
+            </div>
+            
+            {loading ? (
+                <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" strokeWidth={1.75} />
+                </div>
+            ) : tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => (
+                        <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`}>
+                            <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all duration-150 cursor-pointer ${heatStyles[tag.heat]}`}
+                            >
+                                <span>{tag.name}</span>
+                                <span className="font-mono text-[10px] opacity-60 tabular-nums">
+                                    {tag.count >= 1000 ? `${(tag.count / 1000).toFixed(1)}k` : tag.count}
+                                </span>
+                            </span>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-4">
+                    {isZh ? "暂无热门话题" : "No trending topics yet"}
+                </p>
+            )}
+        </div>
     );
 }

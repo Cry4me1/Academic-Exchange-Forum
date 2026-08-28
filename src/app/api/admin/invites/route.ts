@@ -4,22 +4,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateInviteCodesSchema } from "@/lib/validations/auth";
 import { logAdminAction } from "@/lib/admin/permissions";
 
-// 辅助函数：校验超级管理员 (Hansszh) 权限
+// 辅助函数：校验超级管理员权限
 async function verifySuperAdminAuth() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // 1. 检查 profiles 表中的用户名/邮箱
+    // 1. 检查 profiles 表中的用户名
     const { data: profile } = await supabase
         .from("profiles")
-        .select("username, email")
+        .select("username, email, is_developer")
         .eq("id", user.id)
         .maybeSingle();
-
-    const isHansszhUser = 
-        profile?.username?.toLowerCase() === "hansszh" || 
-        user.email?.toLowerCase().includes("hansszh");
 
     // 2. 检查 admin_roles 表
     const { data: adminRole } = await supabase
@@ -28,14 +24,15 @@ async function verifySuperAdminAuth() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-    const isAdmin = adminRole?.role === "super_admin" || adminRole?.role === "admin" || isHansszhUser;
+    const isDeveloper = profile?.is_developer === true;
+    const isAdmin = adminRole?.role === "super_admin" || adminRole?.role === "admin" || isDeveloper;
 
     if (!isAdmin) return null;
 
     return { 
         user, 
-        role: adminRole?.role || "super_admin",
-        username: profile?.username || "Hansszh" 
+        role: adminRole?.role || (isDeveloper ? "super_admin" : "admin"),
+        username: profile?.username || "管理员" 
     };
 }
 
@@ -43,7 +40,7 @@ export async function GET(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权访问邀请码管理中心" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权访问邀请码管理中心" }, { status: 403 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -126,12 +123,12 @@ export async function GET(request: NextRequest) {
             creator: item.creator_id
                 ? profileMap.get(item.creator_id) || {
                       id: item.creator_id,
-                      username: "Hansszh",
+                      username: "系统管理员",
                       avatar_url: null,
                   }
                 : {
                       id: "system",
-                      username: "Hansszh",
+                      username: "系统管理员",
                       avatar_url: null,
                   },
         }));
@@ -159,7 +156,7 @@ export async function POST(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权批量签发邀请码" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权批量签发邀请码" }, { status: 403 });
         }
 
         const body = await request.json();
@@ -198,7 +195,7 @@ export async function POST(request: NextRequest) {
                 used_count: 0,
                 expires_at: expiresAt,
                 is_active: true,
-                note: note || "Hansszh 签发",
+                note: note || "官方签发",
             });
         }
 
@@ -242,7 +239,7 @@ export async function DELETE(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权批量删除邀请码" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权批量删除邀请码" }, { status: 403 });
         }
 
         const body = await request.json();

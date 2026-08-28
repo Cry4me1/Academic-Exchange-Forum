@@ -9,6 +9,7 @@ import { PostCard } from "./PostCard";
 import { PostCardSkeletonCompact, PostCardSkeletonWithCover, PostFeedSkeleton } from "./PostCardSkeleton";
 // @ts-ignore
 import Masonry from "react-masonry-css";
+import { useI18n } from "@/i18n/context";
 
 // ====================
 // 瀑布流断点
@@ -27,6 +28,7 @@ interface PostData {
     title: string;
     content: object;
     tags: string[];
+    cover_image?: string | null;
     view_count: number;
     like_count: number;
     comment_count: number;
@@ -56,35 +58,6 @@ interface PostFeedProps {
 const PAGE_SIZE = 12;
 
 // ====================
-// Utils
-// ====================
-
-function extractImageFromContent(content: object): string | undefined {
-    try {
-        const jsonContent = content as { content?: Array<any> };
-        const findImage = (nodes: Array<any>): string | undefined => {
-            for (const node of nodes) {
-                if (node.type === "image" && node.attrs?.src) {
-                    return node.attrs.src;
-                }
-                if (node.content) {
-                    const found = findImage(node.content);
-                    if (found) return found;
-                }
-            }
-            return undefined;
-        };
-
-        if (jsonContent.content) {
-            return findImage(jsonContent.content);
-        }
-    } catch {
-        // ignore
-    }
-    return undefined;
-}
-
-// ====================
 // 动画变体
 // ====================
 const cardVariants = {
@@ -104,6 +77,7 @@ const cardVariants = {
 // 主组件
 // ====================
 export function PostFeed({ filter }: PostFeedProps) {
+    const { t, isZh } = useI18n();
     const [posts, setPosts] = useState<PostData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -219,11 +193,13 @@ export function PostFeed({ filter }: PostFeedProps) {
                         />
                     </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1.5">暂无内容</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-1.5">
+                    {t.dashboardComponents.postsEmpty}
+                </h3>
                 <p className="text-sm text-muted-foreground max-w-xs">
                     {filter === "following"
-                        ? "关注更多学者来查看他们的动态"
-                        : "还没有帖子，快来发布第一条吧！"}
+                        ? (isZh ? "关注更多学者来查看他们的动态" : "Follow more scholars to view their research feeds")
+                        : t.dashboardComponents.postsEmptyDesc}
                 </p>
             </div>
         );
@@ -235,16 +211,16 @@ export function PostFeed({ filter }: PostFeedProps) {
             <AnimatePresence mode="wait">
                 <motion.div
                     key={filter}
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    {/* 瀑布流网格 */}
+                    {/* 瀑布流网格 Base-8: gap-5 */}
                     <Masonry
                         breakpointCols={breakpointColumnsObj}
-                        className="flex w-auto -ml-6"
-                        columnClassName="pl-6 bg-clip-padding space-y-6"
+                        className="flex w-auto -ml-5"
+                        columnClassName="pl-5 bg-clip-padding space-y-5"
                     >
                         {posts.map((post, i) => (
                             <motion.div
@@ -258,7 +234,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                                     id={post.id}
                                     author={{
                                         id: post.author.id,
-                                        name: post.author.username || "学者",
+                                        name: post.author.username || (isZh ? "学者" : "Scholar"),
                                         avatar: post.author.avatar_url,
                                         initials: (post.author.username || "?").slice(0, 2).toUpperCase(),
                                         special_title: post.author.special_title,
@@ -266,7 +242,7 @@ export function PostFeed({ filter }: PostFeedProps) {
                                     }}
                                     title={post.title}
                                     content={extractTextFromContent(post.content)}
-                                    coverImage={extractImageFromContent(post.content)}
+                                    coverImage={post.cover_image || undefined}
                                     tags={post.tags}
                                     createdAt={new Date(post.created_at)}
                                     likes={post.like_count}
@@ -284,23 +260,21 @@ export function PostFeed({ filter }: PostFeedProps) {
                     </Masonry>
 
                     {/* 加载更多触发区域 */}
-                    <div ref={loadMoreRef} className="mt-6 min-h-[1px]">
+                    <div ref={loadMoreRef} className="mt-6 min-h-[20px]">
                         {isLoadingMore && (
                             <motion.div
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
+                                transition={{ duration: 0.2 }}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-5"
                             >
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <PostCardSkeletonCompact />
-                                    <PostCardSkeletonWithCover />
-                                    <PostCardSkeletonCompact />
-                                </div>
+                                <PostCardSkeletonCompact />
+                                <PostCardSkeletonCompact />
                             </motion.div>
                         )}
                         {!hasMore && posts.length >= PAGE_SIZE && (
-                            <p className="text-xs text-muted-foreground/50 text-center py-4">
-                                — 已加载全部内容 —
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-8 font-medium tracking-wide">
+                                — {t.dashboardComponents.noMore} —
                             </p>
                         )}
                     </div>

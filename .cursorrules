@@ -1,0 +1,18 @@
+# Frontend Design System & Aesthetics Rules
+
+## 1. Core Stack
+- Next.js (App Router), TypeScript, Tailwind CSS, Lucide React, Framer Motion.
+- Component Philosophy: Copy-and-Own (shadcn/ui, Magic UI, Aceternity UI).
+
+## 2. Visual Standards (Dark-First Aesthetic)
+- **Surfaces**: Base background `bg-zinc-950`, Card surface `bg-zinc-900/60`, Backdrop blur `backdrop-blur-md`. Never use pure `#000000`.
+- **Borders & Rings**: Replace heavy shadows with translucent borders:
+  - Base: `border border-white/10`
+  - Hover: `hover:border-white/20 transition-colors`
+  - Subtle ring: `ring-1 ring-inset ring-white/5`
+- **Lighting**: Soft ambient background glows (`bg-gradient-to-tr from-indigo-500/15 via-purple-500/10 to-transparent blur-3xl pointer-events-none`).
+- **Typography**: Header tight tracking (`tracking-tight` / `tracking-tighter`), High text hierarchy (`text-zinc-100` vs `text-zinc-400`).
+
+## 3. Layout & Micro-interactions
+- **Layout**: Prefer asymmetrical 12-column Bento Grids (`col-span-12 lg:col-span-8`).
+- **Spring Motion**: Hover scaling `hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 ease-out`.

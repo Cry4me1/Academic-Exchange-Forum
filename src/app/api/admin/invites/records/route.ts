@@ -9,13 +9,9 @@ async function verifySuperAdminAuth() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("username, email")
+        .select("username, email, is_developer")
         .eq("id", user.id)
         .maybeSingle();
-
-    const isHansszhUser = 
-        profile?.username?.toLowerCase() === "hansszh" || 
-        user.email?.toLowerCase().includes("hansszh");
 
     const { data: adminRole } = await supabase
         .from("admin_roles")
@@ -23,17 +19,18 @@ async function verifySuperAdminAuth() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-    const isAdmin = adminRole?.role === "super_admin" || adminRole?.role === "admin" || isHansszhUser;
+    const isDeveloper = profile?.is_developer === true;
+    const isAdmin = adminRole?.role === "super_admin" || adminRole?.role === "admin" || isDeveloper;
     if (!isAdmin) return null;
 
-    return { user, role: adminRole?.role || "super_admin", username: profile?.username || "Hansszh" };
+    return { user, role: adminRole?.role || (isDeveloper ? "super_admin" : "admin"), username: profile?.username || "管理员" };
 }
 
 export async function GET(request: NextRequest) {
     try {
         const auth = await verifySuperAdminAuth();
         if (!auth) {
-            return NextResponse.json({ error: "仅超级管理员(Hansszh)有权查看核销审计日志" }, { status: 403 });
+            return NextResponse.json({ error: "仅超级管理员有权查看核销审计日志" }, { status: 403 });
         }
 
         const { searchParams } = new URL(request.url);

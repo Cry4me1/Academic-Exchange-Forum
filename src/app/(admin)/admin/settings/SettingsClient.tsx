@@ -78,7 +78,7 @@ export function SettingsClient() {
             <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
                     <Settings className="w-7 h-7 text-slate-600 dark:text-slate-400" />
-                    全局系统设置 (Hansszh 专属)
+                    全局系统设置 (超级管理员专属)
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                     配置 Scholarly 学术社区的准入模式与安全策略
@@ -126,7 +126,7 @@ export function SettingsClient() {
                                             严格邀请制
                                         </div>
                                         <div className="text-[11px] text-muted-foreground mt-0.5">
-                                            必须凭 Hansszh 邀请码入驻
+                                            必须凭有效邀请码入驻
                                         </div>
                                     </div>
                                 </div>
@@ -225,7 +225,7 @@ export function SettingsClient() {
                 <Sparkles className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
                 <div className="space-y-1 text-xs text-muted-foreground">
                     <p className="font-semibold text-foreground">
-                        Hansszh 超级管理员专属权限受控
+                        超级管理员专属权限受控
                     </p>
                     <p>
                         邀请码的签发、启停及核销追溯严格受数据库 RLS 与后端 RBAC 双重鉴权保护，仅超级管理员账号拥有操作权限。

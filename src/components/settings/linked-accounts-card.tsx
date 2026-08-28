@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { CheckCircle2, Copy, ExternalLink, HelpCircle, Loader2, RefreshCw, Unlink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/context";
 
 interface LinkedAccount {
     id: string;
@@ -19,6 +20,9 @@ interface LinkedAccount {
 }
 
 export function LinkedAccountsCard() {
+    const { t } = useI18n();
+    const tLink = t.linkedAccounts;
+
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [unbinding, setUnbinding] = useState(false);
@@ -54,11 +58,11 @@ export function LinkedAccountsCard() {
             setLuoguAccount(luogu);
         } catch (error: any) {
             console.error("Failed to load account bindings:", error);
-            toast.error("加载账号绑定信息失败");
+            toast.error(t.common.error);
         } finally {
             setLoading(false);
         }
-    }, [supabase]);
+    }, [supabase, t.common.error]);
 
     useEffect(() => {
         loadBindings();
@@ -67,18 +71,18 @@ export function LinkedAccountsCard() {
     // 复制验证码
     const handleCopyCode = () => {
         navigator.clipboard.writeText(verifyCode);
-        toast.success("验证码已复制到剪贴板");
+        toast.success(tLink.copiedCodeToast);
     };
 
     // 执行绑定
     const handleBind = async () => {
         if (!luoguId.trim()) {
-            toast.error("请输入洛谷 UID");
+            toast.error(tLink.inputUidError);
             return;
         }
 
         if (isNaN(Number(luoguId.trim()))) {
-            toast.error("洛谷 UID 必须为纯数字");
+            toast.error(tLink.numericUidError);
             return;
         }
 
@@ -99,17 +103,17 @@ export function LinkedAccountsCard() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || "验证失败");
+                throw new Error(data.error || t.common.error);
             }
 
-            toast.success(`成功绑定洛谷账号: ${data.username}`);
+            toast.success(`${tLink.bindSuccess}${data.username}`);
             setLuoguId("");
             setLuoguHtml("");
             setShowManual(false);
             await loadBindings();
         } catch (error: any) {
             console.error("Bind error:", error);
-            toast.error(error.message || "网络请求失败，请稍后重试");
+            toast.error(error.message || t.common.networkError);
             if (!showManual) {
                 setShowManual(true);
             }
@@ -120,7 +124,7 @@ export function LinkedAccountsCard() {
 
     // 执行解绑
     const handleUnbind = async () => {
-        if (!window.confirm("确定要解除与该洛谷账号的绑定吗？")) return;
+        if (!window.confirm(tLink.unbindConfirm)) return;
 
         setUnbinding(true);
         try {
@@ -131,14 +135,14 @@ export function LinkedAccountsCard() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || "解绑失败");
+                throw new Error(data.error || tLink.unbindError);
             }
 
-            toast.success("解绑成功");
+            toast.success(tLink.unbindSuccess);
             await loadBindings();
         } catch (error: any) {
             console.error("Unbind error:", error);
-            toast.error(error.message || "解绑失败，请重试");
+            toast.error(error.message || tLink.unbindError);
         } finally {
             setUnbinding(false);
         }
@@ -146,7 +150,7 @@ export function LinkedAccountsCard() {
 
     if (loading) {
         return (
-            <Card className="shadow-lg border-border/30 bg-white/80 backdrop-blur-sm mt-6">
+            <Card className="shadow-lg border-border/30 bg-white/80 dark:bg-card/80 backdrop-blur-sm mt-6">
                 <CardContent className="py-10 flex items-center justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </CardContent>
@@ -155,13 +159,13 @@ export function LinkedAccountsCard() {
     }
 
     return (
-        <Card className="shadow-lg border-border/30 bg-white/80 backdrop-blur-sm mt-6">
+        <Card className="shadow-lg border-border/30 bg-white/80 dark:bg-card/80 backdrop-blur-sm mt-6">
             <CardHeader>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <span>账号绑定</span>
+                    <span>{tLink.title}</span>
                 </CardTitle>
                 <CardDescription>
-                    绑定第三方学术或编程平台账号，展示已验证徽章，提升社区声誉。
+                    {tLink.description}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -173,21 +177,21 @@ export function LinkedAccountsCard() {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">洛谷 (Luogu)</span>
+                                <span className="font-semibold text-sm">{tLink.luoguTitle}</span>
                                 {luoguAccount?.is_verified && (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-950/30 text-green-600 text-xs font-medium">
                                         <CheckCircle2 className="h-3 w-3" />
-                                        已绑定
+                                        {tLink.boundTag}
                                     </span>
                                 )}
                             </div>
                             {luoguAccount ? (
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                    绑定用户: <span className="font-semibold text-foreground">{luoguAccount.provider_username}</span> (UID: {luoguAccount.provider_user_id})
+                                    {tLink.boundUser}<span className="font-semibold text-foreground">{luoguAccount.provider_username}</span> (UID: {luoguAccount.provider_user_id})
                                 </p>
                             ) : (
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                    暂未绑定。绑定后，用户名旁将显示洛谷认证标识。
+                                    {tLink.unboundTip}
                                 </p>
                             )}
                         </div>
@@ -206,11 +210,10 @@ export function LinkedAccountsCard() {
                                 ) : (
                                     <Unlink className="h-4 w-4 mr-1.5" />
                                 )}
-                                解除绑定
+                                {unbinding ? tLink.unbindingButton : tLink.unbindButton}
                             </Button>
                         ) : (
                             <div className="flex gap-2">
-                                {/* HTML Anchor for visual helper */}
                                 <a
                                     href="https://www.luogu.com.cn/"
                                     target="_blank"
@@ -218,7 +221,7 @@ export function LinkedAccountsCard() {
                                     className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground h-9"
                                 >
                                     <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                                    访问洛谷
+                                    {tLink.visitLuogu}
                                 </a>
                             </div>
                         )}
@@ -230,13 +233,11 @@ export function LinkedAccountsCard() {
                     <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/10 border border-orange-200/50 dark:border-orange-900/30 space-y-4">
                         <h4 className="text-sm font-semibold text-orange-800 dark:text-orange-400 flex items-center gap-1.5">
                             <HelpCircle className="h-4 w-4" />
-                            如何完成洛谷账号绑定？
+                            {tLink.guideTitle}
                         </h4>
                         <ol className="text-xs text-muted-foreground space-y-3 list-decimal list-inside pl-1">
                             <li className="leading-relaxed">
-                                点击上方
-                                <span className="font-semibold mx-1 text-foreground">“复制验证码”</span>
-                                按钮复制以下生成的专属验证码：
+                                {tLink.step1Text}
                                 <div className="mt-2 flex items-center gap-2 max-w-md">
                                     <code className="px-2.5 py-1 rounded bg-background border border-border text-foreground font-mono text-[11px] block flex-1 overflow-x-auto">
                                         {verifyCode}
@@ -249,43 +250,42 @@ export function LinkedAccountsCard() {
                                         className="h-7 text-[11px] px-2"
                                     >
                                         <Copy className="h-3 w-3 mr-1" />
-                                        复制
+                                        {tLink.copyCodeBtn}
                                     </Button>
                                 </div>
                             </li>
                             <li className="leading-relaxed">
-                                打开
+                                {tLink.step2Text1}
                                 <a
                                     href="https://www.luogu.com.cn/"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-primary hover:underline font-semibold mx-1 inline-flex items-center gap-0.5"
                                 >
-                                    洛谷个人中心
+                                    {tLink.step2LinkText}
                                     <ExternalLink className="h-3 w-3 inline" />
                                 </a>
-                                ，将上述验证码粘贴到您的
-                                <span className="font-semibold text-foreground">“个人介绍”</span>
-                                中，并保存设置。
+                                {tLink.step2Text2}
+                                <span className="font-semibold text-foreground">{tLink.step2Text3}</span>
                             </li>
                             <li className="leading-relaxed">
-                                在下方输入您的
-                                <span className="font-semibold text-foreground">洛谷 UID</span>
-                                （数字，例如：<code className="font-mono text-foreground bg-muted px-1 rounded">123456</code>），点击“验证并绑定”。
+                                {tLink.step3Text1}
+                                <span className="font-semibold text-foreground">{tLink.step3Text2}</span>
+                                {tLink.step3Text3}
                             </li>
                         </ol>
 
                         <div className="pt-2 border-t border-border/50 max-w-md space-y-3">
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center">
-                                    <Label htmlFor="luogu-uid" className="text-xs">洛谷 UID (纯数字)</Label>
+                                    <Label htmlFor="luogu-uid" className="text-xs">{tLink.uidLabel}</Label>
                                     {!showManual && (
                                         <button 
                                             type="button" 
                                             onClick={() => setShowManual(true)} 
-                                            className="text-[10px] text-muted-foreground hover:text-primary underline"
+                                            className="text-[10px] text-muted-foreground hover:text-primary underline cursor-pointer"
                                         >
-                                            网络受限？尝试手动验证
+                                            {tLink.manualHelperBtn}
                                         </button>
                                     )}
                                 </div>
@@ -293,7 +293,7 @@ export function LinkedAccountsCard() {
                                     <Input
                                         id="luogu-uid"
                                         type="text"
-                                        placeholder="例如: 384039"
+                                        placeholder={tLink.uidPlaceholder}
                                         value={luoguId}
                                         onChange={(e) => setLuoguId(e.target.value)}
                                         className="h-9 text-xs"
@@ -303,15 +303,15 @@ export function LinkedAccountsCard() {
                                         onClick={handleBind}
                                         disabled={submitting}
                                         size="sm"
-                                        className="h-9 text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 dark:from-amber-500 dark:to-orange-500 dark:text-slate-950 shrink-0"
+                                        className="h-9 text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 dark:from-amber-500 dark:to-orange-500 dark:text-slate-950 shrink-0 cursor-pointer"
                                     >
                                         {submitting ? (
                                             <>
                                                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                                验证中...
+                                                {tLink.bindingButton}
                                             </>
                                         ) : (
-                                            "验证并绑定"
+                                            tLink.bindButton
                                         )}
                                     </Button>
                                 </div>
@@ -320,37 +320,37 @@ export function LinkedAccountsCard() {
                             {showManual && (
                                 <div className="mt-3 p-3 rounded-lg border border-dashed border-orange-300 dark:border-orange-900 bg-orange-50/20 dark:bg-orange-950/5 space-y-2.5">
                                     <div className="text-[11px] text-orange-800 dark:text-orange-400 font-semibold flex items-center justify-between">
-                                        <span>🌐 服务器海外连接受限，请使用手动网页源码验证：</span>
+                                        <span>{tLink.manualBoxTitle}</span>
                                         <button 
                                             type="button" 
-                                            className="text-[9px] underline hover:text-orange-600"
+                                            className="text-[9px] underline hover:text-orange-600 cursor-pointer"
                                             onClick={() => {
                                                 setShowManual(false);
                                                 setLuoguHtml("");
                                             }}
                                         >
-                                            切换为自动模式
+                                            {tLink.switchAutoBtn}
                                         </button>
                                     </div>
                                     <ol className="list-decimal list-inside text-[10px] text-muted-foreground space-y-1 leading-relaxed">
                                         <li>
-                                            点此打开数据接口（若没填 UID，请先在上方输入）：
+                                            {tLink.manualStep1}
                                             <a 
                                                 href={`https://www.luogu.com.cn/user/${luoguId.trim() || '1'}?_contentOnly=1`} 
                                                 target="_blank" 
                                                 rel="noreferrer" 
                                                 className="text-primary font-semibold hover:underline inline-flex items-center ml-0.5"
                                             >
-                                                打开数据页面
+                                                {tLink.openDataPage}
                                                 <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
                                             </a>
                                         </li>
-                                        <li>在打开的网页中<strong>右键选择查看网页源代码</strong> (或按 <kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+U</kbd>)</li>
-                                        <li>按 <kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+A</kbd> 全选，<kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+C</kbd> 复制全部代码，并粘贴在下方：</li>
+                                        <li>{tLink.manualStep2}</li>
+                                        <li>{tLink.manualStep3}</li>
                                     </ol>
                                     <textarea
                                         className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-[10px] font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        placeholder="请在这里粘贴刚才复制的网页全部源代码..."
+                                        placeholder={tLink.manualPlaceholder}
                                         value={luoguHtml}
                                         onChange={(e) => setLuoguHtml(e.target.value)}
                                         disabled={submitting}

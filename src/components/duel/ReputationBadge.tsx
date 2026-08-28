@@ -27,32 +27,33 @@ function checkIsDeveloper(score: number, explicitDeveloper?: boolean): boolean {
     return explicitDeveloper === true || score >= DEVELOPER_SCORE_THRESHOLD;
 }
 
-// 根据积分返回段位信息
-function getRank(score: number, isDeveloper?: boolean): { name: string; color: string; bgColor: string; icon: string; isDev?: boolean } {
+// 紧凑克制低饱和度现代配色体系
+function getRank(score: number, isDeveloper?: boolean): { name: string; color: string; bgColor: string; borderColor: string; icon: string; isDev?: boolean } {
     // 开发者特殊段位
     if (checkIsDeveloper(score, isDeveloper)) {
         return {
             name: "系统开发者",
-            color: "text-transparent bg-clip-text bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500",
-            bgColor: "bg-gradient-to-r from-violet-500/10 via-fuchsia-500/10 to-pink-500/10",
+            color: "text-zinc-700 dark:text-zinc-300",
+            bgColor: "bg-zinc-100/90 dark:bg-zinc-800/90",
+            borderColor: "border-zinc-200/80 dark:border-zinc-700/80",
             icon: "⚡",
             isDev: true
         };
     }
     if (score >= 500) {
-        return { name: "学术泰斗", color: "text-amber-500", bgColor: "bg-amber-500/10", icon: "👑" };
+        return { name: "学术泰斗", color: "text-amber-700 dark:text-amber-400", bgColor: "bg-amber-500/8 dark:bg-amber-500/15", borderColor: "border-amber-500/25", icon: "👑" };
     } else if (score >= 300) {
-        return { name: "资深学者", color: "text-purple-500", bgColor: "bg-purple-500/10", icon: "🎓" };
+        return { name: "资深学者", color: "text-purple-700 dark:text-purple-400", bgColor: "bg-purple-500/8 dark:bg-purple-500/15", borderColor: "border-purple-500/25", icon: "🎓" };
     } else if (score >= 200) {
-        return { name: "知名研究员", color: "text-blue-500", bgColor: "bg-blue-500/10", icon: "📚" };
+        return { name: "知名研究员", color: "text-blue-700 dark:text-blue-400", bgColor: "bg-blue-500/8 dark:bg-blue-500/15", borderColor: "border-blue-500/25", icon: "📚" };
     } else if (score >= 150) {
-        return { name: "助理研究员", color: "text-cyan-500", bgColor: "bg-cyan-500/10", icon: "🔬" };
+        return { name: "助理研究员", color: "text-cyan-700 dark:text-cyan-400", bgColor: "bg-cyan-500/8 dark:bg-cyan-500/15", borderColor: "border-cyan-500/25", icon: "🔬" };
     } else if (score >= 100) {
-        return { name: "学术新秀", color: "text-green-500", bgColor: "bg-green-500/10", icon: "🌱" };
+        return { name: "学术新秀", color: "text-emerald-700 dark:text-emerald-400", bgColor: "bg-emerald-500/8 dark:bg-emerald-500/15", borderColor: "border-emerald-500/25", icon: "🌱" };
     } else if (score >= 50) {
-        return { name: "求知学徒", color: "text-gray-500", bgColor: "bg-gray-500/10", icon: "📖" };
+        return { name: "求知学徒", color: "text-zinc-600 dark:text-zinc-400", bgColor: "bg-zinc-100 dark:bg-zinc-800/60", borderColor: "border-zinc-200/80 dark:border-zinc-700/80", icon: "📖" };
     } else {
-        return { name: "论坛新人", color: "text-gray-400", bgColor: "bg-gray-400/10", icon: "👤" };
+        return { name: "论坛新人", color: "text-zinc-500 dark:text-zinc-400", bgColor: "bg-zinc-100/60 dark:bg-zinc-800/40", borderColor: "border-zinc-200/60 dark:border-zinc-800/60", icon: "👤" };
     }
 }
 
@@ -70,50 +71,32 @@ export function ReputationBadge({
     const isDevMode = rank.isDev;
 
     const sizeClasses = {
-        sm: "text-xs px-2 py-0.5",
-        md: "text-sm px-3 py-1",
-        lg: "text-base px-4 py-1.5",
+        sm: "h-5 px-2 text-[11px] rounded-full gap-1",
+        md: "h-6 px-2.5 text-xs rounded-full gap-1.5",
+        lg: "h-7 px-3 text-xs rounded-full gap-1.5",
     };
 
     const iconSizes = {
         sm: "h-3 w-3",
-        md: "h-4 w-4",
-        lg: "h-5 w-5",
+        md: "h-3.5 w-3.5",
+        lg: "h-4 w-4",
     };
-
-    // 开发者专属样式
-    const devBgClass = isDevMode
-        ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 shadow-lg shadow-amber-500/30"
-        : rank.bgColor;
 
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <motion.div
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        whileHover={{ scale: 1.05 }}
-                        className={`inline-flex items-center gap-1.5 rounded-full font-medium cursor-help
-                            ${devBgClass} ${isDevMode ? 'text-white' : rank.color} ${sizeClasses[size]}
-                            ${isDevMode ? '' : 'border border-current/20'}`}
+                    <span
+                        className={`inline-flex items-center font-medium cursor-help border select-none transition-all shadow-2xs
+                            ${rank.bgColor} ${rank.color} ${rank.borderColor} ${sizeClasses[size]}`}
                     >
-                        {isDevMode ? (
-                            <>
-                                <Code2 className={`${iconSizes[size]} text-white`} />
-                                <span className="font-black text-white drop-shadow-sm">∞</span>
-                                <Sparkles className={`${iconSizes[size]} text-yellow-200 animate-pulse`} />
-                            </>
-                        ) : (
-                            <>
-                                <span>{rank.icon}</span>
-                                <Shield className={iconSizes[size]} />
-                                <span>{score}</span>
-                            </>
-                        )}
-                    </motion.div>
+                        <Shield className={`${iconSizes[size]} shrink-0 opacity-70`} strokeWidth={1.75} />
+                        <span className="font-mono font-semibold tabular-nums">
+                            {isDevMode ? "∞" : score}
+                        </span>
+                    </span>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className={`w-64 p-0 ${isDevMode ? 'border-violet-500/30' : ''}`}>
+                <TooltipContent side="bottom" className="w-64 p-0">
                     <div className="p-4 space-y-3">
                         {/* 段位标题 */}
                         <div className="flex items-center justify-between">
@@ -123,7 +106,9 @@ export function ReputationBadge({
                                         <Code2 className="h-5 w-5 text-white" />
                                     </div>
                                 ) : (
-                                    <span className="text-2xl">{rank.icon}</span>
+                                    <div className={`h-9 w-9 rounded-lg ${rank.bgColor} ${rank.borderColor} border flex items-center justify-center`}>
+                                        <Shield className={`h-5 w-5 ${rank.color}`} />
+                                    </div>
                                 )}
                                 <div>
                                     {isDevMode ? (
@@ -216,32 +201,19 @@ export function ReputationBadgeCompact({ score, isDeveloper }: { score: number; 
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    {isDevMode ? (
-                        <span
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium cursor-help bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"
-                        >
-                            <Code2 className="h-3 w-3 text-white" />
-                            <span className="font-black text-white">∞</span>
-                        </span>
-                    ) : (
-                        <span
-                            className={`inline-flex items-center gap-1 text-xs font-medium cursor-help
-                                ${rank.color}`}
-                        >
-                            <Shield className="h-3 w-3" />
-                            <span>{score}</span>
-                        </span>
-                    )}
+                    <span
+                        className={`inline-flex items-center gap-1 h-4.5 px-1.5 rounded-full text-[10px] font-mono font-semibold cursor-help border select-none shadow-2xs
+                            ${rank.bgColor} ${rank.color} ${rank.borderColor}`}
+                    >
+                        <Shield className="h-2.5 w-2.5 opacity-70" strokeWidth={1.75} />
+                        <span>{isDevMode ? "∞" : score}</span>
+                    </span>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent side="top" className="text-xs">
                     {isDevMode ? (
-                        <p className="flex items-center gap-1">
-                            <Code2 className="h-3 w-3 text-amber-500" />
-                            <span className="font-bold text-amber-500">系统开发者</span>
-                            <span>- 信誉分 ∞</span>
-                        </p>
+                        <p className="font-semibold text-current">系统开发者 · 信誉分 ∞</p>
                     ) : (
-                        <p>{rank.icon} {rank.name} - 信誉积分 {score}</p>
+                        <p className="font-semibold text-current">{rank.name} · 信誉分 {score}</p>
                     )}
                 </TooltipContent>
             </Tooltip>

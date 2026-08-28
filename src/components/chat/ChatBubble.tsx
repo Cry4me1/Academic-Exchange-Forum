@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/context-menu";
 import type { Message } from "@/hooks/useMessages";
 import { cn } from "@/lib/utils";
-import { ExternalLink, RotateCcw } from "lucide-react";
+import { CheckCheck, Clock, ExternalLink, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChatContentViewer, ChatTextMathViewer } from "./ChatEditor";
+import { ChatCodeBlock, parseCodeBlocks } from "./ChatCodeBlock";
 import { FilePreview } from "./FilePreview";
+import DOMPurify from "isomorphic-dompurify";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -66,103 +68,219 @@ export function ChatBubble({
         }
     };
 
+    // 解析代码块（仅对富文本消息）
+    const contentParts = useMemo(() => {
+        if (message.content_type === "rich_text" && message.content) {
+            return parseCodeBlocks(message.content);
+        }
+        return null;
+    }, [message.content, message.content_type]);
+
     // 撤回的消息显示
     if (message.is_revoked) {
         return (
             <div
                 className={cn(
-                    "flex gap-3 max-w-[80%]",
+                    "flex gap-2 max-w-[75%] sm:max-w-[60%]",
                     isOwn ? "ml-auto flex-row-reverse" : "mr-auto"
                 )}
             >
                 {showAvatar && (
-                    <Avatar className="h-8 w-8 flex-shrink-0 mt-1 opacity-50">
+                    <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5 opacity-50">
                         <AvatarImage src={senderAvatar || undefined} />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                        <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">
                             {initials}
                         </AvatarFallback>
                     </Avatar>
                 )}
 
-                <div className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-muted/50 border border-dashed border-muted-foreground/30">
-                        <RotateCcw className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground italic">
-                            {isOwn ? "你撤回了一条消息" : "对方撤回了一条消息"}
+                <div className={cn("flex flex-col gap-0.5", isOwn ? "items-end" : "items-start")}>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-muted/40 border border-dashed border-muted-foreground/20 text-xs text-muted-foreground italic">
+                        <RotateCcw className="h-3 w-3" />
+                        <span>{isOwn ? "你撤回了一条消息" : "对方撤回了一条消息"}</span>
+                        <span className="text-[10px] opacity-70 ml-1">
+                            {formatTime(message.revoked_at || message.created_at)}
                         </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground/70 px-1">
-                        {formatTime(message.revoked_at || message.created_at)}
-                    </span>
                 </div>
             </div>
         );
     }
 
-    const bubbleContent = (
-        <div
+    // 时间 + 已读状态（紧凑内联组件）
+    const inlineTimestamp = (
+        <span
             className={cn(
-                "flex gap-3 max-w-[80%]",
-                isOwn ? "ml-auto flex-row-reverse" : "mr-auto"
+                "inline-flex items-center gap-0.5 ml-2.5 float-right translate-y-[2px] text-[10px] leading-none select-none font-normal shrink-0",
+                isOwn
+                    ? "text-white/60 dark:text-zinc-900/60"
+                    : "text-zinc-400 dark:text-zinc-500"
             )}
         >
-            {showAvatar && (
-                <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
-                    <AvatarImage src={senderAvatar || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary text-xs">
-                        {initials}
-                    </AvatarFallback>
-                </Avatar>
+            <span>{formatTime(message.created_at)}</span>
+            {isOwn && (
+                message.is_read ? (
+                    <CheckCheck className="h-3 w-3 text-emerald-400 dark:text-emerald-600 inline ml-0.5" />
+                ) : (
+                    <Clock className="h-2.5 w-2.5 opacity-70 inline ml-0.5" />
+                )
             )}
+        </span>
+    );
 
-            <div className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}>
-                {/* 消息气泡 */}
+    // 渲染富文本内容（含代码块分离）
+    const renderRichContent = () => {
+        if (!contentParts || contentParts.length === 0) return null;
+
+        const hasCodeBlocks = contentParts.some((p) => p.type === "code");
+
+        if (!hasCodeBlocks) {
+            return (
                 <div
                     className={cn(
-                        "rounded-2xl px-4 py-2 max-w-full break-words",
+                        "rounded-[18px] px-3.5 py-2 max-w-full break-words shadow-2xs",
                         isOwn
-                            ? "bg-primary text-primary-foreground rounded-tr-sm"
-                            : "bg-muted rounded-tl-sm"
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-br-xs"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-xs"
                     )}
                 >
-                    {/* 富文本/普通文本内容 */}
-                    {message.content_type === "rich_text" ? (
+                    <div className="overflow-hidden">
                         <ChatContentViewer
-                            content={message.content}
-                            className={isOwn ? "text-primary-foreground prose-invert" : ""}
-                        />
-                    ) : (
-                        <ChatTextMathViewer
                             content={message.content}
                             className={cn(
                                 "text-sm",
-                                isOwn ? "text-primary-foreground" : ""
+                                isOwn ? "text-white prose-invert dark:text-zinc-900 dark:prose-headings:text-zinc-900" : ""
                             )}
                         />
-                    )}
+                        {inlineTimestamp}
+                    </div>
+                </div>
+            );
+        }
 
-                    {/* 引用帖子 */}
-                    {message.content_type === "post_reference" && message.referenced_post && (
-                        <Link
-                            href={`/posts/${message.referenced_post.id}`}
+        // 有代码块，分段渲染
+        return (
+            <div className="flex flex-col gap-1 max-w-full">
+                {contentParts.map((part, idx) => {
+                    if (part.type === "code") {
+                        return (
+                            <ChatCodeBlock
+                                key={idx}
+                                code={part.content}
+                                language={part.language}
+                            />
+                        );
+                    }
+                    // 文本段
+                    const sanitizedHtml = DOMPurify.sanitize(part.content, {
+                        ALLOWED_TAGS: [
+                            "p", "br", "strong", "b", "em", "i", "u", "s", "del",
+                            "ul", "ol", "li", "blockquote",
+                            "a", "span", "sub", "sup", "mark", "code",
+                        ],
+                        ALLOWED_ATTR: ["href", "target", "rel", "class"],
+                    });
+                    const stripped = sanitizedHtml.replace(/<[^>]*>/g, "").trim();
+                    if (!stripped) return null;
+
+                    return (
+                        <div
+                            key={idx}
                             className={cn(
-                                "flex items-center gap-2 mt-2 p-2 rounded-lg transition-colors",
+                                "rounded-[18px] px-3.5 py-2 max-w-full break-words shadow-2xs",
                                 isOwn
-                                    ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
-                                    : "bg-background hover:bg-background/80"
+                                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-br-xs"
+                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-xs"
                             )}
                         >
-                            <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-xs font-medium truncate">
-                                {message.referenced_post.title}
-                            </span>
-                        </Link>
+                            <div
+                                className={cn(
+                                    "prose prose-sm dark:prose-invert max-w-none break-words",
+                                    "prose-p:my-0 prose-ul:my-0.5 prose-ol:my-0.5 prose-blockquote:my-0.5",
+                                    isOwn ? "text-white prose-invert dark:text-zinc-900 dark:prose-headings:text-zinc-900" : ""
+                                )}
+                                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                            />
+                            {idx === contentParts.length - 1 && inlineTimestamp}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const bubbleContent = (
+        <div
+            className={cn(
+                "flex gap-2 max-w-[80%] sm:max-w-[65%] w-fit",
+                isOwn ? "ml-auto flex-row-reverse" : "mr-auto"
+            )}
+        >
+            {/* 头像 */}
+            {!isOwn && (
+                <div className="w-7 flex-shrink-0">
+                    {showAvatar && (
+                        <Avatar className="h-7 w-7 mt-0.5 ring-1 ring-zinc-200 dark:ring-zinc-800">
+                            <AvatarImage src={senderAvatar || undefined} />
+                            <AvatarFallback className="bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold">
+                                {initials}
+                            </AvatarFallback>
+                        </Avatar>
                     )}
                 </div>
+            )}
+
+            <div className={cn("flex flex-col gap-0.5 min-w-0", isOwn ? "items-end" : "items-start")}>
+                {/* 消息气泡 */}
+                {message.content_type === "rich_text" ? (
+                    renderRichContent()
+                ) : (
+                    <div
+                        className={cn(
+                            "rounded-[18px] px-3.5 py-1.5 max-w-full break-words shadow-2xs",
+                            isOwn
+                                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-br-xs"
+                                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-xs"
+                        )}
+                    >
+                        {/* 紧凑内联布局：文字与时间戳自然流式排列 */}
+                        <div className="text-sm leading-snug">
+                            <span className="break-words">
+                                <ChatTextMathViewer
+                                    content={message.content}
+                                    className={cn(
+                                        "inline text-sm leading-snug",
+                                        isOwn ? "text-white dark:text-zinc-900" : ""
+                                    )}
+                                />
+                            </span>
+                            {/* 内嵌时间戳 + 已读标记 */}
+                            {inlineTimestamp}
+                        </div>
+
+                        {/* 引用帖子 */}
+                        {message.content_type === "post_reference" && message.referenced_post && (
+                            <Link
+                                href={`/posts/${message.referenced_post.id}`}
+                                className={cn(
+                                    "flex items-center gap-2 mt-1.5 p-1.5 rounded-lg transition-colors text-xs",
+                                    isOwn
+                                        ? "bg-white/10 hover:bg-white/20 dark:bg-zinc-900/10 dark:hover:bg-zinc-900/20"
+                                        : "bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-900/80"
+                                )}
+                            >
+                                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                                <span className="font-medium truncate">
+                                    {message.referenced_post.title}
+                                </span>
+                            </Link>
+                        )}
+                    </div>
+                )}
 
                 {/* 附件列表 */}
                 {message.attachments && message.attachments.length > 0 && (
-                    <div className="space-y-2 mt-1">
+                    <div className="space-y-1.5 mt-0.5">
                         {message.attachments.map((attachment) => (
                             <FilePreview
                                 key={attachment.id}
@@ -183,18 +301,12 @@ export function ChatBubble({
                     </div>
                 )}
 
-                {/* 时间戳 + 状态 */}
-                <div className="flex items-center gap-1 px-1">
-                    <span className="text-[10px] text-muted-foreground">
-                        {formatTime(message.created_at)}
+                {/* 撤回提示（气泡外） */}
+                {isOwn && canRevoke && (
+                    <span className="text-[9px] text-zinc-400 dark:text-zinc-500 px-1">
+                        右键可撤回
                     </span>
-                    {isOwn && message.is_read && (
-                        <span className="text-[10px] text-primary">已读</span>
-                    )}
-                    {isOwn && canRevoke && (
-                        <span className="text-[10px] text-muted-foreground/50">· 可撤回</span>
-                    )}
-                </div>
+                )}
             </div>
         </div>
     );
@@ -208,9 +320,9 @@ export function ChatBubble({
                     <ContextMenuItem
                         onClick={handleRevoke}
                         disabled={isRevoking}
-                        className="text-destructive focus:text-destructive"
+                        className="text-destructive focus:text-destructive text-xs"
                     >
-                        <RotateCcw className="h-4 w-4 mr-2" />
+                        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                         {isRevoking ? "撤回中..." : "撤回消息"}
                     </ContextMenuItem>
                 </ContextMenuContent>
@@ -252,10 +364,8 @@ export function ChatMessages({
             const targetScrollTop = scrollRef.current.scrollHeight;
 
             if (isInitialLoad) {
-                // Initial load: instant scroll
                 scrollRef.current.scrollTo({ top: targetScrollTop, behavior: "auto" });
             } else if (messages.length > prevMessagesLength.current) {
-                // New messages added: smooth scroll
                 scrollRef.current.scrollTo({ top: targetScrollTop, behavior: "smooth" });
             }
         }
@@ -289,49 +399,55 @@ export function ChatMessages({
     }, []);
 
     return (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-            {groupedMessages.map((group) => (
-                <div key={group.date} className="space-y-4">
-                    {/* 日期分隔符 */}
-                    <div className="flex items-center gap-4">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground bg-background px-2">
-                            {group.date}
-                        </span>
-                        <div className="flex-1 h-px bg-border" />
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+            <div className="w-full space-y-3">
+                {groupedMessages.map((group) => (
+                    <div key={group.date} className="space-y-1.5">
+                        {/* 日期分隔符 - 紧凑轻量 */}
+                        <div className="flex items-center justify-center my-3">
+                            <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                                {group.date}
+                            </span>
+                        </div>
+
+                        {/* 消息列表 */}
+                        {group.messages.map((message, index) => {
+                            const isOwn = message.sender_id === currentUserId;
+                            const prevMessage = group.messages[index - 1];
+                            const isSameSender = prevMessage && prevMessage.sender_id === message.sender_id;
+                            const showAvatar = !isOwn && !isSameSender;
+
+                            return (
+                                <div
+                                    key={message.id}
+                                    className={cn(
+                                        isSameSender ? "mt-1" : "mt-2.5"
+                                    )}
+                                >
+                                    <ChatBubble
+                                        message={message}
+                                        isOwn={isOwn}
+                                        showAvatar={showAvatar}
+                                        senderName={isOwn ? currentUserName : partnerName}
+                                        senderAvatar={isOwn ? currentUserAvatar : partnerAvatar}
+                                        canRevoke={canRevoke?.(message) ?? false}
+                                        onRevoke={onRevoke}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
+                ))}
 
-                    {/* 消息列表 */}
-                    {group.messages.map((message, index) => {
-                        const isOwn = message.sender_id === currentUserId;
-                        const prevMessage = group.messages[index - 1];
-                        const showAvatar =
-                            !prevMessage || prevMessage.sender_id !== message.sender_id;
+                {messages.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-500 py-16">
+                        <p className="text-sm">还没有消息</p>
+                        <p className="text-xs mt-1">发送第一条消息开始聊天吧</p>
+                    </div>
+                )}
 
-                        return (
-                            <ChatBubble
-                                key={message.id}
-                                message={message}
-                                isOwn={isOwn}
-                                showAvatar={showAvatar}
-                                senderName={isOwn ? currentUserName : partnerName}
-                                senderAvatar={isOwn ? currentUserAvatar : partnerAvatar}
-                                canRevoke={canRevoke?.(message) ?? false}
-                                onRevoke={onRevoke}
-                            />
-                        );
-                    })}
-                </div>
-            ))}
-
-            {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                    <p className="text-sm">还没有消息</p>
-                    <p className="text-xs mt-1">发送第一条消息开始聊天吧</p>
-                </div>
-            )}
-
-            <div ref={messagesEndRef} className="h-1" />
+                <div ref={messagesEndRef} className="h-1" />
+            </div>
         </div>
     );
 }

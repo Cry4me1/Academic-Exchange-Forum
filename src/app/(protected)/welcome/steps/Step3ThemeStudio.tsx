@@ -26,6 +26,7 @@ import {
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/context";
 
 interface Step3ThemeStudioProps {
     userId: string;
@@ -34,12 +35,24 @@ interface Step3ThemeStudioProps {
     onPrev: () => void;
 }
 
+const themeNamesEn: Record<string, string> = {
+    default: "Default (Aurora)",
+    sunset: "Sunset (Warm Sol)",
+    ocean: "Ocean (Deep Blue)",
+    forest: "Forest (Breeze)",
+    lavender: "Lavender (Dream)",
+    midnight: "Midnight (Deep Space)",
+};
+
 export function Step3ThemeStudio({
     userId,
     profileData,
     initialTheme = "default",
     onPrev,
 }: Step3ThemeStudioProps) {
+    const { t, isZh } = useI18n();
+    const tStep = t.welcome.step3;
+
     const [selectedTheme, setSelectedTheme] = useState(initialTheme);
     const [submitting, setSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -47,6 +60,13 @@ export function Step3ThemeStudio({
 
     const currentGradientObj =
         bannerGradients.find((g) => g.id === selectedTheme) || bannerGradients[0];
+
+    const getThemeName = (gradient: typeof bannerGradients[0]) => {
+        if (!isZh && themeNamesEn[gradient.id]) {
+            return themeNamesEn[gradient.id];
+        }
+        return gradient.name;
+    };
 
     // 触发盛大多重烟花秀 (Fireworks Fireworks Cascade)
     const triggerGrandFireworks = () => {
@@ -117,14 +137,14 @@ export function Step3ThemeStudio({
             });
 
             if (!res.success) {
-                toast.error(res.error || "保存失败，请重试");
+                toast.error(res.error || t.common.error);
                 setSubmitting(false);
                 return;
             }
 
             setIsSuccess(true);
             triggerGrandFireworks();
-            toast.success("欢迎加入 Scholarly！入驻配置全部完成 🎉");
+            toast.success(tStep.successToast);
 
             // 4 秒后自动跳转至仪表盘（如果用户没有手动点击前往教程）
             setTimeout(() => {
@@ -133,7 +153,7 @@ export function Step3ThemeStudio({
             }, 4000);
         } catch (error: any) {
             console.error("完成入驻出错:", error);
-            toast.error("网络异常，请稍后重试");
+            toast.error(t.common.networkError);
             setSubmitting(false);
         }
     };
@@ -163,13 +183,13 @@ export function Step3ThemeStudio({
                     className="inline-flex items-center gap-2 text-sm font-medium text-foreground/80 hover:text-foreground bg-white/40 hover:bg-white/60 dark:bg-black/20 dark:hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full transition-all shadow-sm hover:shadow"
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    返回学者资料
+                    {tStep.backToStep2}
                 </Button>
 
                 {/* 顶部中央或右侧提示 */}
                 <div className="inline-flex items-center gap-2 bg-white/40 dark:bg-black/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/30 text-xs font-semibold text-foreground/80 shadow-sm">
                     <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-                    步骤 3/3 · 沉浸式主页主题配置
+                    {tStep.badge}
                 </div>
             </div>
 
@@ -196,10 +216,10 @@ export function Step3ThemeStudio({
 
                             <div className="space-y-1.5">
                                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-primary via-violet-600 to-pink-600 bg-clip-text text-transparent">
-                                    欢迎加入 Scholarly！
+                                    {tStep.welcomeTitle}
                                 </h2>
                                 <p className="text-xs sm:text-sm text-muted-foreground">
-                                    学者档案与空间主题已全部配置完成
+                                    {tStep.welcomeSub}
                                 </p>
                             </div>
 
@@ -212,10 +232,10 @@ export function Step3ThemeStudio({
                                 </Avatar>
                                 <div className="min-w-0 flex-1">
                                     <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
-                                        {profileData.username || "认证学者"}
+                                        {profileData.username || (isZh ? "认证学者" : "Verified Scholar")}
                                     </h4>
                                     <p className="text-[11px] text-muted-foreground">
-                                        主题空间：{currentGradientObj.name}
+                                        {tStep.themeSpace}{getThemeName(currentGradientObj)}
                                     </p>
                                 </div>
                                 <Sparkles className="h-4 w-4 text-amber-500 animate-spin" />
@@ -226,7 +246,7 @@ export function Step3ThemeStudio({
                                 <Link href="/tutorials" className="block w-full">
                                     <Button className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 text-white shadow-lg shadow-primary/25 rounded-xl font-bold gap-2 text-xs sm:text-sm">
                                         <GraduationCap className="h-4 w-4" />
-                                        开启 3 分钟互动实操训练营
+                                        {tStep.startTutorialBtn}
                                         <ArrowRight className="h-4 w-4" />
                                     </Button>
                                 </Link>
@@ -234,7 +254,7 @@ export function Step3ThemeStudio({
                                 <Link href="/dashboard" className="block w-full">
                                     <Button variant="outline" className="w-full h-10 rounded-xl text-xs font-semibold gap-1.5 bg-background/80">
                                         <LayoutDashboard className="h-3.5 w-3.5" />
-                                        直接进入学术仪表盘
+                                        {tStep.enterDashboardBtn}
                                     </Button>
                                 </Link>
                             </div>
@@ -252,13 +272,13 @@ export function Step3ThemeStudio({
                             <div className="text-center space-y-2">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                                     <Palette className="h-3.5 w-3.5" />
-                                    空间氛围色系
+                                    {tStep.stepIndicator}
                                 </div>
                                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                                    选择您的个人主页背景主题
+                                    {tStep.title}
                                 </h2>
                                 <p className="text-xs sm:text-sm text-muted-foreground">
-                                    点击不同色卡，整个空间背景将随之渐渐变幻，为您呈现专属的学者殿堂
+                                    {tStep.description}
                                 </p>
                             </div>
 
@@ -283,7 +303,7 @@ export function Step3ThemeStudio({
                                             {/* 选中 Checkmark 动效 */}
                                             <div className="flex items-center justify-between w-full">
                                                 <span className="text-xs font-bold text-foreground/90 bg-white/70 dark:bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-md shadow-xs">
-                                                    {gradient.name}
+                                                    {getThemeName(gradient)}
                                                 </span>
 
                                                 <AnimatePresence>
@@ -302,7 +322,7 @@ export function Step3ThemeStudio({
 
                                             {/* 色彩说明 */}
                                             <div className="text-[10px] text-muted-foreground/80 font-medium bg-white/40 dark:bg-black/20 backdrop-blur-[2px] px-1.5 py-0.5 rounded w-fit">
-                                                {isSelected ? "当前所选" : "点击预览"}
+                                                {isSelected ? tStep.selectedTag : tStep.previewTag}
                                             </div>
                                         </motion.button>
                                     );
@@ -314,10 +334,10 @@ export function Step3ThemeStudio({
                                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-2 px-1">
                                     <span className="flex items-center gap-1.5 font-medium">
                                         <Layers className="h-3.5 w-3.5 text-primary" />
-                                        主题效果实时预览卡片
+                                        {tStep.previewCardTitle}
                                     </span>
                                     <span className="text-[11px] text-primary font-semibold">
-                                        当前主题：{currentGradientObj.name}
+                                        {tStep.currentTheme}{getThemeName(currentGradientObj)}
                                     </span>
                                 </div>
 
@@ -333,7 +353,7 @@ export function Step3ThemeStudio({
                                         <div className="space-y-1 flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <h4 className="text-base font-bold text-foreground truncate">
-                                                    {profileData.username || "学者用户"}
+                                                    {profileData.username || (isZh ? "学者用户" : "Scholar User")}
                                                 </h4>
                                                 {profileData.country && (
                                                     <Badge variant="outline" className="text-[10px] py-0 px-2 gap-1 border-border/60">
@@ -343,7 +363,7 @@ export function Step3ThemeStudio({
                                                 )}
                                             </div>
                                             <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                                {profileData.bio || "该学者尚未填写个人学术简介..."}
+                                                {profileData.bio || tStep.unfilledBio}
                                             </p>
                                         </div>
                                     </div>
@@ -361,12 +381,12 @@ export function Step3ThemeStudio({
                                     {submitting ? (
                                         <>
                                             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                            正在配置您的专属空间...
+                                            {tStep.finishingButton}
                                         </>
                                     ) : (
                                         <>
                                             <Rocket className="h-5 w-5 mr-2 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-                                            完成设置，开启 Scholarly 之旅
+                                            {tStep.finishButton}
                                         </>
                                     )}
                                 </Button>

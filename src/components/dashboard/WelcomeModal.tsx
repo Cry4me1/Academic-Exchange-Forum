@@ -6,9 +6,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
     ArrowRight,
     BookOpen,
+    Code,
+    Globe,
+    GraduationCap,
+    Image as ImageIcon,
+    LayoutDashboard,
     Lock,
     Printer,
     Rocket,
+    Search,
     Shield,
     Sparkles,
 } from "lucide-react";
@@ -16,15 +22,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-// 正式版发布日期（UTC）- 升级至 v1.1.6 节点以达成 seen 状态重置
-const V1_LAUNCH_DATE = "2026-08-22T00:00:00Z";
+// 正式版发布日期（UTC）- 升级至 v1.1.7 节点以达成 seen 状态重置
+const V1_LAUNCH_DATE = "2026-08-28T00:00:00Z";
 
-// 老用户弹窗：v1.1.6 四大更新
-const v1_1_6Features = [
-    { icon: Printer, label: "Nature/IEEE 学术 PDF 导出", color: "text-purple-500" },
-    { icon: Lock, label: "Hansszh 专属学术邀请制", color: "text-amber-500" },
-    { icon: Shield, label: "多模态 AI 审稿与安全拦截", color: "text-emerald-500" },
-    { icon: BookOpen, label: "60FPS 沉浸阅读 & 要素索引", color: "text-blue-500" },
+// 老用户弹窗：v1.1.7 六大核心更新
+const v1_1_7Features = [
+    { icon: Globe, label: "英汉双语全站自由切换", color: "text-blue-500" },
+    { icon: ImageIcon, label: "帖子 16:9 封面与配图提取", color: "text-purple-500" },
+    { icon: LayoutDashboard, label: "主页/编辑器/个人页UI重构", color: "text-amber-500" },
+    { icon: GraduationCap, label: "迎新向导与新手教学营", color: "text-emerald-500" },
+    { icon: Search, label: "用户搜索卡片与名片互动", color: "text-pink-500" },
+    { icon: Code, label: "聊天界面与代码语法高亮", color: "text-cyan-500" },
 ];
 
 interface WelcomeModalProps {
@@ -44,8 +52,8 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
         const newUser = createdAt >= launchDate;
 
         const storageKey = newUser
-            ? "scholarly_welcome_v1_1_6_seen"
-            : "scholarly_v1_1_6_update_seen";
+            ? "scholarly_welcome_v1_1_7_seen"
+            : "scholarly_v1_1_7_update_seen";
 
         if (localStorage.getItem(storageKey)) return;
 
@@ -77,7 +85,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                 className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none outline-none ring-0"
             >
                 <DialogTitle className="sr-only">
-                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.6 正式版上线"}
+                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.7 全新视觉与国际化升级上线"}
                 </DialogTitle>
 
                 <AnimatePresence mode="wait">
@@ -174,7 +182,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                         </motion.div>
                     ) : (
                         /* ═══════════════════════════════════════
-                         *  老用户 — v1.1.6 正式版上线通知
+                         *  老用户 — v1.1.7 正式版上线通知
                          * ═══════════════════════════════════════ */
                         <motion.div
                             key="existing-user"
@@ -206,7 +214,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.3 }}
                                     className="text-2xl font-bold tracking-tight text-foreground"
                                 >
-                                    v1.1.6 学术出版级导出已上线
+                                    v1.1.7 全新视觉与国际化已上线
                                 </motion.h2>
                                 <motion.p
                                     initial={{ opacity: 0, y: 10 }}
@@ -214,7 +222,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.4 }}
                                     className="mt-2 text-sm text-muted-foreground"
                                 >
-                                    标准学术 PDF 导出、学术邀请制、多模态 AI 审稿与 60FPS 沉浸阅读
+                                    英汉全站转换 · 16:9 封面图 · 三大 UI 重构 · 新手教学与聊天代码高亮
                                 </motion.p>
                             </div>
 
@@ -226,7 +234,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.45 }}
                                     className="grid grid-cols-2 gap-2.5"
                                 >
-                                    {v1_1_6Features.map((feature, i) => (
+                                    {v1_1_7Features.map((feature, i) => (
                                         <motion.div
                                             key={feature.label}
                                             initial={{ opacity: 0, y: 10 }}

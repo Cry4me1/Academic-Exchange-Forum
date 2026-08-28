@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, ArrowRight, GraduationCap, X, CheckCircle2 } from "lucide-react";
+import { ArrowRight, GraduationCap, X } from "lucide-react";
 import Link from "next/link";
+
+import { useI18n } from "@/i18n/context";
 
 const DISMISSED_KEY = "scholarly_dashboard_tutorial_banner_dismissed_v1";
 const STORAGE_KEY = "scholarly_tutorials_completed_modules_v1";
 
 export function DashboardTutorialBanner() {
+    const { t, isZh } = useI18n();
     const [isVisible, setIsVisible] = useState(false);
     const [completedCount, setCompletedCount] = useState(0);
 
@@ -48,55 +50,52 @@ export function DashboardTutorialBanner() {
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                initial={{ opacity: 0, y: -6, scale: 0.99 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                className="relative rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-violet-500/10 to-transparent p-4 sm:p-4.5 shadow-md backdrop-blur-md overflow-hidden mb-6"
+                exit={{ opacity: 0, y: -6, scale: 0.99 }}
+                className="relative rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-3.5 sm:p-4 shadow-xs backdrop-blur-md overflow-hidden mb-5"
             >
-                {/* 装饰光晕 */}
-                <div className="absolute top-0 right-0 h-32 w-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
                     <div className="flex items-start sm:items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-600 text-white shadow-md shadow-primary/20">
-                            <GraduationCap className="h-5 w-5" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs">
+                            <GraduationCap className="h-4 w-4" strokeWidth={1.75} />
                         </div>
 
                         <div className="space-y-0.5">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-sm font-bold text-foreground">
-                                    Scholarly 研学者实操训练营
+                                <h4 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                                    {isZh ? "Scholarly 研学者实操训练营" : "Scholarly Hands-on Training Camp"}
                                 </h4>
-                                <Badge variant="outline" className="text-[10px] py-0 px-2 border-primary/30 text-primary bg-primary/5">
-                                    1:1 全真沙盒
-                                </Badge>
+                                <span className="text-[10px] py-0.2 px-1.5 rounded font-medium border border-zinc-200 dark:border-zinc-700 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                    {isZh ? "1:1 全真沙盒" : "1:1 Interactive Sandbox"}
+                                </span>
                                 {completedCount > 0 && (
-                                    <span className="text-[11px] text-muted-foreground">
-                                        (已掌握 {completedCount}/5 技能)
+                                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
+                                        ({isZh ? `已掌握 ${completedCount}/5 技能` : `${completedCount}/5 mastered`})
                                     </span>
                                 )}
                             </div>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                3 分钟亲手实操掌握学术编辑器、Slash 命令、LaTeX 矢量公式、Nature 双栏排版与学术决斗。
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-normal font-normal">
+                                {t.dashboardComponents.tutorialBannerTitle}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        <Link href="/tutorials">
-                            <Button size="sm" className="h-8 text-xs px-3.5 bg-gradient-to-r from-primary to-violet-600 text-white rounded-lg font-semibold shadow-sm gap-1 group">
-                                开启实操训练
-                                <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        <Link href="/announcements/tutorials">
+                            <Button size="sm" className="h-7 text-xs px-3 rounded-md font-medium bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs gap-1 group">
+                                {t.dashboardComponents.tutorialBannerAction}
+                                <ArrowRight className="h-3 w-3 text-zinc-400 group-hover:translate-x-0.5 transition-transform" strokeWidth={1.75} />
                             </Button>
                         </Link>
 
                         <button
                             type="button"
                             onClick={handleDismiss}
-                            className="h-8 w-8 rounded-lg hover:bg-muted/80 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
-                            title="稍后再说"
+                            className="h-7 w-7 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors"
+                            title={isZh ? "稍后再说" : "Dismiss"}
                         >
-                            <X className="h-4 w-4" />
+                            <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                         </button>
                     </div>
                 </div>

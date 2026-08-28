@@ -60,8 +60,7 @@ export default function NotificationsPage() {
             case "mention":
                 return notification.related_id ? `/posts/${notification.related_id}` : null;
             case "system":
-                // 系统通知（警告/封禁/禁言）是完整信息，不需要跳转
-                return null;
+                return notification.related_id ? `/posts/${notification.related_id}` : null;
             default:
                 return null;
         }

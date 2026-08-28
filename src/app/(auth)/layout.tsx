@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { BookOpen, Lightbulb, MessageSquare, Sigma } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Particles } from "@/components/ui/particles";
+import { BorderBeam } from "@/components/ui/border-beam";
 
 const features = [
     {
@@ -53,6 +55,14 @@ export default function AuthLayout({
                     <div className="absolute top-20 left-20 w-72 h-72 bg-indigo-300/40 dark:bg-purple-500/20 rounded-full blur-3xl transition-colors duration-500" />
                     <div className="absolute bottom-20 right-20 w-72 h-72 bg-amber-300/30 dark:bg-cyan-500/20 rounded-full blur-3xl transition-colors duration-500" />
                 </div>
+
+                {/* Magic UI 互动粒子背景 */}
+                <Particles
+                    className="absolute inset-0 z-0 pointer-events-none"
+                    quantity={50}
+                    ease={80}
+                    color="#f59e0b"
+                />
 
                 {/* 网格背景 */}
                 <div
@@ -137,8 +147,17 @@ export default function AuthLayout({
                     </div>
 
                     {/* 表单内容 */}
-                    <div className="p-8 rounded-2xl bg-card border border-border shadow-sm transition-colors">
+                    <div className="relative p-8 rounded-2xl bg-card border border-border shadow-sm transition-colors overflow-hidden">
                         {children}
+                        {/* Magic UI 登录卡片流光边框 */}
+                        <BorderBeam
+                            size={180}
+                            duration={10}
+                            delay={0}
+                            colorFrom="#f59e0b"
+                            colorTo="#6366f1"
+                            borderWidth={1}
+                        />
                     </div>
 
                     {/* 返回首页 */}

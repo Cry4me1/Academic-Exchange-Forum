@@ -434,7 +434,7 @@ export function RegisterForm() {
                                     <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-green-600 dark:text-green-400" />
                                     <div>
                                         <p className="font-semibold">
-                                            引荐人：{inviteCheck.inviterName || "Hansszh 超级管理员"}
+                                            引荐人：{inviteCheck.inviterName || "官方特邀管理员"}
                                         </p>
                                         <p className="text-green-600/80 dark:text-green-400/80 text-[11px] mt-0.5">
                                             学术受邀码有效，欢迎入驻 Scholarly
@@ -627,7 +627,7 @@ export function RegisterForm() {
                                     <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-green-600 dark:text-green-400" />
                                     <div>
                                         <p className="font-semibold">
-                                            引荐人：{inviteCheck.inviterName || "Hansszh 超级管理员"}
+                                            引荐人：{inviteCheck.inviterName || "官方特邀管理员"}
                                         </p>
                                         <p className="text-green-600/80 dark:text-green-400/80 text-[11px] mt-0.5">
                                             学术受邀码有效，欢迎入驻 Scholarly

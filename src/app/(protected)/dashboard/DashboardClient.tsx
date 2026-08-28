@@ -29,6 +29,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import {
@@ -41,6 +47,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/i18n/context";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 // === 服务端预获取数据的 Props 类型 ===
 export interface DashboardInitialData {
@@ -54,61 +62,71 @@ export interface DashboardInitialData {
     creditBalance: number;
 }
 
+// 积分紧凑格式化辅助函数
+function formatCredits(num: number | null): string {
+    if (num === null || num === undefined) return "...";
+    if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B+ pts`;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, "")}M pts`;
+    if (num >= 10_000) return `${(num / 1_000).toFixed(1).replace(/\.0$/, "")}k pts`;
+    if (num >= 1_000) return `${num.toLocaleString()} pts`;
+    return `${num} pts`;
+}
+
 // 动画变体
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.1,
+            staggerChildren: 0.08,
+            delayChildren: 0.05,
         },
     },
 };
 
 const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 12 },
     visible: {
         opacity: 1,
         y: 0,
         transition: {
-            duration: 0.5,
+            duration: 0.4,
             ease: [0.22, 1, 0.36, 1] as const,
         },
     },
 };
 
 const slideInLeft = {
-    hidden: { opacity: 0, x: -30 },
+    hidden: { opacity: 0, x: -16 },
     visible: {
         opacity: 1,
         x: 0,
         transition: {
-            duration: 0.6,
+            duration: 0.4,
             ease: [0.22, 1, 0.36, 1] as const,
         },
     },
 };
 
 const slideInRight = {
-    hidden: { opacity: 0, x: 30 },
+    hidden: { opacity: 0, x: 16 },
     visible: {
         opacity: 1,
         x: 0,
         transition: {
-            duration: 0.6,
+            duration: 0.4,
             ease: [0.22, 1, 0.36, 1] as const,
         },
     },
 };
 
 const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 12 },
     visible: {
         opacity: 1,
         y: 0,
         transition: {
-            duration: 0.5,
+            duration: 0.4,
             ease: [0.22, 1, 0.36, 1] as const,
         },
     },
@@ -119,6 +137,9 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ initialData }: DashboardClientProps) {
+    const { t } = useI18n();
+    const tNav = t.nav;
+
     const [activeTab, setActiveTab] = useState<FeedFilter>("latest");
     const [isRechargeOpen, setIsRechargeOpen] = useState(false);
     // 使用服务端预获取的数据作为初始值，不再客户端重复请求
@@ -158,129 +179,145 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950/40 text-foreground antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
             {/* 顶部导航栏 */}
-            <motion.header
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
-            >
-                <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+            <header className="sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80">
+                <div className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
-                        <div className="flex items-center gap-4">
-                            <Link href="/dashboard" className="flex items-center gap-2">
-                                <Image src="/logo.png" alt="Scholarly Logo" width={32} height={32} className="rounded-lg object-cover" />
-                                <span className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                        <div className="flex items-center gap-3">
+                            <Link href="/dashboard" className="flex items-center gap-2.5 group">
+                                <Image 
+                                    src="/logo.png" 
+                                    alt="Scholarly Logo" 
+                                    width={30} 
+                                    height={30} 
+                                    className="rounded-lg object-cover border border-zinc-200/80 dark:border-zinc-800 transition-transform group-hover:scale-105" 
+                                />
+                                <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                                     Scholarly
                                 </span>
                             </Link>
                         </div>
 
                         {/* 桌面端搜索栏 */}
-                        <div className="hidden md:flex flex-1 max-w-md mx-8">
+                        <div className="hidden md:flex flex-1 max-w-lg mx-10">
                             <GlobalSearch className="w-full" />
                         </div>
 
                         {/* 右侧操作区 */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 sm:gap-2.5">
+                            {/* 语言切换器 */}
+                            <div className="hidden sm:block">
+                                <LanguageSwitcher variant="toggle" />
+                            </div>
+
                             {/* 通知中心 */}
                             <NotificationCenter currentUserId={currentUserId} />
+
+                            {/* 积分余额精致微胶囊 */}
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsRechargeOpen(true)}
+                                            className="hidden sm:inline-flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-amber-500/20 bg-amber-500/8 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 transition-all duration-150 shadow-2xs cursor-pointer select-none"
+                                        >
+                                            <Coins className="h-3.5 w-3.5 text-amber-500" strokeWidth={1.75} />
+                                            <span className="text-xs font-semibold font-mono tabular-nums">
+                                                {formatCredits(creditBalance)}
+                                            </span>
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="text-xs">
+                                        <p className="font-semibold text-current">当前学术积分: {creditBalance !== null ? creditBalance.toLocaleString() : '...'}</p>
+                                        <p className="text-[10px] opacity-75 mt-0.5">点击快捷充值积分</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
 
                             {/* 用户菜单 */}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                        <Avatar className="h-9 w-9">
+                                    <Button variant="ghost" className="relative h-8.5 w-8.5 rounded-full p-0 border border-zinc-200/80 dark:border-zinc-800">
+                                        <Avatar className="h-8.5 w-8.5">
                                             <AvatarImage src={currentUser?.avatar_url || ""} alt="用户头像" />
-                                            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
-                                                {(currentUser?.username || currentUser?.email || "我").charAt(0).toUpperCase()}
+                                            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold">
+                                                {(currentUser?.username || currentUser?.email || "U").charAt(0).toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel className="font-normal">
-                                        <div className="flex flex-col space-y-1">
-                                            <p className="text-sm font-medium">{currentUser?.username || "当前用户"}</p>
-                                            <p className="text-xs text-muted-foreground">{currentUser?.email || "user@example.com"}</p>
+                                <DropdownMenuContent align="end" className="w-56 text-xs">
+                                    <DropdownMenuLabel className="font-normal py-2">
+                                        <div className="flex flex-col space-y-0.5">
+                                            <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{currentUser?.username || "当前学者"}</p>
+                                            <p className="text-[11px] text-zinc-400 truncate">{currentUser?.email || "user@example.com"}</p>
                                         </div>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem asChild>
                                         <Link href={`/user/${currentUserId}`} className="cursor-pointer">
-                                            <User className="mr-2 h-4 w-4" />
-                                            个人主页
+                                            <User className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
+                                            {tNav.profile}
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
                                         <Link href="/settings/profile" className="cursor-pointer">
-                                            <Settings className="mr-2 h-4 w-4" />
-                                            设置
+                                            <Settings className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
+                                            {tNav.settings}
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
+                                    <div className="sm:hidden px-2 py-1.5">
+                                        <LanguageSwitcher variant="toggle" />
+                                    </div>
+                                    <DropdownMenuSeparator className="sm:hidden" />
                                     <DropdownMenuItem
-                                        className="text-destructive focus:text-destructive cursor-pointer"
+                                        className="text-rose-600 focus:text-rose-600 cursor-pointer"
                                         onClick={handleLogout}
                                     >
-                                        <LogOut className="mr-2 h-4 w-4" />
-                                        退出登录
+                                        <LogOut className="mr-2 h-3.5 w-3.5" strokeWidth={1.75} />
+                                        {tNav.logout}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-
-                            {/* 积分余额胶囊按钮 */}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="hidden md:flex items-center gap-1.5 h-9 px-3 rounded-full border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/60 transition-all duration-300 shadow-sm hover:shadow-amber-500/10"
-                                onClick={() => setIsRechargeOpen(true)}
-                            >
-                                <Coins className="h-4 w-4" />
-                                <span className="font-semibold tabular-nums">{creditBalance !== null ? creditBalance.toLocaleString() : '...'}</span>
-                                <span className="text-xs opacity-60">积分</span>
-                            </Button>
                         </div>
                     </div>
                 </div>
 
                 {/* 充值弹窗 */}
                 <CreditRechargeDialog isOpen={isRechargeOpen} onOpenChange={handleRechargeOpenChange} />
-            </motion.header>
+            </header>
 
-            {/* 主内容区域 */}
-            <main className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div className="flex gap-6">
-                    {/* 左侧栏 - 桌面端显示，固定定位 */}
-                    <aside className="hidden lg:block w-80 shrink-0">
+            {/* 主内容区域 - 间距留白更加宽大舒适 */}
+            <main className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
+                <div className="flex gap-8 items-start">
+                    {/* 左侧栏 - 桌面端显示，宽度增至 72 (288px) */}
+                    <aside className="hidden lg:block w-72 shrink-0">
                         <motion.div
                             variants={slideInLeft}
                             initial="hidden"
                             animate="visible"
-                            className="fixed top-20 w-80 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2 scrollbar-hidden"
+                            className="sticky top-24 space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
                         >
                             {/* 主导航 */}
-                            <motion.div
-                                variants={itemVariants}
-                                className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-4"
-                            >
+                            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-3 shadow-xs">
                                 <MainNav />
-                            </motion.div>
+                            </div>
 
                             {/* 好友列表 */}
-                            <motion.div
-                                variants={itemVariants}
-                                className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-4"
-                            >
-                                <h3 className="text-sm font-semibold text-foreground mb-3 px-2">好友动态</h3>
+                            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-4 shadow-xs">
+                                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2.5 px-1 tracking-tight">
+                                    好友动态
+                                </h3>
                                 <FriendsList currentUserId={currentUserId} />
-                            </motion.div>
+                            </div>
                         </motion.div>
                     </aside>
 
-                    {/* 中间栏 - 主要内容 */}
+                    {/* 中间栏 - 主要信息流 */}
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
@@ -288,12 +325,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         className="flex-1 min-w-0"
                     >
                         {/* 移动端搜索栏 */}
-                        <div className="md:hidden mb-4">
+                        <div className="md:hidden mb-5">
                             <GlobalSearch />
                         </div>
 
-                        {/* Mobile/Tablet only: Right sidebar content */}
-                        <div className="xl:hidden space-y-6 mb-6">
+                        {/* Mobile/Tablet only: 右侧卡片下移展示 */}
+                        <div className="xl:hidden space-y-5 mb-6">
+                            <QuickPostButton />
                             <AnnouncementCard />
                             <AiFeatureCard />
                             <TagCloud />
@@ -308,7 +346,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         </motion.div>
 
                         {/* Tabs 筛选器 */}
-                        <motion.div variants={fadeInUp} className="mb-6 sticky top-20 z-30 bg-background/80 backdrop-blur-md pb-2">
+                        <motion.div variants={fadeInUp} className="mb-6 sticky top-20 z-30 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-md py-1.5">
                             <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
                         </motion.div>
 
@@ -318,13 +356,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         </motion.div>
                     </motion.div>
 
-                    {/* 右侧栏 - 桌面端显示 */}
+                    {/* 右侧栏 - 桌面端显示，宽度 340px */}
                     <aside className="hidden xl:block w-[340px] shrink-0">
                         <motion.div
                             variants={slideInRight}
                             initial="hidden"
                             animate="visible"
-                            className="sticky top-24 space-y-6 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 scrollbar-hidden"
+                            className="sticky top-24 space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
                         >
                             {/* 快速发帖 */}
                             <motion.div variants={itemVariants}>
@@ -336,7 +374,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                 <AnnouncementCard />
                             </motion.div>
 
-                            {/* AI Feature Announcement with Animation */}
+                            {/* AI Feature Announcement */}
                             <motion.div variants={itemVariants}>
                                 <AiFeatureCard />
                             </motion.div>
@@ -350,7 +388,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                 </div>
             </main>
 
-            {/* 移动端底部 Tab Bar (替代汉堡菜单) */}
+            {/* 移动端底部 Tab Bar */}
             <MobileTabBar currentUserId={currentUserId} />
 
             {/* 欢迎弹窗 / 正式版通知 */}

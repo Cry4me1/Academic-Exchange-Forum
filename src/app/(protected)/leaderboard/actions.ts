@@ -162,7 +162,7 @@ export async function getWeeklyBookmarkLeaderboard(): Promise<
 
 /**
  * 获取社区贡献值排行榜
- * 按总发帖数排名，Hansszh 永久锁定榜首
+ * 按总发帖数真实自然排序
  */
 export async function getContributionLeaderboard(): Promise<
     LeaderboardEntry[]
@@ -203,67 +203,15 @@ export async function getContributionLeaderboard(): Promise<
         }
     }
 
-    const sorted = Array.from(authorMap.entries())
+    return Array.from(authorMap.entries())
         .sort((a, b) => b[1].postCount - a[1].postCount)
-        .slice(0, 20);
-
-    // 查找 Hansszh
-    const hansszhIndex = sorted.findIndex(
-        ([, info]) => info.username.toLowerCase() === "hansszh"
-    );
-
-    let result: LeaderboardEntry[];
-
-    if (hansszhIndex >= 0) {
-        // Hansszh 已在列表中，将其移到榜首
-        const [hansszhEntry] = sorted.splice(hansszhIndex, 1);
-        result = [
-            {
-                rank: 1,
-                userId: hansszhEntry[0],
-                username: hansszhEntry[1].username,
-                avatarUrl: hansszhEntry[1].avatarUrl,
-                score: hansszhEntry[1].postCount,
-                isLocked: true,
-            },
-            ...sorted.slice(0, 9).map(([userId, info], index) => ({
-                rank: index + 2,
-                userId,
-                username: info.username,
-                avatarUrl: info.avatarUrl,
-                score: info.postCount,
-            })),
-        ];
-    } else {
-        // Hansszh 未在列表中，从 profiles 表中查找
-        const { data: hansszhProfile } = await supabase
-            .from("profiles")
-            .select("id, username, avatar_url")
-            .ilike("username", "hansszh")
-            .single();
-
-        const hansszhEntry: LeaderboardEntry = {
-            rank: 1,
-            userId: hansszhProfile?.id || "hansszh-locked",
-            username: hansszhProfile?.username || "Hansszh",
-            avatarUrl: hansszhProfile?.avatar_url || "",
-            score: hansszhProfile
-                ? authorMap.get(hansszhProfile.id)?.postCount || 0
-                : 999,
-            isLocked: true,
-        };
-
-        result = [
-            hansszhEntry,
-            ...sorted.slice(0, 9).map(([userId, info], index) => ({
-                rank: index + 2,
-                userId,
-                username: info.username,
-                avatarUrl: info.avatarUrl,
-                score: info.postCount,
-            })),
-        ];
-    }
-
-    return result;
+        .slice(0, 10)
+        .map(([userId, info], index) => ({
+            rank: index + 1,
+            userId,
+            username: info.username,
+            avatarUrl: info.avatarUrl,
+            score: info.postCount,
+        }));
 }
+

@@ -284,7 +284,7 @@ export function InvitesManagementClient() {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
                         <Ticket className="w-7 h-7 text-orange-500" />
-                        学术邀请码管理中心 (Hansszh 专属)
+                        学术邀请码管理中心 (超级管理员专属)
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
                         签发与管理学术通行邀请码、监控学者入驻流转与审计核销记录
@@ -533,7 +533,7 @@ export function InvitesManagementClient() {
 
                                                 <TableCell>
                                                     <div className="text-xs font-medium text-foreground">
-                                                        {item.creator?.username || "Hansszh"}
+                                                        {item.creator?.username || "系统管理员"}
                                                     </div>
                                                 </TableCell>
 
