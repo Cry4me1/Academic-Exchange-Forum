@@ -3,18 +3,16 @@
 import { getMyCredits } from "@/app/(protected)/credits/actions";
 import { Button } from "@/components/ui/button";
 import { Command, CommandInput, CommandList } from "@/components/ui/command";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCompletion } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Coins, Zap } from "lucide-react";
+import { ArrowUp, Coins } from "lucide-react";
 import { useEditor } from "novel";
 import { useCallback, useEffect, useRef, useState } from "react";
-// removed react-markdown
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import AICompletionCommands from "./ai-completion-command";
 import AISelectorCommands from "./ai-selector-commands";
-import CrazySpinner from "./icons/crazy-spinner";
-import Magic from "./icons/magic";
+import { AcademicAiStreamCapsule } from "./AcademicAiStreamCapsule";
 
 const MIN_CREDIT_COST = 8;
 
@@ -57,7 +55,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         refreshCredits();
     }, [refreshCredits]);
 
-    const { completion, complete, isLoading, error } = useCompletion({
+    const { completion, complete, isLoading, error, stop } = useCompletion({
         api: "/api/generate",
         streamProtocol: "text",
         onFinish: () => {
@@ -80,15 +78,64 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         },
     });
 
+    // 全局派发 AI 状态变化，供 NovelEditor 外层渲染极简发丝微晕
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent("ai-generation-status", {
+                detail: { isGenerating: isLoading },
+            })
+        );
+    }, [isLoading]);
+
+    useEffect(() => {
+        return () => {
+            window.dispatchEvent(
+                new CustomEvent("ai-generation-status", {
+                    detail: { isGenerating: false },
+                })
+            );
+        };
+    }, []);
+
+    // 监听外部打断事件（例如点击工具栏的推演中按钮或按下快捷键）
+    useEffect(() => {
+        const handleStop = () => {
+            stop();
+        };
+        window.addEventListener("ai-generation-stop", handleStop);
+        return () => window.removeEventListener("ai-generation-stop", handleStop);
+    }, [stop]);
+
     // Handle initialOption execution
     useEffect(() => {
         if (initialOption && !completion && !isLoading && editor) {
             if (initialOption === "continue") {
-                const text = getSelectedText(editor) || editor.state.doc.textBetween(Math.max(0, editor.state.selection.from - 500), editor.state.selection.from, " ");
+                let text = getSelectedText(editor) || editor.state.doc.textBetween(Math.max(0, editor.state.selection.from - 500), editor.state.selection.from, " ");
+
+                // 防御 1: 若当前光标处无文字，尝试获取编辑器整体文字
+                if (!text.trim()) {
+                    text = editor.getText();
+                }
+
+                // 防御 2: 若编辑器仍为空，尝试获取网页研讨标题作为构思种子
+                if (!text.trim()) {
+                    const titleInput = document.querySelector('input[placeholder*="研讨标题"]') as HTMLInputElement;
+                    if (titleInput?.value?.trim()) {
+                        text = `研讨命题：${titleInput.value.trim()}`;
+                    }
+                }
+
+                // 若完全没有任何可供续写的上下文
+                if (!text.trim()) {
+                    toast.info("请先输入研讨标题或简述前文，AI 将根据上下文为您严谨推演续写");
+                    onOpenChange(false);
+                    return;
+                }
+
                 complete(text, { body: { option: "continue" } });
             }
         }
-    }, [initialOption, editor, completion, isLoading, complete]);
+    }, [initialOption, editor, completion, isLoading, complete, onOpenChange]);
 
     // Handle error display (skip 402 as it's handled by onError)
     useEffect(() => {
@@ -101,8 +148,15 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
     useEffect(() => {
         const handleContinue = () => {
             if (!completion && !isLoading && editor) {
-                const text = getSelectedText(editor) || editor.state.doc.textBetween(Math.max(0, editor.state.selection.from - 500), editor.state.selection.from, " ");
-                complete(text, { body: { option: "continue" } });
+                let text = getSelectedText(editor) || editor.state.doc.textBetween(Math.max(0, editor.state.selection.from - 500), editor.state.selection.from, " ");
+                if (!text.trim()) text = editor.getText();
+                if (!text.trim()) {
+                    const titleInput = document.querySelector('input[placeholder*="研讨标题"]') as HTMLInputElement;
+                    if (titleInput?.value?.trim()) text = `研讨命题：${titleInput.value.trim()}`;
+                }
+                if (text.trim()) {
+                    complete(text, { body: { option: "continue" } });
+                }
             }
         };
 
@@ -135,17 +189,22 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
     const insufficientCredits = creditBalance !== null && creditBalance < MIN_CREDIT_COST;
 
     return (
-        <Command className="w-[350px]">
-            {/* ====== 积分状态栏 ====== */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/30">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Zap className="h-3 w-3 text-purple-500" />
-                    <span>按用量计费</span>
-                    <span className="text-purple-500/70">·</span>
-                    <span>最低 <span className="font-semibold text-purple-500">{MIN_CREDIT_COST}</span> 积分</span>
+        <Command
+            className={cn(
+                "overflow-hidden transition-all duration-300 border border-zinc-200/80 dark:border-zinc-800 bg-background/95 backdrop-blur-xl shadow-2xl rounded-xl",
+                isLoading || hasCompletion ? "w-[380px] sm:w-[440px]" : "w-[350px]"
+            )}
+        >
+            {/* ====== 积分与模型状态栏 ====== */}
+            <div className="flex items-center justify-between px-3.5 py-2 border-b border-border/60 bg-muted/20">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 dark:bg-emerald-400/80" />
+                    <span className="font-sans font-medium text-zinc-700 dark:text-zinc-300">DeepSeek 智述</span>
+                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                    <span className="text-[11px] text-zinc-400">起消 {MIN_CREDIT_COST} 积分</span>
                 </div>
-                <div className="flex items-center gap-1 relative">
-                    <Coins className="h-3 w-3 text-amber-500" />
+                <div className="flex items-center gap-1.5 relative">
+                    <Coins className="h-3.5 w-3.5 text-amber-500/90" />
                     <AnimatePresence mode="popLayout">
                         <motion.span
                             key={creditBalance}
@@ -153,8 +212,9 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                             animate={{ y: 0, opacity: 1, scale: 1 }}
                             exit={{ y: 8, opacity: 0, scale: 0.8 }}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            className={`text-xs font-semibold tabular-nums ${insufficientCredits ? "text-red-500" : "text-amber-500"
-                                }`}
+                            className={`text-xs font-semibold tabular-nums font-mono ${
+                                insufficientCredits ? "text-red-500" : "text-amber-600 dark:text-amber-400"
+                            }`}
                         >
                             {creditBalance !== null ? creditBalance : "..."}
                         </motion.span>
@@ -168,7 +228,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                                 animate={{ opacity: 0, y: -20 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 1.5, ease: "easeOut" }}
-                                className="absolute -top-1 right-0 text-[10px] font-bold text-red-400 pointer-events-none whitespace-nowrap"
+                                className="absolute -top-1 right-0 text-[10px] font-bold text-red-500 pointer-events-none whitespace-nowrap font-mono"
                             >
                                 -{deductedAmount}
                             </motion.span>
@@ -177,56 +237,48 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                 </div>
             </div>
 
-            {hasCompletion && (
-                <div className="flex max-h-[400px]">
-                    <ScrollArea>
-                        <div className="prose p-2 px-4 prose-sm dark:prose-invert">
-                            {completion}
-                        </div>
-                    </ScrollArea>
-                </div>
+            {/* ====== 核心生成与推演动效视图 ====== */}
+            {(isLoading || hasCompletion) && (
+                <AcademicAiStreamCapsule
+                    isLoading={isLoading}
+                    completion={completion}
+                    onStop={stop}
+                />
             )}
 
-            {isLoading && (
-                <div className="flex h-12 w-full items-center px-4 text-sm font-medium text-muted-foreground text-purple-500">
-                    <Magic className="mr-2 h-4 w-4 shrink-0" />
-                    AI 正在思考
-                    <div className="ml-2 mt-1">
-                        <CrazySpinner />
-                    </div>
-                </div>
-            )}
+            {/* ====== 完成后的动作或初始输入栏 ====== */}
             {!isLoading && (
                 <>
-                    <div className="relative">
-                        <CommandInput
-                            value={inputValue}
-                            onValueChange={setInputValue}
-                            autoFocus
-                            placeholder={
-                                insufficientCredits
-                                    ? "积分不足，请先充值..."
-                                    : hasCompletion
-                                        ? "告诉 AI 接下来做什么"
-                                        : "让 AI 编辑或生成..."
-                            }
-                        />
-                        <Button
-                            size="icon"
-                            className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-purple-500 hover:bg-purple-900 disabled:opacity-50"
-                            onClick={insufficientCredits
-                                ? () => window.dispatchEvent(new CustomEvent("open-recharge-dialog"))
-                                : handleSubmit
-                            }
-                            disabled={insufficientCredits && false} // keep clickable to open recharge
-                        >
-                            {insufficientCredits ? (
-                                <Coins className="h-3.5 w-3.5 text-amber-300" />
-                            ) : (
-                                <ArrowUp className="h-4 w-4" />
-                            )}
-                        </Button>
-                    </div>
+                    {!hasCompletion && (
+                        <div className="relative">
+                            <CommandInput
+                                value={inputValue}
+                                onValueChange={setInputValue}
+                                autoFocus
+                                placeholder={
+                                    insufficientCredits
+                                        ? "积分不足，请先充值..."
+                                        : "让 AI 编辑或生成学术段落..."
+                                }
+                            />
+                            <Button
+                                size="icon"
+                                className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-zinc-900 text-zinc-100 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                                onClick={
+                                    insufficientCredits
+                                        ? () => window.dispatchEvent(new CustomEvent("open-recharge-dialog"))
+                                        : handleSubmit
+                                }
+                                disabled={insufficientCredits && false}
+                            >
+                                {insufficientCredits ? (
+                                    <Coins className="h-3.5 w-3.5 text-amber-300" />
+                                ) : (
+                                    <ArrowUp className="h-3.5 w-3.5" />
+                                )}
+                            </Button>
+                        </div>
+                    )}
                     <CommandList>
                         {hasCompletion ? (
                             <AICompletionCommands

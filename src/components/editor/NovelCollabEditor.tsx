@@ -19,6 +19,13 @@ import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import BubbleMenu from "./BubbleMenu";
 import { SlashAISelector } from "./generative/slash-ai-selector";
 import { createExtensions } from "./extensions";
+import { toast } from "sonner";
+import {
+    extractTitleAndContent,
+    insertHtmlIntoEditor,
+    isMarkdownText,
+    markdownToTiptapHtml,
+} from "@/lib/markdown-parser";
 import { suggestionItems } from "./slash-command";
 import type * as Y from "yjs";
 
@@ -86,10 +93,77 @@ export default function NovelCollabEditor({
                                 return false;
                             },
                         },
-                        handlePaste: (view, event) =>
-                            handleImagePaste(view, event, onUpload),
-                        handleDrop: (view, event, _slice, moved) =>
-                            handleImageDrop(view, event, moved, onUpload),
+                        handlePaste: (view, event) => {
+                            const clipboardFiles = Array.from(event.clipboardData?.files || []);
+                            const mdFile = clipboardFiles.find((file) =>
+                                file.name.endsWith(".md") ||
+                                file.name.endsWith(".markdown") ||
+                                file.name.endsWith(".mdown") ||
+                                file.type === "text/markdown"
+                            );
+
+                            if (mdFile) {
+                                event.preventDefault();
+                                mdFile.text().then((rawText) => {
+                                    const { content } = extractTitleAndContent(rawText);
+                                    const html = markdownToTiptapHtml(content);
+                                    const isDocEmpty = view.state.doc.textContent.trim().length === 0;
+                                    insertHtmlIntoEditor(view, html, { replaceSelection: !isDocEmpty });
+                                    toast.success(`已成功导入并渲染 Markdown 文件：${mdFile.name}`);
+                                }).catch((err) => {
+                                    console.error("读取 Markdown 文件失败:", err);
+                                    toast.error("读取 Markdown 文件失败");
+                                });
+                                return true;
+                            }
+
+                            const hasImage = clipboardFiles.some((f) => f.type.startsWith("image/"));
+                            if (hasImage) {
+                                return handleImagePaste(view, event, onUpload);
+                            }
+
+                            const plainText = event.clipboardData?.getData("text/plain");
+                            const htmlText = event.clipboardData?.getData("text/html");
+                            const isHtmlCodeOrEmpty = !htmlText || /^\s*<pre[\s\S]*<\/pre>\s*$/i.test(htmlText);
+
+                            if (plainText && isHtmlCodeOrEmpty && isMarkdownText(plainText)) {
+                                event.preventDefault();
+                                const { content } = extractTitleAndContent(plainText);
+                                const html = markdownToTiptapHtml(content);
+                                const isDocEmpty = view.state.doc.textContent.trim().length === 0;
+                                insertHtmlIntoEditor(view, html, { replaceSelection: !isDocEmpty });
+                                toast.success("已自动识别并渲染 Markdown 格式内容");
+                                return true;
+                            }
+
+                            return false;
+                        },
+                        handleDrop: (view, event, _slice, moved) => {
+                            const files = Array.from(event.dataTransfer?.files || []);
+                            const mdFile = files.find((file) =>
+                                file.name.endsWith(".md") ||
+                                file.name.endsWith(".markdown") ||
+                                file.name.endsWith(".mdown") ||
+                                file.type === "text/markdown"
+                            );
+
+                            if (mdFile) {
+                                event.preventDefault();
+                                mdFile.text().then((rawText) => {
+                                    const { content } = extractTitleAndContent(rawText);
+                                    const html = markdownToTiptapHtml(content);
+                                    const isDocEmpty = view.state.doc.textContent.trim().length === 0;
+                                    insertHtmlIntoEditor(view, html, { replaceSelection: !isDocEmpty });
+                                    toast.success(`已成功导入并渲染 Markdown 文件：${mdFile.name}`);
+                                }).catch((err) => {
+                                    console.error("拖入 Markdown 文件读取失败:", err);
+                                    toast.error("读取 Markdown 文件失败");
+                                });
+                                return true;
+                            }
+
+                            return handleImageDrop(view, event, moved, onUpload);
+                        },
                         attributes: {
                             class: "prose prose-sm dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full p-4 min-h-[200px]",
                         },

@@ -16,6 +16,7 @@ import {
     Compass,
     Tag,
     UserCheck,
+    Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserCount } from "@/components/UserCount";
@@ -79,8 +80,8 @@ function Interactive3DCard({ children }: { children: React.ReactNode }) {
     const mouseXSpring = useSpring(x, { stiffness: 180, damping: 20 });
     const mouseYSpring = useSpring(y, { stiffness: 180, damping: 20 });
 
-    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["8deg", "-8deg"]);
-    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-8deg", "8deg"]);
+    const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["6deg", "-6deg"]);
+    const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-6deg", "6deg"]);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -114,16 +115,16 @@ function Interactive3DCard({ children }: { children: React.ReactNode }) {
     );
 }
 
-// 统计指标项
+// 统计指标项（Linear / Vercel 极简无边框设计）
 function StatBadge({ value, label, icon: Icon }: { value: string; label: string; icon: React.ElementType }) {
     return (
-        <div className="flex items-center gap-3.5 px-5 lg:px-6 py-3.5">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 dark:bg-amber-400/10 flex items-center justify-center border border-orange-500/20 dark:border-amber-400/20 text-orange-600 dark:text-amber-400 shadow-xs">
+        <div className="flex items-center gap-3.5 px-5 lg:px-6 py-3.5 transition-colors group">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 dark:bg-amber-400/10 flex items-center justify-center border border-orange-500/20 dark:border-amber-400/20 text-orange-600 dark:text-amber-400 shadow-xs group-hover:scale-105 transition-transform">
                 <Icon className="w-5 h-5" />
             </div>
             <div>
-                <div className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</div>
+                <div className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">{value}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{label}</div>
             </div>
         </div>
     );
@@ -142,8 +143,21 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
     // 选中的精选帖子索引
     const [selectedPostIndex, setSelectedPostIndex] = useState(0);
 
-    // 默认兜底帖子数据（防止数据库为空时崩溃）
+    // 默认学术精选兜底数据（包含树链剖分、量子物理、辛流形）
     const fallbackTopics: HeroPostItem[] = [
+        {
+            id: "algo-hld",
+            title: isZh ? "树链剖分学习笔记：重链剖分与动态树路径维护" : "Heavy-Light Decomposition: Tree Path Queries and Dynamic Tree Maintenance",
+            content: isZh ? "通过 DFS 序将树上路径映射为连续线段，证明任意两点间路径至多跨越 \\(O(\\log n)\\) 条重链，结合线段树实现 \\(O(\\log^2 n)\\) 区间修改与查询。" : "Maps tree paths into contiguous DFS order intervals, proving at most \\(O(\\log n)\\) heavy chains between any nodes, achieving \\(O(\\log^2 n)\\) path updates.",
+            tags: isZh ? ["算法设计", "树链剖分", "数据结构"] : ["Algorithms", "HLD", "Data Structures"],
+            comment_count: 32,
+            like_count: 128,
+            view_count: 940,
+            author: {
+                username: "Turing_Scholar",
+                special_title: isZh ? "特级算法研究员 · ACM-ICPC" : "Senior Algorithm Fellow",
+            },
+        },
         {
             id: "physics-1",
             title: isZh ? "关于拓扑绝缘体在超低温下的量子反常霍尔效应研究" : "Quantum Anomalous Hall Effect in Topological Insulators at Millikelvin Temperatures",
@@ -155,19 +169,6 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             author: {
                 username: "quantum_physicist",
                 special_title: isZh ? "国家杰青 · 高能物理所" : "Senior Fellow · IHEP",
-            },
-        },
-        {
-            id: "ai-2",
-            title: isZh ? "大模型长上下文推理阶段的动态注意力机制优化分析" : "Dynamic Attention Pruning in Long-Context LLM Inference",
-            content: isZh ? "提出动态注意力剪枝算法，在保持超长文本问答准确率的同时，将注意力矩阵显存开销降低 65%。" : "Proposes dynamic sparse attention pruning, reducing memory footprint by 65% while maintaining QA accuracy.",
-            tags: isZh ? ["深度学习", "注意力机制", "LLM"] : ["Deep Learning", "Attention", "LLM"],
-            comment_count: 26,
-            like_count: 98,
-            view_count: 890,
-            author: {
-                username: "elena_ai",
-                special_title: isZh ? "AI 首席科学家" : "Chief AI Scientist",
             },
         },
         {
@@ -199,36 +200,39 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.12,
+                staggerChildren: 0.1,
                 delayChildren: 0.05,
             },
         },
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 24 },
+        hidden: { opacity: 0, y: 20 },
         visible: {
             opacity: 1,
             y: 0,
             transition: {
-                duration: 0.75,
+                duration: 0.7,
                 ease: [0.22, 1, 0.36, 1] as const,
             },
         },
     };
 
     return (
-        <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-slate-50/70 dark:bg-[#07090e] transition-colors duration-700">
+        <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-[#fafafc] dark:bg-[#07090e] transition-colors duration-700">
             {/* 顶栏快速切换器 (独立悬浮于 Hero 右上角) */}
             <div className="absolute top-6 right-6 z-30 flex items-center gap-3">
                 <LanguageSwitcher variant="toggle" />
             </div>
 
-            {/* === 1. 柔和极光光晕背景 === */}
+            {/* === 1. 柔和环境极光与径向渐变光晕 (Radial Ambient Glow) === */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-18%] left-1/2 -translate-x-1/2 w-[850px] h-[480px] bg-gradient-to-b from-amber-500/15 via-orange-500/10 to-transparent blur-[130px] rounded-full dark:from-amber-400/15 dark:via-purple-600/10 dark:to-transparent" />
-                <div className="absolute top-1/4 -left-[8%] w-[550px] h-[550px] bg-indigo-500/10 dark:bg-indigo-600/12 blur-[140px] rounded-full" />
-                <div className="absolute bottom-10 -right-[8%] w-[550px] h-[550px] bg-amber-500/10 dark:bg-orange-600/10 blur-[140px] rounded-full" />
+                {/* 顶部中央暖橙与淡紫微弱径向渐变光晕 */}
+                <div className="absolute -top-[15%] left-1/2 -translate-x-1/2 w-[900px] h-[520px] bg-gradient-to-b from-amber-500/15 via-purple-500/10 to-transparent blur-[140px] rounded-full dark:from-amber-400/15 dark:via-purple-600/10" />
+                {/* 左下紫蓝色光晕 */}
+                <div className="absolute top-1/3 -left-[10%] w-[580px] h-[580px] bg-indigo-500/10 dark:bg-indigo-600/12 blur-[150px] rounded-full" />
+                {/* 右下暖橙光晕 */}
+                <div className="absolute bottom-10 -right-[10%] w-[580px] h-[580px] bg-amber-500/10 dark:bg-orange-600/10 blur-[150px] rounded-full" />
             </div>
 
             {/* === 2. 神经知识网络 Canvas 动画（鼠标引力互动） === */}
@@ -237,7 +241,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             {/* === 3. Magic UI 交互粒子引力层 === */}
             <Particles
                 className="absolute inset-0 z-0 pointer-events-none"
-                quantity={70}
+                quantity={65}
                 ease={70}
                 size={0.6}
                 color="#f59e0b"
@@ -247,38 +251,40 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
             {/* === 4. 浮动 LaTeX 景深学术公式 === */}
             <FloatingGlyphs />
 
-            {/* === 5. 精细网格背景 === */}
+            {/* === 5. 低对比度微网格背景 (Subtle Grid Pattern) === */}
             <div
-                className="absolute inset-0 opacity-[0.025] dark:opacity-[0.035] pointer-events-none"
+                className="absolute inset-0 opacity-[0.03] dark:opacity-[0.04] pointer-events-none"
                 style={{
                     backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
-                    backgroundSize: "48px 48px",
+                    backgroundSize: "40px 40px",
                 }}
             />
 
-            {/* === 5. 主内容区 === */}
+            {/* === 6. 主内容区 === */}
             <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-16 lg:py-24">
                 <div className="grid lg:grid-cols-12 gap-12 lg:gap-10 items-center">
-                    {/* 左侧主要文字与操作区 (7 列) */}
+                    
+                    {/* 左侧：价值主张与 CTA (7 列) */}
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
                         className="lg:col-span-7 text-center lg:text-left"
                     >
-                        {/* 学术社群活跃徽章与 820 通行码活动入口 */}
+                        {/* 顶部微胶囊：社区广播 + 820 通行码 */}
                         <motion.div
                             variants={itemVariants}
-                            className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 mb-8"
+                            className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 mb-7"
                         >
-                            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/80 dark:bg-white/[0.05] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-xs hover:border-amber-500/40 transition-all duration-300 group cursor-default">
+                            {/* 实时在线学者广播胶囊 */}
+                            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 shadow-xs hover:border-amber-500/40 transition-all duration-300 group cursor-default">
                                 <span className="flex h-2 w-2 relative">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                                 </span>
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
                                     {tHero.badgePrefix}
-                                    <span className="text-orange-600 dark:text-amber-400 font-bold">
+                                    <span className="text-orange-600 dark:text-amber-400 font-bold ml-1">
                                         <UserCount />
                                     </span>
                                     {tHero.badgeSuffix}
@@ -286,9 +292,10 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                 <Sparkles className="w-3.5 h-3.5 text-amber-500 group-hover:rotate-12 transition-transform" />
                             </div>
 
+                            {/* 820 邀请码先到先得胶囊 */}
                             <Link
                                 href="/invite-820"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-amber-400 border border-orange-500/30 text-xs font-semibold shadow-xs transition-all hover:scale-105"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-amber-400 border border-orange-500/30 text-xs font-semibold shadow-xs transition-all hover:scale-105"
                             >
                                 <span className="text-sm">🎟️</span>
                                 <span>{tHero.inviteBanner}</span>
@@ -296,47 +303,45 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                             </Link>
                         </motion.div>
 
-                        {/* 主品牌与标题 */}
+                        {/* 品牌 Logo 与品牌名 */}
                         <motion.div
                             variants={itemVariants}
-                            className="flex items-center gap-4 mb-6 justify-center lg:justify-start"
+                            className="flex items-center gap-4 mb-4 justify-center lg:justify-start"
                         >
                             <div className="relative p-1 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-orange-500/20">
                                 <Image
                                     src="/logo.png"
                                     alt="Scholarly Logo"
-                                    width={64}
-                                    height={64}
+                                    width={56}
+                                    height={56}
                                     priority
-                                    className="rounded-xl bg-white dark:bg-slate-950 p-1"
+                                    className="rounded-xl bg-white dark:bg-zinc-950 p-1"
                                 />
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
-                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-950 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-slate-300">
-                                    Scholarly
-                                </span>
-                            </h1>
+                            <span className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-950 via-zinc-800 to-zinc-900 dark:from-white dark:via-zinc-100 dark:to-zinc-300">
+                                Scholarly
+                            </span>
                         </motion.div>
 
-                        {/* 副标语 */}
-                        <motion.h2
+                        {/* 主大标题：高对比度排版 */}
+                        <motion.h1
                             variants={itemVariants}
-                            className="text-2xl md:text-4xl font-bold mb-6 tracking-tight"
+                            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5 leading-[1.15]"
                         >
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-amber-500 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-400">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-400">
                                 {tHero.subTitle}
                             </span>
-                        </motion.h2>
+                        </motion.h1>
 
-                        {/* 描述语 */}
+                        {/* 副标语：弱化中性灰，突出学术核心亮点 */}
                         <motion.p
                             variants={itemVariants}
-                            className="text-base md:text-lg max-w-2xl mb-10 leading-relaxed mx-auto lg:mx-0 text-slate-600 dark:text-slate-400"
+                            className="text-base sm:text-lg max-w-2xl mb-9 leading-relaxed mx-auto lg:mx-0 text-zinc-600 dark:text-zinc-400 font-normal"
                         >
                             {tHero.description}
                         </motion.p>
 
-                        {/* 核心 CTA 操作按钮 */}
+                        {/* 双操作按钮：主 CTA 与次 CTA */}
                         <motion.div
                             variants={itemVariants}
                             className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
@@ -344,7 +349,7 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                             <Button
                                 asChild
                                 size="lg"
-                                className="h-12 px-8 text-white font-medium rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-orange-500/25 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 dark:from-amber-400 dark:to-orange-500 dark:text-slate-950 font-semibold group border-0"
+                                className="h-12 px-8 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-[1.03] shadow-lg shadow-orange-500/25 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 dark:from-amber-400 dark:to-orange-500 dark:text-zinc-950 group border-0"
                             >
                                 <Link href="/register">
                                     {tHero.exploreBtn}
@@ -355,22 +360,22 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                 asChild
                                 variant="outline"
                                 size="lg"
-                                className="h-12 px-8 rounded-xl transition-all duration-300 bg-white/70 hover:bg-white text-slate-800 border-slate-200/80 shadow-xs dark:bg-white/[0.04] dark:backdrop-blur-xl dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/[0.08]"
+                                className="h-12 px-8 rounded-xl transition-all duration-300 bg-white/80 hover:bg-white text-zinc-800 border-zinc-200/90 shadow-xs dark:bg-zinc-900/60 dark:backdrop-blur-xl dark:border-white/10 dark:text-zinc-200 dark:hover:bg-zinc-800/80"
                             >
                                 <Link
                                     href={currentPost?.id ? `/posts/${currentPost.id}` : "/dashboard"}
                                     className="flex items-center gap-2"
                                 >
-                                    <Compass className="w-4 h-4" />
+                                    <Compass className="w-4 h-4 text-orange-500 dark:text-amber-400" />
                                     {tHero.browseBtn}
                                 </Link>
                             </Button>
                         </motion.div>
 
-                        {/* 实时数据指标栏 */}
+                        {/* 底部三列数据看板 (Stats Bar) */}
                         <motion.div
                             variants={itemVariants}
-                            className="mt-12 inline-flex flex-wrap items-center justify-center lg:justify-start rounded-2xl bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200/80 dark:border-white/10 divide-x divide-slate-200/80 dark:divide-white/10 shadow-xs"
+                            className="mt-11 inline-flex flex-wrap items-center justify-center lg:justify-start rounded-2xl bg-white/85 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-white/10 divide-x divide-zinc-200/80 dark:divide-white/10 shadow-xs"
                         >
                             <StatBadge value={formatCount(postsCount, "posts")} label={tHero.statPosts} icon={BookOpen} />
                             <StatBadge value={formatCount(tagsCount, "tags")} label={tHero.statTags} icon={FlaskConical} />
@@ -378,35 +383,34 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                         </motion.div>
                     </motion.div>
 
-                    {/* 右侧：3D 真实前沿学术动态卡片 (5 列) */}
+                    {/* 右侧：交互式精选卡片视窗 (5 列，SaaS 极简无边框分段卡片) */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                        initial={{ opacity: 0, scale: 0.96, y: 24 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.3 }}
+                        transition={{ duration: 0.8, delay: 0.25 }}
                         className="lg:col-span-5 relative"
                     >
                         <Interactive3DCard>
-                            <div className="relative rounded-3xl overflow-hidden bg-white/95 dark:bg-[#0c121c]/95 backdrop-blur-2xl border-2 border-slate-200/80 dark:border-white/[0.12] shadow-2xl shadow-slate-300/40 dark:shadow-black/60">
+                            <div className="relative rounded-3xl overflow-hidden bg-white/95 dark:bg-zinc-950/90 backdrop-blur-2xl border border-zinc-200/90 dark:border-white/[0.12] shadow-2xl shadow-zinc-300/40 dark:shadow-black/70">
                                 
-                                {/* 顶部真实帖子快速切换栏 */}
-                                <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200/80 dark:border-white/[0.08] bg-slate-100/60 dark:bg-white/[0.02]">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                                        <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                                        <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                                {/* 现代分段指示栏 (Segmented Header Bar，摈弃伪 macOS 圆点) */}
+                                <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-200/80 dark:border-white/[0.08] bg-zinc-100/60 dark:bg-white/[0.02]">
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                                        <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                                        <span>前沿学术精选</span>
                                     </div>
 
-                                    {/* 真实帖子 Tab 切换器 */}
-                                    <div className="flex items-center p-1 rounded-xl bg-slate-200/70 dark:bg-white/[0.06] text-xs">
+                                    {/* 分段 Tab 切换器 */}
+                                    <div className="flex items-center p-1 rounded-xl bg-zinc-200/70 dark:bg-white/[0.06] text-xs">
                                         {displayPosts.slice(0, 3).map((item, idx) => (
                                             <button
                                                 key={item.id || idx}
                                                 type="button"
                                                 onClick={() => setSelectedPostIndex(idx)}
-                                                className={`px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
+                                                className={`px-3 py-1 rounded-lg transition-all text-xs font-bold ${
                                                     selectedPostIndex === idx
-                                                        ? "bg-white dark:bg-white/20 text-orange-600 dark:text-amber-300 shadow-xs"
-                                                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                                        ? "bg-white dark:bg-zinc-800 text-orange-600 dark:text-amber-400 shadow-xs"
+                                                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                                                 }`}
                                             >
                                                 {tHero.featuredTag} {idx + 1}
@@ -415,20 +419,20 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                     </div>
                                 </div>
 
-                                {/* 真实帖子详细展示内容（高对比度，消除黑块） */}
+                                {/* 视窗学术内容展示 */}
                                 <div className="p-6 space-y-4">
-                                    {/* 作者信息栏 */}
+                                    {/* 作者与机构信息 */}
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-orange-500/20">
                                                 {(currentPost.author?.username || "学者").slice(0, 1).toUpperCase()}
                                             </div>
                                             <div>
-                                                <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <div className="text-sm font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5">
                                                     {currentPost.author?.username || tHero.defaultAuthor}
                                                     <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
                                                 </div>
-                                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                                                     {currentPost.author?.special_title || tHero.defaultTitle}
                                                 </div>
                                             </div>
@@ -439,26 +443,26 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                         </span>
                                     </div>
 
-                                    {/* 真实帖子标题 */}
+                                    {/* 学术论文 / 笔记标题 */}
                                     <Link
                                         href={`/posts/${currentPost.id}`}
-                                        className="block text-lg font-black text-slate-900 dark:text-white hover:text-orange-600 dark:hover:text-amber-300 transition-colors leading-snug"
+                                        className="block text-lg font-black text-zinc-900 dark:text-zinc-50 hover:text-orange-600 dark:hover:text-amber-400 transition-colors leading-snug"
                                     >
                                         {currentPost.title}
                                     </Link>
 
-                                    {/* 真实内容提炼与公式渲染窗（浅色纯净，深色高亮） */}
-                                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/10 text-xs md:text-sm text-slate-700 dark:text-slate-200 leading-relaxed shadow-inner overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                    {/* 核心段落与高精度 LaTeX 公式渲染窗 */}
+                                    <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-white/10 text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 leading-relaxed shadow-inner overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                         <MathText text={extractSnippet(currentPost.content)} />
                                     </div>
 
-                                    {/* 真实标签 */}
+                                    {/* 学科标签 */}
                                     {currentPost.tags && currentPost.tags.length > 0 && (
                                         <div className="flex flex-wrap gap-1.5">
                                             {currentPost.tags.slice(0, 3).map((tag, i) => (
                                                 <span
                                                     key={i}
-                                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08]"
+                                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 px-2.5 py-0.5 rounded-lg bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200 dark:border-white/[0.08]"
                                                 >
                                                     <Tag className="w-2.5 h-2.5 text-orange-500 dark:text-amber-400" />
                                                     {tag}
@@ -467,9 +471,9 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                                         </div>
                                     )}
 
-                                    {/* 底部真实互动数据与直达按钮 */}
-                                    <div className="pt-3 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between">
-                                        <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                    {/* 底部互动指标与研读全文跳转 */}
+                                    <div className="pt-3 border-t border-zinc-200/80 dark:border-white/[0.08] flex items-center justify-between">
+                                        <div className="flex items-center gap-4 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                                             <span className="flex items-center gap-1">
                                                 <ThumbsUp className="w-3.5 h-3.5 text-orange-500" /> {currentPost.like_count || 0}
                                             </span>
@@ -483,10 +487,10 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
 
                                         <Link
                                             href={`/posts/${currentPost.id}`}
-                                            className="text-xs font-bold text-orange-600 dark:text-amber-300 hover:underline inline-flex items-center gap-1"
+                                            className="text-xs font-bold text-orange-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1 group"
                                         >
                                             {tHero.readFullPost}
-                                            <ArrowRight className="w-3.5 h-3.5" />
+                                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                                         </Link>
                                     </div>
 
@@ -507,8 +511,8 @@ export function Hero({ postsCount = 0, tagsCount = 0, hotTopics = [] }: HeroProp
                 </div>
             </div>
 
-            {/* === 6. 底部柔和过渡渐变 === */}
-            <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-slate-50 dark:from-[#07090e] to-transparent pointer-events-none" />
+            {/* === 7. 底部柔和过渡渐变 === */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#fafafc] dark:from-[#07090e] to-transparent pointer-events-none" />
         </section>
     );
 }

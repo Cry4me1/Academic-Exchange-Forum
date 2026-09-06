@@ -15,6 +15,14 @@ export const MermaidBlock = Node.create({
             content: {
                 default:
                     "graph TD\n    A[开始] --> B{判断}\n    B -->|是| C[执行]\n    B -->|否| D[结束]",
+                parseHTML: (element) =>
+                    element.getAttribute("data-content") ||
+                    element.getAttribute("content") ||
+                    element.textContent ||
+                    "",
+                renderHTML: (attributes) => ({
+                    "data-content": attributes.content,
+                }),
             },
         };
     },

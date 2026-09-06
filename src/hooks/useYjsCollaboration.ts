@@ -431,7 +431,16 @@ export function useYjsCollaboration({
             doc.off("update", handleLocalUpdate);
             awareness.off("update", handleAwarenessUpdate);
             awareness.destroy();
-            channel.unsubscribe();
+            
+            const cleanup = () => {
+                supabase.removeChannel(channel);
+            };
+            if (channel.state === "joined") {
+                cleanup();
+            } else {
+                setTimeout(cleanup, 500);
+            }
+
             doc.destroy();
             channelRef.current = null;
             docRef.current = null;

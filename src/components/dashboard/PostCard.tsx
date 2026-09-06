@@ -338,6 +338,8 @@ export function PostCard({
                                 src={coverImage!}
                                 alt={title}
                                 fill
+                                unoptimized
+                                referrerPolicy="no-referrer"
                                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                                 className="object-cover group-hover:scale-[1.02] transition-transform duration-300 ease-out"
                                 placeholder="blur"

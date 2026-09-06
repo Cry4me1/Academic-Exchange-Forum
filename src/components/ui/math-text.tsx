@@ -94,6 +94,7 @@ function renderKatexToString(mathStr: string, displayMode: boolean): string {
             displayMode,
             throwOnError: false,
             output: "html",
+            strict: "ignore",
         });
     } catch {
         // HTML 转义防止 XSS：畸形 LaTeX 可能包含恶意 HTML 标签

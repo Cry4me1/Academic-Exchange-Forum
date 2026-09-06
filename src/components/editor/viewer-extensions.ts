@@ -19,6 +19,7 @@ import { MermaidBlock } from "./extensions/mermaid-block";
 import { AcademicBlock } from "./extensions/academic-block/academic-block";
 import { CrossRefNode } from "./extensions/cross-ref/cross-ref-node";
 import { SidenoteNode } from "./extensions/sidenote/sidenote-node";
+import { MentionViewerNode } from "./extensions/mention";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(all);
@@ -41,6 +42,10 @@ const codeBlockLowlight = CodeBlockLowlight.configure({
 const mathExtension = Mathematics.configure({
     // Standard dollar sign syntax for inline math: $E=mc^2$
     regex: /\$([^\$]+)\$/gi,
+    katexOptions: {
+        strict: "ignore",
+        throwOnError: false,
+    },
 });
 
 /**
@@ -152,4 +157,6 @@ export const viewerExtensions: any[] = [
     AcademicBlock,
     CrossRefNode,
     SidenoteNode,
+    // Mention node
+    MentionViewerNode,
 ];

@@ -3,6 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { EditorContent, EditorRoot, type JSONContent } from "novel";
+import { cn } from "@/lib/utils";
 import { viewerExtensions } from "./viewer-extensions";
 import MathViewerComponent from "./extensions/MathViewerComponent";
 
@@ -42,8 +43,10 @@ class ViewerErrorBoundary extends Component<
 }
 
 interface NovelViewerProps {
-    initialValue?: JSONContent;
-    content?: JSONContent;
+    initialValue?: JSONContent | any;
+    content?: JSONContent | any;
+    className?: string;
+    editorClassName?: string;
 }
 
 // 辅助函数，判定 LaTeX 是否为函数公式
@@ -66,7 +69,12 @@ function checkIsFunction(latex: string) {
     }
 }
 
-export default function NovelViewer({ initialValue, content }: NovelViewerProps) {
+export default function NovelViewer({
+    initialValue,
+    content,
+    className,
+    editorClassName,
+}: NovelViewerProps) {
     const valueToRender = initialValue || content;
     const containerRef = useRef<HTMLDivElement>(null);
     const [mathPortals, setMathPortals] = useState<{ id: string; element: HTMLElement; latex: string }[]>([]);
@@ -144,7 +152,13 @@ export default function NovelViewer({ initialValue, content }: NovelViewerProps)
     }
 
     return (
-        <div ref={containerRef} className="novel-viewer-container rich-text-content w-full bg-background relative">
+        <div
+            ref={containerRef}
+            className={cn(
+                "novel-viewer-container rich-text-content w-full relative",
+                className ?? "bg-background"
+            )}
+        >
             <ViewerErrorBoundary>
                 <EditorRoot>
                     <EditorContent
@@ -153,7 +167,10 @@ export default function NovelViewer({ initialValue, content }: NovelViewerProps)
                         immediatelyRender={false}
                         editorProps={{
                             attributes: {
-                                class: "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full",
+                                class: cn(
+                                    "prose dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full",
+                                    editorClassName ?? "prose-lg"
+                                ),
                             },
                             editable: () => false,
                         }}

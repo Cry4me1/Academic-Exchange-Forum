@@ -18,10 +18,29 @@ const AICompletionCommands = ({ completion, onDiscard }: AICompletionCommandsPro
     if (!editor) return null;
 
     return (
-        <>
-            <CommandGroup>
+        <div className="p-1">
+            <CommandGroup heading="采纳建议">
                 <CommandItem
-                    className="gap-2 px-4"
+                    className="gap-2.5 px-3 py-2 text-xs font-medium cursor-pointer rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/80"
+                    value="insert"
+                    onSelect={() => {
+                        const selection = editor.view.state.selection;
+                        const docSize = editor.view.state.doc.content.size;
+                        const insertPos = Math.min(selection.to + 1, docSize);
+
+                        editor
+                            .chain()
+                            .focus()
+                            .insertContentAt(insertPos, completion)
+                            .run();
+                        onDiscard();
+                    }}
+                >
+                    <TextQuote className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" />
+                    <span>采纳并在当前光标下方插入</span>
+                </CommandItem>
+                <CommandItem
+                    className="gap-2.5 px-3 py-2 text-xs font-medium cursor-pointer rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/80"
                     value="replace"
                     onSelect={() => {
                         const selection = editor.view.state.selection;
@@ -37,56 +56,27 @@ const AICompletionCommands = ({ completion, onDiscard }: AICompletionCommandsPro
                                 completion
                             )
                             .run();
+                        onDiscard();
                     }}
                 >
-                    <Check className="h-4 w-4 text-muted-foreground" />
-                    替换选中内容
-                </CommandItem>
-                <CommandItem
-                    className="gap-2 px-4"
-                    value="insert"
-                    onSelect={() => {
-                        const selection = editor.view.state.selection;
-                        const docSize = editor.view.state.doc.content.size;
-                        const insertPos = Math.min(selection.to + 1, docSize);
-
-                        editor
-                            .chain()
-                            .focus()
-                            .insertContentAt(insertPos, completion)
-                            .run();
-                    }}
-                >
-                    <TextQuote className="h-4 w-4 text-muted-foreground" />
-                    在下方插入
+                    <Check className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" />
+                    <span>替换当前选中内容</span>
                 </CommandItem>
             </CommandGroup>
 
-            <CommandSeparator />
+            <CommandSeparator className="my-1 bg-border/60" />
 
-            {/* 反馈/重试区域 - 暂时用 CommandItem 模拟，因为 Command 组件限制 */}
-            <CommandGroup heading="不满意结果？">
+            <CommandGroup heading="操作">
                 <CommandItem
-                    onSelect={() => {
-                        // 这里理想情况是触发重新生成，但当前架构需要回调到父组件
-                        // 我们暂时只提供重新生成的文案，需在父组件处理 retry 逻辑
-                        // 由于 props 中没有 onRetry，我们先暂时保留 UI
-                        // 实际项目需重构以支持 onRetry(feedback)
-                        console.log("Retry with feedback:", feedback);
-                    }}
-                    value="retry"
-                    className="gap-2 px-4 text-muted-foreground"
+                    onSelect={onDiscard}
+                    value="discard"
+                    className="gap-2.5 px-3 py-2 text-xs cursor-pointer rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
                 >
-                    <RefreshCcw className="h-4 w-4" />
-                    再试一次
-                </CommandItem>
-
-                <CommandItem onSelect={onDiscard} value="discard" className="gap-2 px-4 text-red-500">
-                    <TrashIcon className="h-4 w-4" />
-                    放弃
+                    <TrashIcon className="h-3.5 w-3.5" />
+                    <span>舍弃此内容</span>
                 </CommandItem>
             </CommandGroup>
-        </>
+        </div>
     );
 };
 
