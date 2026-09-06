@@ -176,7 +176,7 @@ const AISelectorCommands = ({ onSelect }: AISelectorCommandsProps) => {
                         key={option.value}
                         value={option.value}
                     >
-                        <option.icon className="h-4 w-4 text-purple-500" />
+                        <option.icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                         {option.label}
                     </CommandItem>
                 ))}
@@ -186,7 +186,7 @@ const AISelectorCommands = ({ onSelect }: AISelectorCommandsProps) => {
                     className="flex gap-2 px-4"
                     value="tone"
                 >
-                    <Mic className="h-4 w-4 text-purple-500" />
+                    <Mic className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                     更改语气...
                 </CommandItem>
 
@@ -195,7 +195,7 @@ const AISelectorCommands = ({ onSelect }: AISelectorCommandsProps) => {
                     className="flex gap-2 px-4"
                     value="translate"
                 >
-                    <Languages className="h-4 w-4 text-purple-500" />
+                    <Languages className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                     翻译...
                 </CommandItem>
             </CommandGroup>
@@ -211,7 +211,7 @@ const AISelectorCommands = ({ onSelect }: AISelectorCommandsProps) => {
                     value="continue"
                     className="gap-2 px-4"
                 >
-                    <StepForward className="h-4 w-4 text-purple-500" />
+                    <StepForward className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                     继续写作
                 </CommandItem>
 
@@ -222,7 +222,7 @@ const AISelectorCommands = ({ onSelect }: AISelectorCommandsProps) => {
                         key={option.value}
                         value={option.value}
                     >
-                        <option.icon className="h-4 w-4 text-purple-500" />
+                        <option.icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                         {option.label}
                     </CommandItem>
                 ))}

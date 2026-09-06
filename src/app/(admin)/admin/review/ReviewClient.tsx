@@ -59,6 +59,7 @@ export interface PostItem {
   id: string;
   title: string;
   content: any;
+  cover_image?: string | null;
   tags: string[] | null;
   author_id: string;
   review_status: string;
@@ -470,13 +471,29 @@ export function ReviewClient({
                           )}
                         </div>
 
-                        <div>
-                          <h3 className="text-lg font-bold text-foreground">
-                            {post.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {plainText || "（暂无文本正文）"}
-                          </p>
+                        <div className="flex flex-col sm:flex-row gap-4 items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <h3 className="text-lg font-bold text-foreground">
+                              {post.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {plainText || "（暂无文本正文）"}
+                            </p>
+                          </div>
+                          {post.cover_image && (
+                            <div className="relative aspect-[16/9] w-28 sm:w-32 rounded-lg overflow-hidden border border-border/60 bg-muted shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={post.cover_image}
+                                alt="文章封面"
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-black/60 text-[9px] text-white">
+                                封面
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* AI 研判依据 */}
@@ -751,6 +768,35 @@ export function ReviewClient({
                 </p>
               )}
             </div>
+
+            {/* 封面图预览 */}
+            {previewPost?.cover_image && (
+              <div className="p-3.5 rounded-xl border border-border/70 bg-muted/20 space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    文章封面图审核：
+                  </span>
+                  <a
+                    href={previewPost.cover_image}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-primary hover:underline font-normal"
+                  >
+                    在新标签页查看原图 ↗
+                  </a>
+                </div>
+                <div className="relative aspect-[16/9] max-h-48 w-full max-w-sm rounded-lg overflow-hidden border border-border/80 bg-black/5 dark:bg-black/30">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewPost.cover_image}
+                    alt="文章封面预览"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* 正文预览 */}
             <div className="prose dark:prose-invert max-w-none p-4 rounded-lg bg-background border border-border/40 text-sm leading-relaxed whitespace-pre-wrap font-sans">

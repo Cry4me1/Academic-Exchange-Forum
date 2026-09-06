@@ -105,10 +105,10 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
               <div className="space-y-1">
                 <h4 className="font-bold text-base text-foreground flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                  查看更详尽的 v1.1.7 联合更新日志
+                  查看更详尽的 v1.1.8 联合更新日志
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  内含全站双语国际化、16:9 封面图系统、三大核心 UI 重构、迎新向导与 6 步实操教学营的交互图解。
+                  内含评论区 @ 提及系统、交互式 Scholarly AI 学术智脑、零基础公式/函数面板与极简 AI 续写流光图解。
                 </p>
               </div>
               <Link href="/updates">

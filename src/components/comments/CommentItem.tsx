@@ -6,9 +6,10 @@ import NovelViewer from "@/components/editor/NovelViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn, formatDistanceToNow } from "@/lib/utils";
-import { CheckCircle2, ChevronUp, CornerDownRight, Link2, Trash2, Clock, AlertCircle } from "lucide-react";
-import { useState, useTransition } from "react";
+import { CheckCircle2, ChevronUp, CornerDownRight, Link2, Trash2, Clock, AlertCircle, Sparkles, Bot } from "lucide-react";
+import { useState, useTransition, useMemo } from "react";
 import { toast } from "sonner";
+import { ensureTipTapContent } from "@/lib/markdown-to-tiptap";
 
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { VipBadge } from "@/components/payments/VipBadge";
@@ -138,17 +139,27 @@ export function CommentItem({
     const authorInitials = comment.author.username?.slice(0, 2).toUpperCase() || "?";
     const isNested = depth > 0;
     const isAuthor = currentUserId === comment.author.id;
+    const isAiComment =
+        comment.author.id === "00000000-0000-0000-0000-0000000000a1" ||
+        comment.author.username === "Scholarly AI";
+
+    // 自愈与规范化解析评论内容（支持 Markdown、单/双美元 LaTeX、旧版 doc 自动重构）
+    const safeContent = useMemo(() => {
+        return ensureTipTapContent(comment.content);
+    }, [comment.content]);
 
     return (
         <div
             id={`comment-${comment.id}`}
             className={cn(
-                "scroll-mt-24",
+                "scroll-mt-24 transition-all duration-200",
                 isNested && "ml-8 border-l-2 border-border/50 pl-4",
-                isAccepted && "bg-green-500/5 rounded-xl border border-green-500/20 p-2 -mx-2"
+                isAccepted && "bg-green-500/5 rounded-xl border border-green-500/20 p-2 -mx-2",
+                // AI 评论：采用纯粹一体化的学术紫底色，消除白色断层与 UI 割裂
+                isAiComment && "bg-purple-50/80 dark:bg-purple-950/25 rounded-2xl border border-purple-200/80 dark:border-purple-800/50 p-4 -mx-2 shadow-xs ring-1 ring-purple-500/10"
             )}
         >
-            <div className="py-4 group/comment">
+            <div className="py-2 group/comment">
                 {/* 评论头部 */}
                 <div className="flex items-start gap-3">
                     {/* 投票计数器 (仅顶级评论显示) */}
@@ -168,30 +179,44 @@ export function CommentItem({
                                 <span className={cn(
                                     "text-sm tabular-nums font-semibold",
                                     isLiked && "text-primary"
-                                )}>
+                                    )}>
                                     {likeCount}
                                 </span>
                             </button>
                         </div>
                     )}
 
-                    <Avatar className="h-9 w-9 flex-shrink-0">
+                    <Avatar className={cn("h-9 w-9 flex-shrink-0", isAiComment && "ring-2 ring-purple-500/40 shadow-xs")}>
                         <AvatarImage src={comment.author.avatar_url} alt={comment.author.username} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary text-xs font-semibold">
-                            {authorInitials}
+                        <AvatarFallback className={cn(
+                            "text-xs font-semibold",
+                            isAiComment
+                                ? "bg-gradient-to-tr from-purple-600 to-indigo-600 text-white"
+                                : "bg-gradient-to-br from-primary/30 to-primary/10 text-primary"
+                        )}>
+                            {isAiComment ? <Bot className="h-4 w-4" /> : authorInitials}
                         </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1 min-w-0">
                         {/* 用户名和时间 */}
                         <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-medium text-sm text-foreground">
+                            <span className={cn("font-medium text-sm", isAiComment ? "text-purple-400 font-semibold" : "text-foreground")}>
                                 {comment.author.username}
                             </span>
-                            {comment.author.is_verified && (
-                                <VerifiedBadge provider={comment.author.auth_provider} />
+                            {isAiComment ? (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold text-purple-600 dark:text-purple-300 bg-purple-500/15 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
+                                    <Sparkles className="h-2.5 w-2.5 text-purple-500 animate-pulse" />
+                                    AI 学术智脑
+                                </span>
+                            ) : (
+                                <>
+                                    {comment.author.is_verified && (
+                                        <VerifiedBadge provider={comment.author.auth_provider} />
+                                    )}
+                                    <VipBadge vipLevel={comment.author.vip_level || 1} size="xs" />
+                                </>
                             )}
-                            <VipBadge vipLevel={comment.author.vip_level || 1} size="xs" />
                             {/* 作者标记 */}
                             {isOriginalPoster && (
                                 <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20">
@@ -203,7 +228,7 @@ export function CommentItem({
                                     {comment.author.title}
                                 </span>
                             )}
-                            {comment.author.special_title && (
+                            {comment.author.special_title && !isAiComment && (
                                 <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.2 rounded">
                                     {comment.author.special_title}
                                 </span>
@@ -231,10 +256,12 @@ export function CommentItem({
                             </span>
                         </div>
 
-                        {/* 评论内容 — 富文本渲染 */}
-                        <div className="mt-2">
+                        {/* 评论内容 — 富文本与学术数学公式渲染 */}
+                        <div className="mt-2 w-full">
                             <NovelViewer
-                                initialValue={comment.content}
+                                initialValue={safeContent}
+                                className="bg-transparent"
+                                editorClassName="prose-sm sm:prose-base max-w-none text-foreground"
                             />
                         </div>
 

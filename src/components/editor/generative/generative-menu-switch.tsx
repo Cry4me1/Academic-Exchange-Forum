@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { EditorBubble, useEditor } from "novel";
 import { Fragment, type ReactNode } from "react";
 import { AISelector } from "./ai-selector";
-import Magic from "./icons/magic";
+import { Sparkles } from "lucide-react";
 
 interface GenerativeMenuSwitchProps {
     children: ReactNode;
@@ -52,12 +52,12 @@ const GenerativeMenuSwitch = ({ children, open, onOpenChange }: GenerativeMenuSw
             {!open && (
                 <Fragment>
                     <Button
-                        className="gap-1 rounded-none text-purple-500"
+                        className="gap-1.5 rounded-none text-zinc-700 dark:text-zinc-200 hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium"
                         variant="ghost"
                         onClick={() => onOpenChange(true)}
                         size="sm"
                     >
-                        <Magic className="h-5 w-5" />
+                        <Sparkles className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
                         Ask AI
                     </Button>
                     {children}

@@ -9,6 +9,7 @@ declare module "katex/dist/contrib/auto-render" {
         ignoredClasses?: string[];
         errorCallback?: (msg: string, err: Error) => void;
         throwOnError?: boolean;
+        strict?: boolean | "ignore" | "warn" | "error" | ((errorCode: string, errorMsg: string, token?: string) => boolean | string | undefined);
         output?: "html" | "mathml" | "htmlAndMathml";
     }
 

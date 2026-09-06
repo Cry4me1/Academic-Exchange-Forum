@@ -1,8 +1,17 @@
 "use client";
 
 import { CreateCollectionDialog } from "@/components/collections";
-import NovelEditor from "@/components/editor/NovelEditor";
+import dynamic from "next/dynamic";
 import { PostCoverUploader } from "@/components/editor/PostCoverUploader";
+
+const NovelEditor = dynamic(() => import("@/components/editor/NovelEditor"), {
+    ssr: false,
+    loading: () => (
+        <div className="h-[480px] w-full bg-muted/10 animate-pulse rounded-xl border border-dashed border-border/60 flex items-center justify-center text-sm text-muted-foreground font-sans">
+            学术编辑器加载中...
+        </div>
+    ),
+});
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -536,28 +545,21 @@ export default function EditPostPage() {
                                 className="w-full bg-transparent text-3xl sm:text-4xl lg:text-[40px] font-bold tracking-tight leading-snug text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 border-none outline-none focus:outline-none focus:ring-0 p-0"
                             />
                             <div className="flex items-center justify-between text-xs text-zinc-400">
-                                <span>支持 Markdown、LaTeX 数学公式与代码高亮</span>
+                                <span>支持直接粘贴 Markdown 文本/文件、LaTeX 数学公式与代码高亮</span>
                                 <span>{title.length}/100</span>
                             </div>
                         </div>
 
                         {/* 编辑器区域：纯净开阔画布 */}
-                        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-card/40 backdrop-blur-xs p-3 sm:p-6 lg:p-8 shadow-xs flex flex-col min-h-[680px] transition-all">
-                            {/* 快捷斜杠提示条 */}
-                            <div className="flex items-center justify-between px-2 py-2 mb-3 border-b border-zinc-100 dark:border-zinc-800/80 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border/60">
-                                        /
-                                    </span>
-                                    <span>输入斜杠唤起学术环境、公式与代码面板</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-zinc-400 text-xs">
-                                    <span>修订版本自动归档</span>
-                                </div>
-                            </div>
-
+                        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-card p-3 sm:p-6 lg:p-8 shadow-xs flex flex-col min-h-[680px]">
                             <NovelEditor
                                 initialValue={contentJson}
+                                toolbarHintRight={<span>修订版本自动归档</span>}
+                                onTitleExtracted={(extracted) => {
+                                    if (!title.trim()) {
+                                        setTitle(extracted);
+                                    }
+                                }}
                                 onChange={(json) => {
                                     setContentJson(json);
                                     const hasContent = json?.content?.some((node: any) =>

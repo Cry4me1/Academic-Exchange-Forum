@@ -5,8 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import {
     Activity,
     ArrowLeft,
+    AtSign,
     Award,
     BookOpen,
+    Bot,
+    Calculator,
     CheckCircle2,
     Code,
     Cloud,
@@ -33,6 +36,7 @@ import {
     Search,
     Shield,
     ShieldCheck,
+    Sigma,
     Sparkles,
     Star,
     User,
@@ -94,7 +98,7 @@ export default function UpdatesPage() {
                 <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-4 md:ml-6 space-y-12">
 
                     {/* ╔══════════════════════════════════════════════════╗ */}
-                    {/* ║  v1.1.7 – 全栈双语国际化 & 封面图与三大UI重构 🚀   ║ */}
+                    {/* ║  v1.1.8 – 评论区@提及、Scholarly AI与公式模板 🚀  ║ */}
                     {/* ╚══════════════════════════════════════════════════╝ */}
                     <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
                         {/* Pulsing timeline dot for the latest version */}
@@ -104,15 +108,252 @@ export default function UpdatesPage() {
                         </div>
 
                         <div className="flex flex-col gap-3 mb-5">
-                            <time className="text-sm text-muted-foreground font-mono">2026-08-28</time>
+                            <time className="text-sm text-muted-foreground font-mono">2026-09-06</time>
                             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
                                 <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
-                                    v1.1.7
+                                    v1.1.8
                                 </span>
-                                <span className="text-foreground">— 全站双语国际化 & 16:9 封面图与三大 UI 深度重构</span>
+                                <span className="text-foreground">— 评论区 @ 提及系统、交互式 Scholarly AI 学术智脑、零基础公式/函数面板与极简 AI 续写流光</span>
                                 <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 animate-[pulse_2s_ease-in-out_infinite] text-xs px-3 py-1">
                                     <Sparkles className="w-3 h-3 mr-1" />
                                     最新版本
+                                </Badge>
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                                学术研讨与智囊协作的全新纪元。v1.1.8 带来了全站评论区 Bento 磨砂风格 @ 提及学者与 0ms 闪电模糊搜索体系、常驻全天候在线的交互式官方学术智能体「Scholarly AI」（支持 8000 字符全貌学术正文深度理解、KaTeX 严谨推导与 Token 量积分精准计费）；编辑器全新整合学术快捷工具栏、零基础公式模板点选助手与专业数论/数学函数符号面板；同时重构极简奢华 AI 续写流光动效并全面加固 KaTeX 与 Realtime 底层可靠性。
+                            </p>
+                        </div>
+
+                        {/* Main Card with gradient border effect */}
+                        <div className="relative group mb-12">
+                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
+                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+
+                                <CardHeader className="pt-8">
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                                        全新功能与重大改进
+                                    </CardTitle>
+                                    <CardDescription>
+                                        评论区 @ 提及与 0ms 模糊搜索、官方交互式 Scholarly AI 评论答疑、零基础公式与函数面板、极简 AI 续写流光及底层加固。
+                                    </CardDescription>
+                                </CardHeader>
+
+                                <CardContent className="space-y-6 pb-8">
+                                    {/* Feature 1 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                <AtSign className="w-4 h-4" />
+                                            </span>
+                                            评论区 @ 提及系统与 0ms 闪电模糊搜索浮窗
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>打造如丝般顺滑的评论区学术交流与学者互动网络：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>Bento 磨砂视觉与全键盘导航</strong>：键入 <code>@</code> 或点击工具栏按钮即刻唤出毛玻璃弹窗，支持方向键上下导航与回车瞬间选择。</li>
+                                                <li><strong>0ms 内存预热与极速响应</strong>：首创前端内存常驻预加载机制，首次触发即可实现 0ms 瞬间弹出，彻底消除网络请求往返等待。</li>
+                                                <li><strong>全字段智能子序列模糊容错</strong>：支持拼音首字母与子序列智能匹配，无论是搜索用户名、特殊称号、学术职称还是个人简介，均能秒级智能联想定位。</li>
+                                                <li><strong>实时消息推送</strong>：被提及学者将立即收到全站系统消息通知与顶部导航红点提醒，学术研讨无缝衔接。</li>
+                                            </ul>
+
+                                            {/* Screenshot: @ Mention */}
+                                            <div className="mt-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-sm">
+                                                <div className="relative aspect-[293/329] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v1-1-8/comment-mention-popover.png"
+                                                        alt="评论区 @ 提及学者与 Scholarly AI 浮窗"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 400px"
+                                                        caption="评论区 @ 提及学者与官方 Scholarly AI 助手 Bento 磨砂浮窗"
+                                                    />
+                                                </div>
+                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <span>▲ 评论区 @ 提及浮窗：常驻置顶 Scholarly AI 与学者全字段模糊匹配</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 2 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                                                <Bot className="w-4 h-4" />
+                                            </span>
+                                            交互式官方学术智能体「Scholarly AI」评论区在线答疑
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>将大模型深度推理能力深度注入评论区，打造随时随地答疑解惑的学术智囊：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>官方固定系统智能体</strong>：专属 UUID 与官方认证，常驻全天候在线，评论专属发光边框与「AI 智脑」徽章。</li>
+                                                <li><strong>@Scholarly AI 一键呼出</strong>：在评论中 @Scholarly AI 并提出学术疑问，系统立即挂载动效思考卡片，无感异步生成详尽解答。</li>
+                                                <li><strong>8000 字符全貌学术正文深度感知</strong>：独创富文本 AST Markdown 递归提取引擎，让 AI 完全通晓整篇帖子的公式推导、定理证明与论点，杜绝断章取义。</li>
+                                                <li><strong>按 Token 量学术积分透明计费</strong>：按“每 40 tokens ≈ 1 积分，最低消费 8 积分”进行原子扣费，并在个人中心记录清晰透明的流水明细。</li>
+                                                <li><strong>KaTeX 公式与代码规范渲染</strong>：完美支持行内/行间公式渲染与代码块语法高亮，学术排版赏心悦目。</li>
+                                            </ul>
+
+                                            {/* Screenshot: Scholarly AI Reply */}
+                                            <div className="mt-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-2xl">
+                                                <div className="relative aspect-[800/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v1-1-8/scholarly-ai-comment-reply.png"
+                                                        alt="Scholarly AI 评论区专业答疑与公式推导实况"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 800px"
+                                                        caption="Scholarly AI 在评论区针对算法推导与文章论点展开透彻解答"
+                                                    />
+                                                </div>
+                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <span>▲ Scholarly AI 评论区专业学术答疑实况：深度解析文章核心算法、定理与严谨推导</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 3 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                                                <Calculator className="w-4 h-4" />
+                                            </span>
+                                            学术编辑器全新快捷工具栏与零基础数学公式模板
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>降低学术排版与复杂数学输入门槛，让公式书写如同打字般自然流畅：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>全新学术快捷工具栏</strong>：在正文上方整合轻量工具条，定理、证明、定义、引理一键直达，免去繁琐的斜杠唤起。</li>
+                                                <li><strong>零基础公式模板与可视化助手</strong>：针对不熟悉 LaTeX 语法的学者，提供分数、二次根号、n 次方根、幂次方/上标、角标/下标、上下标组合、求和微积分等多维度预设。</li>
+                                                <li><strong>点选即插与双击微调</strong>：点击模板即可在光标处插入标准 KaTeX 公式，双击直接修改分子与分母等参数，所见即所得。</li>
+                                            </ul>
+
+                                            {/* Screenshots: Toolbar and Quick Formula */}
+                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[1024/565] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-8/editor-quick-toolbar.png"
+                                                            alt="学术编辑器全新快捷工具栏界面"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 500px"
+                                                            caption="帖子编辑器全新学术快捷工具栏：定理证明、公式模板与数学函数一键唤出"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 帖子编辑器全新学术快捷工具栏布局</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[494/612] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-8/quick-formula-popover.png"
+                                                            alt="零基础公式模板与可视化助手面板"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 500px"
+                                                            caption="零基础公式模板与可视化助手：点选即插，支持分数、根号与上下标"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 零基础公式模板与可视化助手面板</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 4 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                                                <Sigma className="w-4 h-4" />
+                                            </span>
+                                            数学函数与专业学术符号面板
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>面向数论、高等代数与理论计算机科学的专业级符号库：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>经典数论函数库</strong>：整合莫比乌斯函数 \(\mu(n)\)、欧拉函数 \(\varphi(n)\)、黎曼 Zeta 函数 \(\zeta(s)\)、约数个数函数 \(d(n)\)、约数和函数 \(\sigma(n)\)、冯·芒戈尔特函数 \(\Lambda(n)\)、勒让德符号 (a/p)、狄利克雷特征 \(\chi(n)\) 等。</li>
+                                                <li><strong>多学科符号速查</strong>：支持按名称、拼音与分类（数论函数、分析与特殊、集合与逻辑）秒级检索。</li>
+                                                <li><strong>一键规范排版</strong>：点击即可在正文中以标准数学模式插入正确的 LaTeX 宏代码，杜绝书写失误。</li>
+                                            </ul>
+
+                                            {/* Screenshot: Math Symbols */}
+                                            <div className="mt-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-md">
+                                                <div className="relative aspect-[444/426] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v1-1-8/math-symbols-popover.png"
+                                                        alt="数学函数与符号面板界面"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 500px"
+                                                        caption="数学函数与符号面板：莫比乌斯函数、欧拉函数等经典数论函数一键插入"
+                                                    />
+                                                </div>
+                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <span>▲ 数学函数与符号面板：分类聚合经典数论与分析函数，支持名称即搜即用</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 5 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-500">
+                                                <Zap className="w-4 h-4" />
+                                            </span>
+                                            极简学术风 AI 续写流光与底层系统性能加固
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>追求极致优雅与坚如磐石的系统架构稳定性：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>极简流光 AI 续写胶囊</strong>：去除喧宾夺主的浮夸色彩，采用低调内敛的高级感流光胶囊动效，联动顶部工具栏状态提示。</li>
+                                                <li><strong>彻底消除 KaTeX Unicode 警告</strong>：全局启用 <code>strict: &quot;ignore&quot;</code>，允许公式中容纳中文字符（如“命题”、“结论”），消除了控制台数十条警告刷屏。</li>
+                                                <li><strong>Supabase Realtime 优雅生命周期管理</strong>：解决握手期（CONNECTING）组件卸载导致 WebSocket 被异常关闭的问题，保持连接平滑稳定。</li>
+                                                <li><strong>React 19 跨端序列化安全加固</strong>：解耦 TipTap AST 客户端引用，彻底杜绝 Next.js Server Action 边界报错。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* ╔══════════════════════════════════════════════════╗ */}
+                    {/* ║  v1.1.7 – 全栈双语国际化 & 封面图与三大UI重构 🚀   ║ */}
+                    {/* ╚══════════════════════════════════════════════════╝ */}
+                    <div className="relative pl-8 md:pl-12">
+                        {/* Static timeline dot */}
+                        <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary/40 ring-4 ring-background" />
+
+                        <div className="flex flex-col gap-3 mb-5">
+                            <time className="text-sm text-muted-foreground font-mono">2026-08-28</time>
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
+                                <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto]">
+                                    v1.1.7
+                                </span>
+                                <span className="text-foreground">— 全站双语国际化 & 16:9 封面图与三大 UI 深度重构</span>
+                                <Badge variant="outline" className="text-xs font-normal">
+                                    正式版
                                 </Badge>
                             </h2>
                             <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">

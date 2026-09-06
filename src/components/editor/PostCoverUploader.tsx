@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+    AlertTriangle,
     Camera,
     Check,
     Image as ImageIcon,
@@ -30,7 +31,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import type { JSONContent } from "novel";
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface PostCoverUploaderProps {
@@ -75,6 +76,18 @@ export function PostCoverUploader({
     const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
     const [isExtractPopoverOpen, setIsExtractPopoverOpen] = useState(false);
     const [urlInput, setUrlInput] = useState("");
+    const [hasImageError, setHasImageError] = useState(false);
+    const [urlPreviewError, setUrlPreviewError] = useState(false);
+
+    // 当 coverImage 属性改变时重置加载错误状态
+    useEffect(() => {
+        setHasImageError(false);
+    }, [coverImage]);
+
+    // 当用户输入新的 URL 时重置弹窗内的预览错误状态
+    useEffect(() => {
+        setUrlPreviewError(false);
+    }, [urlInput]);
 
     // 从富文本正文中提取的所有配图
     const contentImages = useMemo(() => {
@@ -110,6 +123,7 @@ export function PostCoverUploader({
         try {
             const uploadedUrl = await onUpload(file);
             if (uploadedUrl) {
+                setHasImageError(false);
                 onChange(uploadedUrl);
                 toast.success("封面设置成功");
             }
@@ -159,6 +173,7 @@ export function PostCoverUploader({
             return;
         }
 
+        setHasImageError(false);
         onChange(trimmed);
         setUrlInput("");
         setIsUrlDialogOpen(false);
@@ -236,6 +251,8 @@ export function PostCoverUploader({
                                                     src={imgUrl}
                                                     alt={`正文图片 ${idx + 1}`}
                                                     fill
+                                                    unoptimized
+                                                    referrerPolicy="no-referrer"
                                                     sizes="100px"
                                                     className="object-cover"
                                                 />
@@ -270,13 +287,13 @@ export function PostCoverUploader({
                             <DialogHeader>
                                 <DialogTitle className="text-base font-semibold">输入网络图片链接</DialogTitle>
                                 <DialogDescription className="text-xs">
-                                    支持粘贴公开图床或云存储图片的直链 URL。
+                                    支持公开图床、云存储或网络图片的直链 URL。
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="cover-url" className="text-xs">
-                                        图片 URL
+                                        图片直链 URL
                                     </Label>
                                     <Input
                                         id="cover-url"
@@ -292,6 +309,36 @@ export function PostCoverUploader({
                                         className="h-9 text-xs"
                                     />
                                 </div>
+
+                                {/* 实时缩略图预览与连通性检测 */}
+                                {urlInput.trim().startsWith("http") && (
+                                    <div className="rounded-xl border border-border/80 overflow-hidden bg-muted/20 p-2.5 space-y-2">
+                                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                            <span className="font-medium">链接解析预览</span>
+                                            {urlPreviewError ? (
+                                                <span className="text-destructive flex items-center gap-1">
+                                                    <AlertTriangle className="w-3 h-3" /> 图片加载失败，请检查链接或防盗链
+                                                </span>
+                                            ) : (
+                                                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                    <Check className="w-3 h-3" /> 格式识别有效
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="relative aspect-[16/9] w-full rounded-lg overflow-hidden border border-border/50 bg-black/5 dark:bg-black/30 flex items-center justify-center">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={urlInput.trim()}
+                                                alt="网络图片预览"
+                                                referrerPolicy="no-referrer"
+                                                className="w-full h-full object-cover"
+                                                onError={() => setUrlPreviewError(true)}
+                                                onLoad={() => setUrlPreviewError(false)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex justify-end gap-2">
                                     <Button
                                         type="button"
@@ -333,13 +380,33 @@ export function PostCoverUploader({
                                 src={coverImage}
                                 alt="文章封面预览"
                                 fill
+                                unoptimized
+                                referrerPolicy="no-referrer"
                                 sizes="(max-width: 768px) 100vw, 400px"
-                                className="object-cover"
+                                className={`object-cover transition-opacity duration-200 ${
+                                    hasImageError ? "opacity-25 blur-xs" : "opacity-100"
+                                }`}
                                 priority
+                                onError={() => {
+                                    setHasImageError(true);
+                                }}
                             />
 
+                            {/* 图片加载失败时的明显警示 */}
+                            {hasImageError && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center bg-red-500/10 dark:bg-red-950/30 backdrop-blur-xs z-10 pointer-events-none">
+                                    <AlertTriangle className="h-6 w-6 text-red-500 mb-1" />
+                                    <p className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                        图片加载失败
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        链接失效或被第三方图床防盗链拦截
+                                    </p>
+                                </div>
+                            )}
+
                             {/* 悬浮遮罩与操作按钮 */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                            <div className="absolute inset-0 z-20 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2 backdrop-blur-[2px]">
                                 <Button
                                     type="button"
                                     size="sm"
@@ -363,6 +430,7 @@ export function PostCoverUploader({
                                     disabled={disabled || isUploading}
                                     onClick={() => {
                                         onChange(null);
+                                        setHasImageError(false);
                                         toast.info("已移除封面");
                                     }}
                                     className="h-7 px-2.5 gap-1 text-[11px] shadow-xs"

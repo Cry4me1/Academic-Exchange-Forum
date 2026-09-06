@@ -66,6 +66,7 @@ export async function getPendingReviewPosts(options: {
       id,
       title,
       content,
+      cover_image,
       tags,
       author_id,
       review_status,

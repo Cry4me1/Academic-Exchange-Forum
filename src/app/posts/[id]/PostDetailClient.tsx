@@ -423,10 +423,13 @@ export default function PostDetailClient({
             return;
         }
 
+        // 彻底序列化为纯字符串传递，杜绝 React 19 Client Reference 跨端报错
+        const serializedContent = typeof content === "string" ? content : JSON.stringify(content);
+
         const result = await createComment({
             postId: post.id,
             parentId: parentId || undefined,
-            content,
+            content: serializedContent,
         });
 
         if (result.error) {
@@ -467,6 +470,125 @@ export default function PostDetailClient({
             toast.info("评论已提交，触发审核关注，正在等待管理员审核后公开展出", { duration: 4500 });
         } else {
             toast.success("评论发送成功");
+        }
+
+        // 如果提及了 Scholarly AI，唤起 AI 异步答疑流程
+        if (result.hasAiMention) {
+            const thinkingAiCommentId = `ai-thinking-${Date.now()}`;
+            const thinkingAiPlaceholder: CommentData = {
+                id: thinkingAiCommentId,
+                post_id: post.id,
+                content: {
+                    type: "doc",
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "⚡ Scholarly AI 正在推导学术解答与检索论证，请稍候...",
+                                },
+                            ],
+                        },
+                    ],
+                },
+                author: {
+                    id: "00000000-0000-0000-0000-0000000000a1",
+                    username: "Scholarly AI",
+                    avatar_url: "/scholarly-ai-avatar.jpg",
+                    special_title: "学术智能体",
+                    vip_level: 6,
+                    is_verified: true,
+                },
+                created_at: new Date().toISOString(),
+                like_count: 0,
+                replies: [],
+            };
+
+            // 挂载思考中的占位评论
+            setComments((prev) => {
+                const targetParentId = parentId || newComment.id;
+                return prev.map((c) => {
+                    if (c.id === targetParentId) {
+                        return {
+                            ...c,
+                            replies: [...(c.replies || []), thinkingAiPlaceholder],
+                        };
+                    }
+                    if (c.replies && c.replies.length > 0) {
+                        return {
+                            ...c,
+                            replies: c.replies.map((r) =>
+                                r.id === targetParentId
+                                    ? { ...r, replies: [...(r.replies || []), thinkingAiPlaceholder] }
+                                    : r
+                            ),
+                        };
+                    }
+                    return c;
+                });
+            });
+
+            // 调用 AI 答疑端点
+            fetch("/api/comments/ai-reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    postId: post.id,
+                    commentId: newComment.id,
+                    prompt: result.aiPrompt || "请回答我的学术问题",
+                }),
+            })
+                .then((res) => res.json())
+                .then((aiData) => {
+                    if (aiData.success && aiData.comment) {
+                        // 将占位评论替换为实际生成的 AI 评论
+                        setComments((prev) => {
+                            const replaceComment = (list: CommentData[]): CommentData[] =>
+                                list.map((c) => {
+                                    if (c.id === thinkingAiCommentId) {
+                                        return { ...aiData.comment, replies: [] };
+                                    }
+                                    if (c.replies && c.replies.length > 0) {
+                                        return { ...c, replies: replaceComment(c.replies) };
+                                    }
+                                    return c;
+                                });
+                            return replaceComment(prev);
+                        });
+                        toast.success(
+                            `✨ Scholarly AI 已回复你的评论（消耗 ${aiData.creditCost} 积分，当前余额: ${aiData.newBalance} 积分）`,
+                            { duration: 5000 }
+                        );
+                    } else {
+                        // 移除占位并提示错误
+                        setComments((prev) => {
+                            const removeComment = (list: CommentData[]): CommentData[] =>
+                                list
+                                    .filter((c) => c.id !== thinkingAiCommentId)
+                                    .map((c) => ({
+                                        ...c,
+                                        replies: c.replies ? removeComment(c.replies) : [],
+                                    }));
+                            return removeComment(prev);
+                        });
+                        toast.error(aiData.message || aiData.error || "Scholarly AI 答复失败");
+                    }
+                })
+                .catch((err) => {
+                    console.error("[Scholarly AI Reply Fetch Error]:", err);
+                    setComments((prev) => {
+                        const removeComment = (list: CommentData[]): CommentData[] =>
+                            list
+                                .filter((c) => c.id !== thinkingAiCommentId)
+                                .map((c) => ({
+                                    ...c,
+                                    replies: c.replies ? removeComment(c.replies) : [],
+                                }));
+                        return removeComment(prev);
+                    });
+                    toast.error("呼出 Scholarly AI 遇到网络异常，请重试");
+                });
         }
     };
 

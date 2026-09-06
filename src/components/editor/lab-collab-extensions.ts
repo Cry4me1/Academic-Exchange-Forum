@@ -48,7 +48,13 @@ export function createCollabExtensions(
         }),
         TaskList,
         TaskItem.configure({ nested: true }),
-        Mathematics.configure({ regex: /\$([^\$]+)\$/gi }),
+        Mathematics.configure({
+            regex: /\$([^\$]+)\$/gi,
+            katexOptions: {
+                strict: "ignore",
+                throwOnError: false,
+            },
+        }),
         Placeholder.configure({
             placeholder: "开始写协作笔记...",
             includeChildren: true,

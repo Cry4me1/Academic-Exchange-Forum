@@ -45,6 +45,10 @@ const codeBlockLowlight = CodeBlockLowlight.configure({
 // Configure Mathematics extension (v2 uses regex decorations)
 const mathExtension = Mathematics.configure({
     regex: /\$([^\$]+)\$/gi,
+    katexOptions: {
+        strict: "ignore",
+        throwOnError: false,
+    },
 });
 
 // We prefer constructing the list from what Novel exposes + our adds
@@ -127,6 +131,7 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         GlobalDragHandle.configure({
             dragHandleWidth: 20,
             scrollTreshold: 100,
+            customNodes: ["academicBlock", "codeBlock", "mermaidBlock"],
         }),
         // Auto joiner - fixes list joining when dragging
         AutoJoiner.configure({

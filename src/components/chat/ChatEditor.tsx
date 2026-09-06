@@ -73,6 +73,10 @@ const chatExtensions = [
     // LaTeX 公式支持
     Mathematics.configure({
         regex: /\$([^\$]+)\$/gi,
+        katexOptions: {
+            strict: "ignore",
+            throwOnError: false,
+        },
     }),
 ];
 
@@ -363,6 +367,7 @@ export function ChatContentViewer({ content, className }: ChatContentViewerProps
                             { left: "\\[", right: "\\]", display: true },
                         ],
                         throwOnError: false,
+                        strict: "ignore",
                         output: "html",
                     });
                 }

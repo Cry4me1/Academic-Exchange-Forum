@@ -90,10 +90,19 @@ export function useLabPresence({
             });
 
         return () => {
-            channel.unsubscribe();
             channelRef.current = null;
             setIsConnected(false);
             setOnlineMembers([]);
+
+            const cleanup = () => {
+                supabase.removeChannel(channel);
+            };
+
+            if (channel.state === "joined") {
+                cleanup();
+            } else {
+                setTimeout(cleanup, 500);
+            }
         };
     }, [roomId, userId, username, avatarUrl, enabled]);
 

@@ -1,6 +1,6 @@
 {
   "name": "academic_forum",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -67,6 +67,7 @@
     "katex": "^0.16.27",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.562.0",
+    "marked": "^16.4.2",
     "mermaid": "^11.12.3",
     "motion": "^13.1.1",
     "next": "^15.5.12",

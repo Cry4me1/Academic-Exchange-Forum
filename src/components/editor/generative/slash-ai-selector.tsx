@@ -13,24 +13,76 @@ export const SlashAISelector = () => {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleTriggerContinue = () => {
+        const handleTriggerContinue = (e?: any) => {
             if (!editor) return;
             const { view } = editor;
-            // 获取光标坐标
-            const coords = view.coordsAtPos(view.state.selection.from);
+
+            let top = 0;
+            let left = 0;
+
+            // 1. 尝试获取光标所在坐标
+            try {
+                const coords = view.coordsAtPos(view.state.selection.from);
+                if (coords && coords.bottom > 80) {
+                    top = coords.bottom + 10;
+                    left = coords.left;
+                }
+            } catch (err) {
+                console.warn("coordsAtPos fallback", err);
+            }
+
+            // 2. 若光标坐标无效（如未聚焦），使用自定义事件携带的位置（如工具栏按钮正下方）
+            if (top === 0 && e?.detail?.position) {
+                top = e.detail.position.top;
+                left = e.detail.position.left;
+            }
+
+            // 3. 终极回退：定位在编辑器正文画布左上方
+            if (top === 0) {
+                try {
+                    const rect = view.dom.getBoundingClientRect();
+                    top = rect.top + 30;
+                    left = rect.left + 24;
+                } catch {
+                    top = 180;
+                    left = 40;
+                }
+            }
 
             // 设置位置和初始选项
-            setPosition({ top: coords.bottom + 10, left: coords.left });
+            setPosition({ top, left });
             setInitialOption("continue");
             setOpen(true);
         };
 
-        const handleTriggerAsk = () => {
+        const handleTriggerAsk = (e?: any) => {
             if (!editor) return;
             const { view } = editor;
-            const coords = view.coordsAtPos(view.state.selection.from);
+            let top = 0;
+            let left = 0;
 
-            setPosition({ top: coords.bottom + 10, left: coords.left });
+            try {
+                const coords = view.coordsAtPos(view.state.selection.from);
+                if (coords && coords.bottom > 80) {
+                    top = coords.bottom + 10;
+                    left = coords.left;
+                }
+            } catch {
+                // ignore
+            }
+
+            if (top === 0 && e?.detail?.position) {
+                top = e.detail.position.top;
+                left = e.detail.position.left;
+            }
+
+            if (top === 0) {
+                const rect = view.dom.getBoundingClientRect();
+                top = rect.top + 30;
+                left = rect.left + 24;
+            }
+
+            setPosition({ top, left });
             setInitialOption(undefined); // undefined means "ask" input mode
             setOpen(true);
         };
@@ -76,10 +128,10 @@ export const SlashAISelector = () => {
             style={{
                 position: "fixed",
                 top: position.top,
-                left: position.left,
+                left: Math.max(16, Math.min(position.left, typeof window !== "undefined" ? window.innerWidth - 460 : position.left)),
                 zIndex: 99999,
             }}
-            className="shadow-xl rounded-md border bg-background animate-in fade-in zoom-in-95 duration-200"
+            className="shadow-2xl rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-background/95 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
         >
             <AISelector
                 open={open}

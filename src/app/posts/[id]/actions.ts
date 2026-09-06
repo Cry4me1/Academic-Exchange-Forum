@@ -188,11 +188,47 @@ export async function createShareRecord(postId: string, shareType: "copy_link" |
     return { success: true };
 }
 
+// 提取评论节点中的所有提及对象
+function extractMentionsFromContent(node: any): { id: string; label: string; is_ai?: boolean }[] {
+    const mentions: { id: string; label: string; is_ai?: boolean }[] = [];
+    if (!node || typeof node !== "object") return mentions;
+
+    if (node.type === "mention") {
+        const attrs = node.attrs;
+        if (attrs && typeof attrs === "object") {
+            const id = typeof attrs.id === "string" ? attrs.id : (attrs.id ? String(attrs.id) : "");
+            const label = typeof attrs.label === "string" ? attrs.label : (attrs.label ? String(attrs.label) : "");
+            const isAi = Boolean(attrs.is_ai || id === "00000000-0000-0000-0000-0000000000a1" || label === "Scholarly AI");
+            if (id) {
+                mentions.push({ id, label, is_ai: isAi });
+            }
+        }
+    }
+
+    if (Array.isArray(node.content)) {
+        for (const child of node.content) {
+            mentions.push(...extractMentionsFromContent(child));
+        }
+    }
+    return mentions;
+}
+
+// 提取评论纯文本内容
+function extractRawTextFromContent(node: any): string {
+    if (!node || typeof node !== "object") return "";
+    if (node.text) return String(node.text);
+    if (node.type === "mention") return `@${node.attrs?.label || "学者"}`;
+    if (Array.isArray(node.content)) {
+        return node.content.map(extractRawTextFromContent).join(" ");
+    }
+    return "";
+}
+
 // 创建评论
 export async function createComment(data: {
     postId: string;
     parentId?: string | null;
-    content: object;
+    content: any;
 }) {
     const supabase = await createClient();
 
@@ -201,10 +237,20 @@ export async function createComment(data: {
         return { error: "请先登录" };
     }
 
+    // 彻底解构并安全反序列化为服务器原生纯纯 JSON 对象
+    let cleanContent: any = data.content;
+    if (typeof data.content === "string") {
+        try {
+            cleanContent = JSON.parse(data.content);
+        } catch {
+            cleanContent = data.content;
+        }
+    }
+
     // 检查用户是否被封禁或禁言
     const { data: profile } = await supabase
         .from("profiles")
-        .select("is_banned, is_muted, muted_until")
+        .select("id, username, is_banned, is_muted, muted_until")
         .eq("id", user.id)
         .single();
 
@@ -219,11 +265,33 @@ export async function createComment(data: {
         }
     }
 
+    // 检测是否有 @Scholarly AI
+    const mentions = extractMentionsFromContent(cleanContent);
+    const hasAiMention = mentions.some(
+        (m) => m.is_ai || m.id === "00000000-0000-0000-0000-0000000000a1" || m.label === "Scholarly AI"
+    );
+
+    // 若呼出了 Scholarly AI，前置校验用户积分余额
+    if (hasAiMention) {
+        const { data: creditData } = await supabase
+            .from("user_credits")
+            .select("balance")
+            .eq("user_id", user.id)
+            .single();
+
+        const userBalance = creditData?.balance ?? 0;
+        if (userBalance < 8) {
+            return {
+                error: `您的积分不足（当前 ${userBalance} 积分，呼出 Scholarly AI 最低需 8 积分），请先充值或每日签到获取积分。`,
+            };
+        }
+    }
+
     // 执行 AI + 敏感词评论内容初审
     const moderation = await moderateCommentContent({
         postId: data.postId,
         authorId: user.id,
-        content: data.content,
+        content: cleanContent,
     });
 
     // 若触发直接拦截（违规敏感词或高危严重违规）
@@ -240,7 +308,7 @@ export async function createComment(data: {
             post_id: data.postId,
             author_id: user.id,
             parent_id: data.parentId || null,
-            content: data.content,
+            content: cleanContent,
             review_status: moderation.reviewStatus,
             ai_score: moderation.score,
             ai_risk_level: moderation.riskLevel,
@@ -262,8 +330,44 @@ export async function createComment(data: {
         return { error: "发表评论失败" };
     }
 
+    // 处理普通用户的 @ 提及通知
+    const rawCommentText = extractRawTextFromContent(cleanContent);
+    const regularUserMentions = mentions.filter(
+        (m) => !m.is_ai && m.id !== user.id && m.id !== "00000000-0000-0000-0000-0000000000a1"
+    );
+
+    if (regularUserMentions.length > 0) {
+        const { data: postInfo } = await supabase
+            .from("posts")
+            .select("title")
+            .eq("id", data.postId)
+            .single();
+
+        const postTitle = postInfo?.title || "学术讨论";
+        const snippet = rawCommentText.slice(0, 60);
+
+        // 批量写入通知
+        const notifications = regularUserMentions.map((m) => ({
+            user_id: m.id,
+            type: "mention",
+            title: "有人在评论中提及了你",
+            content: `${profile?.username || "有学者"} 在《${postTitle}》中提及了你: "${snippet}"`,
+            related_id: data.postId,
+            from_user_id: user.id,
+        }));
+
+        supabase.from("notifications").insert(notifications).then(({ error: notifErr }) => {
+            if (notifErr) console.error("发送提及通知失败:", notifErr);
+        });
+    }
+
     revalidatePath(`/posts/${data.postId}`);
-    return { data: comment, moderation };
+    return {
+        data: comment,
+        moderation,
+        hasAiMention,
+        aiPrompt: rawCommentText,
+    };
 }
 
 // 删除评论

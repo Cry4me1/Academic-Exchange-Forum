@@ -155,6 +155,78 @@ export const suggestionItems: CommandItemProps[] = [
         },
     },
     {
+        title: "莫比乌斯函数 μ(n)",
+        description: "插入数论莫比乌斯函数 $\\mu(n)$",
+        searchTerms: ["mobius", "mobiwusi", "mu", "莫比乌斯", "数论", "math"],
+        icon: <Sigma size={18} className="text-violet-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\mu(n)$ ").run();
+        },
+    },
+    {
+        title: "欧拉函数 φ(n)",
+        description: "插入数论欧拉函数 $\\varphi(n)$",
+        searchTerms: ["euler", "phi", "oula", "欧拉", "互质", "数论", "math"],
+        icon: <Sigma size={18} className="text-violet-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\varphi(n)$ ").run();
+        },
+    },
+    {
+        title: "黎曼 Zeta 函数 ζ(s)",
+        description: "插入解析数论核心函数 $\\zeta(s)$",
+        searchTerms: ["zeta", "riemann", "liman", "黎曼", "数论", "math"],
+        icon: <Sigma size={18} className="text-violet-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\zeta(s)$ ").run();
+        },
+    },
+    {
+        title: "数学分数 a/b",
+        description: "插入上下结构分数模板 $\\frac{分子}{分母}$",
+        searchTerms: ["fenshu", "fraction", "分数", "除法", "math"],
+        icon: <Sigma size={18} className="text-indigo-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\frac{分子}{分母}$ ").run();
+        },
+    },
+    {
+        title: "数学根号 √x",
+        description: "插入标准开平方根号模板 $\\sqrt{x}$",
+        searchTerms: ["genhao", "sqrt", "root", "根号", "开方", "math"],
+        icon: <Sigma size={18} className="text-indigo-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\sqrt{x}$ ").run();
+        },
+    },
+    {
+        title: "分段函数 / 方程组",
+        description: "插入大括号方程组或分段函数结构",
+        searchTerms: ["fangchengzu", "fenduan", "cases", "分段函数", "方程组", "math"],
+        icon: <Sigma size={18} className="text-indigo-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\begin{cases} 表达式1, & 条件1 \\\\ 表达式2, & 条件2 \\end{cases}$ ").run();
+        },
+    },
+    {
+        title: "2×2 矩阵",
+        description: "插入标准二阶圆括号矩阵",
+        searchTerms: ["juzhen", "matrix", "2x2", "矩阵", "math"],
+        icon: <Sigma size={18} className="text-indigo-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$ ").run();
+        },
+    },
+    {
+        title: "一元二次求根公式",
+        description: "插入韦达定理/二次求根公式解析解",
+        searchTerms: ["qiugen", "quadratic", "求根公式", "二次方程", "math"],
+        icon: <Sigma size={18} className="text-indigo-500" />,
+        command: ({ editor, range }) => {
+            editor.chain().focus().deleteRange(range).insertContent("$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ ").run();
+        },
+    },
+    {
         title: "学术定理",
         description: "插入【定理 (Theorem)】学术环境块",
         searchTerms: ["theorem", "dingli", "定理", "学术", "math"],

@@ -13,8 +13,10 @@ interface UsePresenceReturn {
     isConnected: boolean;
 }
 
+const SCHOLARLY_AI_ID = "00000000-0000-0000-0000-0000000000a1";
+
 export function usePresence(currentUserId: string | null): UsePresenceReturn {
-    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set([SCHOLARLY_AI_ID]));
     const [isConnected, setIsConnected] = useState(false);
     const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -42,23 +44,29 @@ export function usePresence(currentUserId: string | null): UsePresenceReturn {
             Object.keys(state).forEach((key) => {
                 users.add(key);
             });
+            // Scholarly AI 常驻在线
+            users.add(SCHOLARLY_AI_ID);
 
             setOnlineUsers(users);
         };
 
         // 用户加入
         const handleJoin = ({ key }: { key: string }) => {
-            setOnlineUsers((prev) => new Set([...prev, key]));
+            setOnlineUsers((prev) => new Set([...prev, key, SCHOLARLY_AI_ID]));
         };
 
         // 用户离开
         const handleLeave = ({ key }: { key: string }) => {
+            if (key === SCHOLARLY_AI_ID) return;
             setOnlineUsers((prev) => {
                 const next = new Set(prev);
                 next.delete(key);
+                next.add(SCHOLARLY_AI_ID);
                 return next;
             });
         };
+
+        let isSubscribed = false;
 
         channel
             .on("presence", { event: "sync" }, handleSync)
@@ -66,20 +74,21 @@ export function usePresence(currentUserId: string | null): UsePresenceReturn {
             .on("presence", { event: "leave" }, handleLeave)
             .subscribe(async (status: any) => {
                 if (status === "SUBSCRIBED") {
+                    isSubscribed = true;
                     setIsConnected(true);
                     // 追踪当前用户上线
                     await channel.track({
                         id: currentUserId,
                         online_at: new Date().toISOString(),
                     });
-                } else {
+                } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
                     setIsConnected(false);
                 }
             });
 
         // 页面可见性变化时更新状态
         const handleVisibilityChange = async () => {
-            if (document.visibilityState === "visible" && channelRef.current) {
+            if (document.visibilityState === "visible" && channelRef.current && isSubscribed) {
                 await channelRef.current.track({
                     id: currentUserId,
                     online_at: new Date().toISOString(),
@@ -91,12 +100,22 @@ export function usePresence(currentUserId: string | null): UsePresenceReturn {
 
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
-            channel.unsubscribe();
+            channelRef.current = null;
+
+            const cleanup = () => {
+                supabase.removeChannel(channel);
+            };
+
+            if (channel.state === "joined") {
+                cleanup();
+            } else {
+                setTimeout(cleanup, 500);
+            }
         };
     }, [currentUserId]);
 
     const isOnline = useCallback(
-        (userId: string) => onlineUsers.has(userId),
+        (userId: string) => userId === SCHOLARLY_AI_ID || onlineUsers.has(userId),
         [onlineUsers]
     );
 
