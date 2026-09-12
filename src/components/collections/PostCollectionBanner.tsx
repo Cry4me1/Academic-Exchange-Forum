@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import Link from "next/link";
-import { COLLECTION_COVER_PRESETS } from "./CollectionCard";
+import { getCollectionCoverPreset } from "./CollectionCoverPresets";
 
 export interface CollectionSummary {
     id: string;
@@ -55,7 +55,8 @@ export function PostCollectionBanner({
     }
 
     const primaryCol = collections[0];
-    const preset = COLLECTION_COVER_PRESETS.find(p => p.id === primaryCol.cover_style) || COLLECTION_COVER_PRESETS[0];
+    const preset = getCollectionCoverPreset(primaryCol.cover_style);
+    const PresetIcon = preset.icon;
 
     // 计算当前文章在专栏中的序号
     let currentIdx = -1;
@@ -72,7 +73,9 @@ export function PostCollectionBanner({
                 className="group/col inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium bg-primary/[0.06] hover:bg-primary/[0.12] text-primary border border-primary/20 hover:border-primary/40 transition-all shadow-sm"
             >
                 <span className="flex items-center gap-1.5 font-semibold text-foreground/90 group-hover/col:text-primary transition-colors">
-                    <span className="text-sm leading-none">{primaryCol.cover_url ? "📚" : preset.icon}</span>
+                    <span className="p-0.5 rounded bg-primary/10 flex items-center justify-center">
+                        <PresetIcon className="w-3.5 h-3.5" style={{ color: preset.accentColor }} />
+                    </span>
                     <span>收录于专栏</span>
                     <span className="text-primary font-bold truncate max-w-[220px]">
                         「{primaryCol.name}」

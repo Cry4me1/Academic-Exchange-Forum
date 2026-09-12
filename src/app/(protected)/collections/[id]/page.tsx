@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
 import { getCollectionWithPosts, getCollectionFollowStatus, incrementCollectionViewCount } from "../actions";
-import { CollectionPostList, CreateCollectionDialog, FollowCollectionButton, COLLECTION_COVER_PRESETS } from "@/components/collections";
+import { CollectionPostList, CreateCollectionDialog, FollowCollectionButton, CollectionCover, getCollectionCoverPreset } from "@/components/collections";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,18 +70,8 @@ export default function CollectionDetailPage() {
     const isAuthor = currentUserId === collection?.author_id;
 
     const coverStyle = collection?.cover_style || "preset-academic";
-    const preset = COLLECTION_COVER_PRESETS.find(p => p.id === coverStyle) || COLLECTION_COVER_PRESETS[0];
-
-    const getBackgroundStyle = () => {
-        if (collection?.cover_url) {
-            return {
-                backgroundImage: `url(${collection.cover_url})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-            };
-        }
-        return {};
-    };
+    const preset = getCollectionCoverPreset(coverStyle);
+    const PresetIcon = preset.icon;
 
     if (isLoading) {
         return (
@@ -112,12 +102,21 @@ export default function CollectionDetailPage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className={`relative w-full min-h-[380px] sm:min-h-[420px] flex flex-col justify-between overflow-hidden shadow-lg ${!collection.cover_url ? preset.class : ''}`}
-                style={getBackgroundStyle()}
+                className="relative w-full min-h-[380px] sm:min-h-[420px] flex flex-col justify-between overflow-hidden shadow-2xl"
             >
-                {/* 复合深色防眩遮罩：保证任何模式和背景下文字都极致清晰 */}
-                <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/25" />
+                {/* 沉浸式学术全景矢量背景层 */}
+                <div className="absolute inset-0 z-0">
+                    <CollectionCover
+                        coverUrl={collection.cover_url}
+                        coverStyle={collection.cover_style}
+                        size="hero"
+                        showEmblem={false}
+                        showWatermark={true}
+                    />
+                </div>
+
+                {/* 复合防眩高保真遮罩 */}
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/55 to-black/35 pointer-events-none" />
 
                 {/* 顶部导航 */}
                 <div className="relative z-20 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-6 flex items-center justify-between">
@@ -125,7 +124,7 @@ export default function CollectionDetailPage() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => router.back()} 
-                        className="bg-black/30 hover:bg-black/50 text-white/90 hover:text-white backdrop-blur-md border border-white/15 shadow-sm rounded-full px-3.5 transition-all"
+                        className="bg-white/10 hover:bg-white/20 text-white/95 backdrop-blur-xl border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.25)] rounded-full px-4 transition-all"
                     >
                         <ArrowLeft className="mr-1.5 h-4 w-4" />
                         返回
@@ -134,14 +133,15 @@ export default function CollectionDetailPage() {
                     <div className="flex items-center gap-2">
                         <Badge 
                             variant="secondary" 
-                            className="bg-black/40 text-white/90 hover:bg-black/50 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-medium shadow-sm"
+                            className="bg-white/15 text-white backdrop-blur-xl border border-white/25 px-3.5 py-1 text-xs font-medium shadow-[0_4px_16px_rgba(0,0,0,0.3)] rounded-full flex items-center gap-1.5"
                         >
-                            {preset.icon} {preset.name}
+                            <PresetIcon className="w-3.5 h-3.5" style={{ color: preset.accentColor }} />
+                            <span>{preset.name}</span>
                         </Badge>
                         {!collection.is_public && (
                             <Badge 
                                 variant="outline" 
-                                className="bg-amber-500/20 text-amber-200 border-amber-400/40 backdrop-blur-md px-2.5 py-1 text-xs"
+                                className="bg-amber-500/20 text-amber-200 border-amber-400/40 backdrop-blur-xl px-3 py-1 text-xs rounded-full shadow-sm"
                             >
                                 私密专栏
                             </Badge>
@@ -155,20 +155,20 @@ export default function CollectionDetailPage() {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                             {/* 左侧：标题、描述与元信息 */}
                             <div className="space-y-4 flex-1 min-w-0">
-                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] leading-tight">
+                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] leading-tight">
                                     {collection.name}
                                 </h1>
 
                                 {collection.description && (
-                                    <p className="text-sm sm:text-base md:text-lg text-white/90 max-w-3xl leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] line-clamp-3">
+                                    <p className="text-sm sm:text-base md:text-lg text-white/90 max-w-3xl leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] line-clamp-3 font-normal">
                                         {collection.description}
                                     </p>
                                 )}
 
-                                {/* 元信息胶囊栏 */}
+                                {/* 液态玻璃元信息胶囊栏 */}
                                 <div className="flex items-center flex-wrap gap-2.5 pt-1">
-                                    <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/95 shadow-sm">
-                                        <Avatar className="h-5 w-5 border border-white/30">
+                                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/95 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+                                        <Avatar className="h-5 w-5 border border-white/40">
                                             <AvatarImage src={collection.author?.avatar_url || ""} />
                                             <AvatarFallback className="bg-white/20 text-white text-[10px]">
                                                 <User className="h-3 w-3" />
@@ -177,24 +177,24 @@ export default function CollectionDetailPage() {
                                         <span className="font-medium">{collection.author?.username || '未知学者'}</span>
                                     </div>
 
-                                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
-                                        <FileText className="h-3.5 w-3.5 text-white/70" />
+                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+                                        <FileText className="h-3.5 w-3.5 text-white/80" />
                                         <span>{collection.post_count ?? posts.length} 篇内容</span>
                                     </div>
 
-                                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
-                                        <Eye className="h-3.5 w-3.5 text-white/70" />
+                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+                                        <Eye className="h-3.5 w-3.5 text-white/80" />
                                         <span>{collection.view_count ?? 0} 浏览</span>
                                     </div>
 
-                                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
-                                        <Heart className="h-3.5 w-3.5 text-white/70" />
+                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+                                        <Heart className="h-3.5 w-3.5 text-white/80" />
                                         <span>{collection.follower_count ?? 0} 关注</span>
                                     </div>
 
-                                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs sm:text-sm text-white/90 shadow-sm">
-                                        <Clock className="h-3.5 w-3.5 text-white/70" />
-                                        <span>{format(new Date(collection.created_at), 'yyyy-MM-dd')} 创建</span>
+                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+                                        <Clock className="h-3.5 w-3.5 text-white/80" />
+                                        <span>更新于 {format(new Date(collection.updated_at), 'yyyy-MM-dd')}</span>
                                     </div>
                                 </div>
                             </div>

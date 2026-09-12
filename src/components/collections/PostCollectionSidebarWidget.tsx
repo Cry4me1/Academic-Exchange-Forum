@@ -7,7 +7,8 @@ import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Sparkles }
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { COLLECTION_COVER_PRESETS } from "./CollectionCard";
+import { CollectionCover } from "./CollectionCover";
+import { getCollectionCoverPreset } from "./CollectionCoverPresets";
 import type { CollectionSummary } from "./PostCollectionBanner";
 
 interface PostCollectionSidebarWidgetProps {
@@ -21,7 +22,8 @@ export function PostCollectionSidebarWidget({
 }: PostCollectionSidebarWidgetProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const posts = collection.posts || [];
-    const preset = COLLECTION_COVER_PRESETS.find(p => p.id === collection.cover_style) || COLLECTION_COVER_PRESETS[0];
+    const preset = getCollectionCoverPreset(collection.cover_style);
+    const PresetIcon = preset.icon;
 
     const currentIdx = posts.findIndex(p => p.id === currentPostId);
     const prevPost = currentIdx > 0 ? posts[currentIdx - 1] : null;
@@ -34,31 +36,26 @@ export function PostCollectionSidebarWidget({
             {/* Header / Cover Area */}
             <Link href={`/collections/${collection.id}`} className="group block relative">
                 <div className="relative h-20 w-full overflow-hidden">
-                    {collection.cover_url ? (
-                        <Image
-                            src={collection.cover_url}
-                            alt={collection.name}
-                            fill
-                            sizes="300px"
-                            className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                    ) : (
-                        <div className={cn("absolute inset-0 flex items-center justify-between px-4 group-hover:scale-105 transition-transform duration-500", preset.class)}>
-                            <div className="text-3xl opacity-60">{preset.icon}</div>
-                        </div>
-                    )}
+                    <CollectionCover
+                        coverUrl={collection.cover_url}
+                        coverStyle={collection.cover_style}
+                        size="sm"
+                        showEmblem={false}
+                        showWatermark={false}
+                        className="group-hover:scale-105 transition-transform duration-500"
+                    />
                     {/* 防眩遮罩 */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent flex flex-col justify-end p-3 text-white">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col justify-end p-3 text-white">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-white/80 flex items-center gap-1">
-                                <BookOpen className="h-3 w-3" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-white/80 flex items-center gap-1.5">
+                                <PresetIcon className="h-3 w-3" style={{ color: preset.accentColor }} />
                                 连载专栏
                             </span>
                             <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md">
                                 共 {posts.length || collection.post_count} 篇
                             </Badge>
                         </div>
-                        <h4 className="text-sm font-bold text-white leading-tight truncate mt-0.5 group-hover:text-primary-foreground/90 transition-colors drop-shadow-sm">
+                        <h4 className="text-sm font-bold text-white leading-tight truncate mt-1 group-hover:text-white/90 transition-colors drop-shadow-sm">
                             {collection.name}
                         </h4>
                     </div>

@@ -1,3 +1,5 @@
+export * from "./CollectionCoverPresets";
+export * from "./CollectionCover";
 export * from "./CollectionCard";
 export * from "./CreateCollectionDialog";
 export * from "./AddToCollectionDialog";

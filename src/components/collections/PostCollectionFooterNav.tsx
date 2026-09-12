@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, ArrowRight, BookOpen, Layers } from "lucide-react";
 import Link from "next/link";
-import { COLLECTION_COVER_PRESETS } from "./CollectionCard";
+import { getCollectionCoverPreset } from "./CollectionCoverPresets";
 import type { CollectionSummary } from "./PostCollectionBanner";
 
 interface PostCollectionFooterNavProps {
@@ -22,7 +22,8 @@ export function PostCollectionFooterNav({
     const posts = collection.posts || [];
     if (posts.length <= 1) return null;
 
-    const preset = COLLECTION_COVER_PRESETS.find(p => p.id === collection.cover_style) || COLLECTION_COVER_PRESETS[0];
+    const preset = getCollectionCoverPreset(collection.cover_style);
+    const PresetIcon = preset.icon;
 
     const currentIdx = posts.findIndex(p => p.id === currentPostId);
     const prevPost = currentIdx > 0 ? posts[currentIdx - 1] : null;
@@ -35,7 +36,9 @@ export function PostCollectionFooterNav({
             {/* 专栏连载导读头 */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <span className="text-base">{collection.cover_url ? "📚" : preset.icon}</span>
+                    <span className="p-1 rounded-md bg-muted/60 border border-border/40 flex items-center justify-center">
+                        <PresetIcon className="w-4 h-4" style={{ color: preset.accentColor }} />
+                    </span>
                     <div>
                         <span className="text-xs text-muted-foreground font-medium">本文收录于专栏</span>
                         <Link
