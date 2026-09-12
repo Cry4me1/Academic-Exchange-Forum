@@ -26,6 +26,7 @@ import {
     Link2,
     Subtitles,
     FileUp,
+    HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { onUpload } from "@/lib/image-upload";
@@ -49,8 +50,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MathSymbolsPopover } from "./MathSymbolsPopover";
-import { QuickFormulaPopover } from "./QuickFormulaPopover";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { MathPalette } from "./MathPalette";
 
 interface AcademicQuickToolbarProps {
     className?: string;
@@ -66,6 +71,17 @@ export default function AcademicQuickToolbar({
     const mdFileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    // 监听窗口滚动，以在吸顶时无缝呈现柔和阴影与背景毛玻璃
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 30);
+        };
+        handleScroll();
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     // 监听 AI 生成状态，联动工具栏按钮本身呈现高端推演动效
     useEffect(() => {
@@ -170,9 +186,24 @@ export default function AcademicQuickToolbar({
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className={cn("w-full mb-3 flex flex-col gap-2 select-none", className)}>
-                {/* 顶部主工具栏：整合自“/”菜单的高频学术与排版元素 */}
-                <div className="flex items-center gap-1.5 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/80 dark:bg-zinc-900/50 backdrop-blur-md overflow-x-auto no-scrollbar shadow-xs">
+            <div
+                className={cn(
+                    "w-full sticky top-14 z-30 py-2 transition-all duration-300 select-none",
+                    isScrolled
+                        ? "bg-background/60 backdrop-blur-md pb-2.5"
+                        : "bg-transparent",
+                    className
+                )}
+            >
+                {/* 顶部主工具栏：Apple Liquid Glass 无边框流体透光悬浮胶囊条 */}
+                <div
+                    className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full border-0 transition-all duration-300 overflow-x-auto no-scrollbar",
+                        isScrolled
+                            ? "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-[0_12px_36px_-6px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_12px_40px_-6px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.14)]"
+                            : "bg-white/70 hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/65 backdrop-blur-xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.12)]"
+                    )}
+                >
                     {/* 隐藏的原生图片上传 input */}
                     <input
                         type="file"
@@ -219,10 +250,10 @@ export default function AcademicQuickToolbar({
                                         );
                                     }}
                                     className={cn(
-                                        "relative overflow-hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all select-none cursor-pointer",
+                                        "relative overflow-hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all select-none cursor-pointer border-0",
                                         isGenerating
-                                            ? "bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 border border-zinc-700/60 shadow-[0_0_15px_-3px_rgba(0,0,0,0.25)] dark:shadow-[0_0_15px_-3px_rgba(255,255,255,0.12)]"
-                                            : "text-zinc-900 dark:text-zinc-100 bg-zinc-100 hover:bg-zinc-200/90 dark:bg-zinc-800/90 dark:hover:bg-zinc-700/90 border border-zinc-300/80 dark:border-zinc-700/80 shadow-2xs hover:border-zinc-400 dark:hover:border-zinc-600"
+                                            ? "bg-zinc-950/90 text-white dark:bg-white/90 dark:text-zinc-950 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                                            : "text-zinc-800 dark:text-zinc-200 bg-zinc-200/45 hover:bg-zinc-200/75 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15)]"
                                     )}
                                 >
                                     {/* 优雅微流光扫过动效，替代生硬的图标转圈 */}
@@ -298,7 +329,7 @@ export default function AcademicQuickToolbar({
                                         editor?.chain().focus().run();
                                         window.dispatchEvent(new CustomEvent("trigger-ai-ask"));
                                     }}
-                                    className="p-1.5 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700/50"
+                                    className="p-1.5 rounded-full text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.08] transition-all border-0 cursor-pointer"
                                 >
                                     <MessageSquarePlus size={15} />
                                 </button>
@@ -309,7 +340,7 @@ export default function AcademicQuickToolbar({
                         </Tooltip>
                     </div>
 
-                    <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 shrink-0" />
+                    <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     {/* ---------- 分组 2: 核心学术环境 ---------- */}
                     <div className="flex items-center gap-1">
@@ -319,7 +350,7 @@ export default function AcademicQuickToolbar({
                                 <button
                                     type="button"
                                     onClick={() => insertAcademicBlock("theorem", "在此输入定理内容...")}
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-transparent hover:border-blue-200 dark:hover:border-blue-800/60 transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 dark:hover:bg-blue-500/20 hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] transition-all border-0 cursor-pointer"
                                 >
                                     <BookOpen size={13} className="text-blue-500" />
                                     <span>定理</span>
@@ -336,7 +367,7 @@ export default function AcademicQuickToolbar({
                                 <button
                                     type="button"
                                     onClick={() => insertAcademicBlock("proof", "在此输入严谨的推导与证明步骤...")}
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 border border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-white/[0.08] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] transition-all border-0 cursor-pointer"
                                 >
                                     <ShieldCheck size={13} className="text-zinc-500" />
                                     <span>证明</span>
@@ -353,7 +384,7 @@ export default function AcademicQuickToolbar({
                                 <button
                                     type="button"
                                     onClick={() => insertAcademicBlock("definition", "在此输入精确的学术定义...")}
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800/60 transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] transition-all border-0 cursor-pointer"
                                 >
                                     <FileText size={13} className="text-emerald-500" />
                                     <span>定义</span>
@@ -369,45 +400,45 @@ export default function AcademicQuickToolbar({
                             <DropdownMenuTrigger asChild>
                                 <button
                                     type="button"
-                                    className="inline-flex items-center gap-0.5 px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                                    className="inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06] rounded-full transition-all border-0 cursor-pointer"
                                 >
                                     <span>更多学术</span>
                                     <ChevronDown size={11} className="text-zinc-400" />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-48 text-xs">
+                            <DropdownMenuContent align="start" className="w-48 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5">
                                 <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
                                     严谨学术环境
                                 </DropdownMenuLabel>
                                 <DropdownMenuItem
                                     onClick={() => insertAcademicBlock("lemma", "在此输入辅助引理...")}
-                                    className="flex items-center gap-2 cursor-pointer"
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
                                 >
                                     <Layers size={14} className="text-cyan-500" />
                                     <span>引理 (Lemma)</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => insertAcademicBlock("proposition", "在此输入命题陈述...")}
-                                    className="flex items-center gap-2 cursor-pointer"
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
                                 >
                                     <Sparkles size={14} className="text-purple-500" />
                                     <span>命题 (Proposition)</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => insertAcademicBlock("corollary", "由上可得以下推论...")}
-                                    className="flex items-center gap-2 cursor-pointer"
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
                                 >
                                     <Workflow size={14} className="text-amber-500" />
                                     <span>推论 (Corollary)</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => insertAcademicBlock("example", "【例】设...")}
-                                    className="flex items-center gap-2 cursor-pointer"
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
                                 >
                                     <Subtitles size={14} className="text-indigo-500" />
                                     <span>例题 (Example)</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
+                                <DropdownMenuSeparator className="bg-zinc-200/50 dark:bg-zinc-800/60 my-1" />
                                 <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
                                     学术标引与旁注
                                 </DropdownMenuLabel>
@@ -439,15 +470,12 @@ export default function AcademicQuickToolbar({
                         </DropdownMenu>
                     </div>
 
-                    <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 shrink-0" />
+                    <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     {/* ---------- 分组 3: 公式、代码与流程图 ---------- */}
                     <div className="flex items-center gap-0.5">
-                        {/* 零基础公式模板与结构助手 (分数、根号、矩阵、经典定理) */}
-                        <QuickFormulaPopover />
-
-                        {/* 数学函数与符号快捷面板 (莫比乌斯函数、欧拉函数等) */}
-                        <MathSymbolsPopover />
+                        {/* 一体化数学调色板（合并公式模板与数学函数） */}
+                        <MathPalette />
 
                         {/* 代码块 */}
                         <Tooltip>
@@ -458,10 +486,10 @@ export default function AcademicQuickToolbar({
                                         editor?.chain().focus().toggleCodeBlock().run();
                                     }}
                                     className={cn(
-                                        "p-1.5 rounded-lg transition-colors",
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer",
                                         editor?.isActive("codeBlock")
-                                            ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
-                                            : "text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 dark:hover:bg-amber-500/20"
                                     )}
                                 >
                                     <Code size={15} />
@@ -485,7 +513,7 @@ export default function AcademicQuickToolbar({
                                             },
                                         }).run();
                                     }}
-                                    className="p-1.5 rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 transition-colors"
+                                    className="p-1.5 rounded-full text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 dark:hover:bg-cyan-500/20 transition-all border-0 cursor-pointer"
                                 >
                                     <Workflow size={15} />
                                 </button>
@@ -496,7 +524,7 @@ export default function AcademicQuickToolbar({
                         </Tooltip>
                     </div>
 
-                    <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 shrink-0" />
+                    <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     {/* ---------- 分组 4: 标题与结构排版 ---------- */}
                     <div className="flex items-center gap-0.5">
@@ -506,34 +534,34 @@ export default function AcademicQuickToolbar({
                                 <button
                                     type="button"
                                     className={cn(
-                                        "inline-flex items-center gap-1 px-1.5 py-1 text-xs rounded-lg transition-colors",
+                                        "inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-all border-0 cursor-pointer",
                                         editor?.isActive("heading")
-                                            ? "bg-accent text-accent-foreground font-semibold"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06]"
                                     )}
                                 >
                                     <Heading1 size={14} />
                                     <ChevronDown size={10} />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-36 text-xs">
+                            <DropdownMenuContent align="start" className="w-36 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5">
                                 <DropdownMenuItem
                                     onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
-                                    className={cn("flex items-center gap-2 cursor-pointer", editor?.isActive("heading", { level: 1 }) && "font-bold text-primary")}
+                                    className={cn("flex items-center gap-2 cursor-pointer rounded-xl", editor?.isActive("heading", { level: 1 }) && "font-bold text-primary")}
                                 >
                                     <Heading1 size={14} />
                                     <span>一级大标题</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-                                    className={cn("flex items-center gap-2 cursor-pointer", editor?.isActive("heading", { level: 2 }) && "font-bold text-primary")}
+                                    className={cn("flex items-center gap-2 cursor-pointer rounded-xl", editor?.isActive("heading", { level: 2 }) && "font-bold text-primary")}
                                 >
                                     <Heading2 size={14} />
                                     <span>二级中标题</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-                                    className={cn("flex items-center gap-2 cursor-pointer", editor?.isActive("heading", { level: 3 }) && "font-bold text-primary")}
+                                    className={cn("flex items-center gap-2 cursor-pointer rounded-xl", editor?.isActive("heading", { level: 3 }) && "font-bold text-primary")}
                                 >
                                     <Heading3 size={14} />
                                     <span>三级小标题</span>
@@ -548,10 +576,10 @@ export default function AcademicQuickToolbar({
                                     type="button"
                                     onClick={() => editor?.chain().focus().toggleBulletList().run()}
                                     className={cn(
-                                        "p-1.5 rounded-lg transition-colors",
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer",
                                         editor?.isActive("bulletList")
-                                            ? "bg-accent text-accent-foreground font-semibold"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06]"
                                     )}
                                 >
                                     <List size={15} />
@@ -569,10 +597,10 @@ export default function AcademicQuickToolbar({
                                     type="button"
                                     onClick={() => editor?.chain().focus().toggleOrderedList().run()}
                                     className={cn(
-                                        "p-1.5 rounded-lg transition-colors",
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer",
                                         editor?.isActive("orderedList")
-                                            ? "bg-accent text-accent-foreground font-semibold"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06]"
                                     )}
                                 >
                                     <ListOrdered size={15} />
@@ -590,10 +618,10 @@ export default function AcademicQuickToolbar({
                                     type="button"
                                     onClick={() => editor?.chain().focus().toggleTaskList().run()}
                                     className={cn(
-                                        "p-1.5 rounded-lg transition-colors",
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer",
                                         editor?.isActive("taskList")
-                                            ? "bg-accent text-accent-foreground font-semibold"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06]"
                                     )}
                                 >
                                     <CheckSquare size={15} />
@@ -611,10 +639,10 @@ export default function AcademicQuickToolbar({
                                     type="button"
                                     onClick={() => editor?.chain().focus().toggleBlockquote().run()}
                                     className={cn(
-                                        "p-1.5 rounded-lg transition-colors",
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer",
                                         editor?.isActive("blockquote")
-                                            ? "bg-accent text-accent-foreground font-semibold"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06]"
                                     )}
                                 >
                                     <TextQuote size={15} />
@@ -626,7 +654,7 @@ export default function AcademicQuickToolbar({
                         </Tooltip>
                     </div>
 
-                    <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 shrink-0" />
+                    <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     {/* ---------- 分组 5: 多媒体与文件导入 ---------- */}
                     <div className="flex items-center gap-0.5">
@@ -636,7 +664,7 @@ export default function AcademicQuickToolbar({
                                     type="button"
                                     disabled={isUploading}
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                                    className="p-1.5 rounded-full text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06] transition-all border-0 cursor-pointer disabled:opacity-50"
                                 >
                                     <ImageIcon size={15} />
                                 </button>
@@ -651,7 +679,7 @@ export default function AcademicQuickToolbar({
                                 <button
                                     type="button"
                                     onClick={() => mdFileInputRef.current?.click()}
-                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                    className="p-1.5 rounded-full text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06] transition-all border-0 cursor-pointer"
                                 >
                                     <FileUp size={15} />
                                 </button>
@@ -661,18 +689,69 @@ export default function AcademicQuickToolbar({
                             </TooltipContent>
                         </Tooltip>
                     </div>
-                </div>
 
-                {/* 快捷斜杠提示条（精美保留在快捷工具栏的正下方） */}
-                <div className="flex items-center justify-between px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800/80 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono border border-border/60">
-                            /
-                        </span>
-                        <span>输入斜杠唤起学术环境、公式与代码面板</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-zinc-400 text-xs">
-                        {hintRight || <span>AI 辅助写作可用</span>}
+                    {/* ---------- 分组 6: 右侧快捷指令徽标与速查弹窗（收敛视觉噪音） ---------- */}
+                    <div className="ml-auto flex items-center gap-2 shrink-0 pl-1">
+                        {hintRight && (
+                            <div className="hidden xl:flex items-center text-zinc-400 text-xs font-normal">
+                                {hintRight}
+                            </div>
+                        )}
+
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.08] transition-all cursor-pointer border-0"
+                                >
+                                    <kbd className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-zinc-200/70 dark:bg-zinc-800/80 font-mono text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
+                                        /
+                                    </kbd>
+                                    <span className="hidden sm:inline text-[11px]">快捷指令</span>
+                                    <HelpCircle className="w-3 h-3 text-zinc-400" />
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-80 p-4 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)]">
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between border-b border-zinc-200/50 dark:border-zinc-800/60 pb-2">
+                                        <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                            学术与排版快捷指令
+                                        </span>
+                                        <span className="text-[10px] font-mono bg-zinc-200/50 dark:bg-zinc-800/60 px-2 py-0.5 rounded-full text-zinc-600 dark:text-zinc-400">输入 / 唤起</span>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                        在正文任意新行输入 <kbd className="font-mono bg-zinc-200/60 dark:bg-zinc-800/80 px-1.5 py-0.5 rounded-full border-0 text-foreground">/</kbd> 即可直接弹出命令列表，亦可使用以下常用快捷语法：
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px]">
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-200/35 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                            <span className="text-zinc-600 dark:text-zinc-400">行内公式</span>
+                                            <code className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-400">$E=mc^2$</code>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-200/35 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                            <span className="text-zinc-600 dark:text-zinc-400">独立公式块</span>
+                                            <code className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-400">$$</code>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-200/35 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                            <span className="text-zinc-600 dark:text-zinc-400">学术定理块</span>
+                                            <code className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400">/theorem</code>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-200/35 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                            <span className="text-zinc-600 dark:text-zinc-400">证明折叠块</span>
+                                            <code className="font-mono text-[10px] font-bold text-zinc-600 dark:text-zinc-400">/proof</code>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-200/35 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                            <span className="text-zinc-600 dark:text-zinc-400">流程图/架构</span>
+                                            <code className="font-mono text-[10px] font-bold text-cyan-600 dark:text-cyan-400">/mermaid</code>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-200/35 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                            <span className="text-zinc-600 dark:text-zinc-400">AI 智能续写</span>
+                                            <code className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400">++</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
             </div>

@@ -23,6 +23,7 @@ import {
 } from "@/lib/markdown-parser";
 import BubbleMenu from "./BubbleMenu";
 import AcademicQuickToolbar from "./AcademicQuickToolbar";
+// Apple Liquid Glass Toolbar integration synced
 import { defaultExtensions } from "./extensions";
 import { SlashAISelector } from "./generative/slash-ai-selector";
 import { suggestionItems } from "./slash-command";
