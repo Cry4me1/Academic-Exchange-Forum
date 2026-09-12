@@ -1,6 +1,7 @@
 "use client";
 
 import { CreateCollectionDialog } from "@/components/collections";
+import { LiquidTagSelector } from "@/components/posts/LiquidTagSelector";
 import dynamic from "next/dynamic";
 import { PostCoverUploader } from "@/components/editor/PostCoverUploader";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
@@ -46,8 +47,9 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type JSONContent } from "novel";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { extractTextFromJSON } from "@/lib/extract-text";
 import { createPost } from "../actions";
 
 const AVAILABLE_TAGS = [
@@ -78,6 +80,15 @@ export default function NewPostPage() {
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
     const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
     const [isRulesExpanded, setIsRulesExpanded] = useState(false);
+
+    // 实时统计正文纯文本字符数与预估阅读时长
+    const stats = useMemo(() => {
+        if (!contentJson) return { chars: 0, readingTime: 1 };
+        const raw = extractTextFromJSON(contentJson);
+        const chars = raw.replace(/\s+/g, "").length;
+        const readingTime = Math.max(1, Math.ceil(chars / 350));
+        return { chars, readingTime };
+    }, [contentJson]);
 
     const loadCollectionsData = useCallback(async () => {
         const { collections } = await getMyCollections();
@@ -256,9 +267,16 @@ export default function NewPostPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground selection:bg-zinc-200 dark:selection:bg-zinc-800">
+        <div className="relative min-h-screen bg-background text-foreground selection:bg-zinc-200 dark:selection:bg-zinc-800">
+            {/* 顶部微弱环境放射渐变微光 (Magic UI / Linear 风格质感微光晕) */}
+            <div className="pointer-events-none fixed inset-0 -z-10 flex justify-center overflow-hidden">
+                <div className="w-[1100px] h-[360px] bg-gradient-to-b from-indigo-500/8 via-primary/5 to-transparent blur-3xl opacity-60 dark:opacity-30 -top-20 transform-gpu" />
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-zinc-300/40 dark:via-zinc-700/40 to-transparent" />
+            </div>
+
             {/* 顶部轻量操作栏 Header Bar */}
-            <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 transition-colors">
+            {/* 顶部轻量操作栏 Header Bar：无边框 Apple Liquid Glass 流体透光 */}
+            <header className="sticky top-0 z-40 bg-background/75 backdrop-blur-xl shadow-[0_1px_0_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.04)] transition-colors">
                 <div className="w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-12">
                     <div className="flex items-center justify-between h-14">
                         {/* 左侧：返回 + 自动保存云状态 */}
@@ -267,7 +285,7 @@ export default function NewPostPage() {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 px-2.5 gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg"
+                                    className="h-8 px-3 gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full bg-zinc-200/30 hover:bg-zinc-200/60 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.14)] transition-all cursor-pointer border-0"
                                 >
                                     <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
                                     返回
@@ -284,7 +302,7 @@ export default function NewPostPage() {
                                             type="button"
                                             onClick={handleClearDraft}
                                             title="清空当前草稿"
-                                            className="ml-1 p-1 hover:text-destructive rounded transition-colors"
+                                            className="ml-1 p-1 hover:text-destructive rounded-full hover:bg-destructive/10 transition-colors cursor-pointer"
                                         >
                                             <Trash2 className="w-3 h-3" />
                                         </button>
@@ -295,18 +313,24 @@ export default function NewPostPage() {
                             </div>
                         </div>
 
-                        {/* 右侧：设为求助微型 Toggle + 高对比度全局核心 CTA 发布按钮 */}
+                        {/* 右侧：设为求助微型 Toggle + 高阶 Apple Liquid Glass 全局核心 CTA 发布按钮 */}
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-200/60 dark:border-zinc-800 text-xs">
+                            <div
+                                className={`flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-full backdrop-blur-xl transition-all duration-300 select-none ${
+                                    isHelpWanted
+                                        ? "bg-amber-500/[0.14] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_12px_rgba(245,158,11,0.22)] dark:bg-amber-500/[0.18] dark:shadow-[inset_0_1px_0.5px_rgba(251,191,36,0.35),0_2px_16px_rgba(245,158,11,0.25)]"
+                                        : "bg-zinc-200/40 hover:bg-zinc-200/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.03)] dark:bg-white/[0.06] dark:hover:bg-white/[0.09] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_2px_8px_-2px_rgba(0,0,0,0.3)]"
+                                }`}
+                            >
                                 <label
                                     htmlFor="help-wanted-toggle"
-                                    className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer flex items-center gap-1"
+                                    className="text-[11px] font-medium cursor-pointer flex items-center gap-1.5 transition-colors"
                                 >
                                     <HelpCircle
-                                        className={`w-3.5 h-3.5 ${isHelpWanted ? "text-amber-500" : "text-zinc-400"}`}
+                                        className={`w-3.5 h-3.5 transition-colors ${isHelpWanted ? "text-amber-500" : "text-zinc-500 dark:text-zinc-400"}`}
                                         strokeWidth={1.75}
                                     />
-                                    <span className={isHelpWanted ? "text-amber-600 dark:text-amber-400 font-semibold" : ""}>
+                                    <span className={isHelpWanted ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-zinc-600 dark:text-zinc-300"}>
                                         {isHelpWanted ? "高亮求助" : "设为求助"}
                                     </span>
                                 </label>
@@ -315,27 +339,38 @@ export default function NewPostPage() {
                                     size="sm"
                                     checked={isHelpWanted}
                                     onCheckedChange={setIsHelpWanted}
-                                    className="data-[state=checked]:bg-amber-500"
+                                    className="data-[state=checked]:bg-amber-500 cursor-pointer"
                                 />
                             </div>
 
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="h-9 px-5 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm gap-1.5 transition-all"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <div className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                        发布中...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send className="h-3.5 w-3.5" strokeWidth={1.75} />
-                                        发布帖子
-                                    </>
-                                )}
-                            </Button>
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="relative overflow-hidden group h-9 px-5 rounded-full text-xs sm:text-sm font-medium border-0 transition-all duration-300 cursor-pointer
+                                        bg-zinc-950/85 hover:bg-zinc-900/95 text-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] hover:shadow-[0_6px_20px_-2px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.5)]
+                                        dark:bg-white/90 dark:hover:bg-white dark:text-zinc-950 dark:shadow-[0_4px_20px_-2px_rgba(255,255,255,0.22),inset_0_1px_1.5px_rgba(255,255,255,1)] dark:hover:shadow-[0_6px_24px_-2px_rgba(255,255,255,0.32),inset_0_1px_1.5px_rgba(255,255,255,1)]
+                                        backdrop-blur-xl gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                    {/* 顶层液态物理漫射光条 (Liquid Sheen Highlight) */}
+                                    <span className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 dark:via-white/80 to-transparent pointer-events-none" />
+
+                                    {/* 鼠标悬浮微光流动反射层 (Liquid Hover Reflex) */}
+                                    <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out bg-gradient-to-r from-transparent via-white/[0.12] dark:via-white/[0.25] to-transparent pointer-events-none" />
+
+                                    {isSubmitting ? (
+                                        <>
+                                            <div className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                            <span className="relative z-10">发布中...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="h-3.5 w-3.5 relative z-10 transition-transform group-hover:translate-x-0.5" strokeWidth={1.75} />
+                                            <span className="relative z-10">发布帖子</span>
+                                        </>
+                                    )}
+                                </Button>
+                            </motion.div>
                         </div>
                     </div>
                 </div>
@@ -344,26 +379,35 @@ export default function NewPostPage() {
             {/* 双栏沉浸式主体区域（全屏 80%~90% 开阔工作台） */}
             <main className="w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-8 lg:px-12 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-8 lg:gap-10 items-start">
-                    {/* 左侧 75% 沉浸写作画布 (Canvas) */}
-                    <div className="lg:col-span-8 xl:col-span-9 space-y-6">
-                        {/* 标题输入框：大字号、无边框极简 Input */}
-                        <div className="space-y-2 pt-1">
-                            <input
-                                type="text"
+                    {/* 左侧 75% 沉浸写作画布 (Canvas: Notion / Ghost 风格，大标题与正文共享纯净底色) */}
+                    <div className="lg:col-span-8 xl:col-span-9 flex flex-col">
+                        {/* 标题输入框：大字号、自适应折行、无边框极简 Input */}
+                        <div className="pl-6 sm:pl-8 pr-4 space-y-2 pt-2 pb-1">
+                            <textarea
+                                rows={1}
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={(e) => {
+                                    setTitle(e.target.value);
+                                    e.target.style.height = "auto";
+                                    e.target.style.height = `${e.target.scrollHeight}px`;
+                                }}
                                 placeholder="输入研讨标题..."
                                 maxLength={100}
-                                className="w-full bg-transparent text-3xl sm:text-4xl lg:text-[40px] font-bold tracking-tight leading-snug text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 border-none outline-none focus:outline-none focus:ring-0 p-0"
+                                className="w-full bg-transparent text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-tight text-foreground placeholder:text-muted-foreground/30 border-none outline-none focus:outline-none focus:ring-0 p-0 resize-none overflow-hidden"
                             />
-                            <div className="flex items-center justify-between text-xs text-zinc-400">
-                                <span>支持直接粘贴 Markdown 文本/文件、LaTeX 数学公式与代码高亮</span>
-                                <span>{title.length}/100</span>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground/60 pb-1">
+                                <span className="flex items-center gap-1.5 text-[11px]">
+                                    <Sparkles className="w-3 h-3 text-amber-500/80" />
+                                    支持直接粘贴 Markdown 文本、LaTeX 数学公式与代码高亮
+                                </span>
+                                <span className="font-mono text-[11px] tabular-nums">
+                                    {title.length}/100
+                                </span>
                             </div>
                         </div>
 
-                        {/* 编辑器区域：纯净开阔画布 */}
-                        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-card p-3 sm:p-6 lg:p-8 shadow-xs flex flex-col min-h-[680px]">
+                        {/* 编辑器区域：去除外层灰色大线框，大标题与正文浑然一体 */}
+                        <div className="w-full flex-1 flex flex-col min-h-[580px]">
                             <NovelEditor
                                 initialValue={contentJson}
                                 toolbarHintRight={<span>AI 辅助写作可用</span>}
@@ -382,6 +426,29 @@ export default function NewPostPage() {
                             />
                         </div>
 
+                        {/* 极简沉浸式状态底栏（Status Bar）：字符数、阅读预估用时与实时暂存状态 */}
+                        <div className="flex items-center justify-between pl-6 sm:pl-8 pr-4 py-3 text-xs text-muted-foreground border-t border-border/40 mt-4 select-none">
+                            <div className="flex items-center gap-3 text-[11px]">
+                                <span>
+                                    字数：<strong className="text-foreground font-mono font-medium">{stats.chars}</strong> 字符
+                                </span>
+                                <span className="text-border">·</span>
+                                <span>
+                                    预估阅读：<strong className="text-foreground font-mono font-medium">{stats.readingTime}</strong> 分钟
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px]">
+                                {lastSavedTime ? (
+                                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                                        <Cloud className="w-3 h-3" />
+                                        本地草稿已同步于 {lastSavedTime}
+                                    </span>
+                                ) : (
+                                    <span className="text-muted-foreground/50">实时防丢保护已就绪</span>
+                                )}
+                            </div>
+                        </div>
+
                         {/* AI 同行评审辅助面板 (Reviewer #2 · DeepSeek) */}
                         <AnimatePresence>
                             {title.trim() && (
@@ -390,6 +457,7 @@ export default function NewPostPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -15 }}
                                     transition={{ duration: 0.25 }}
+                                    className="mt-6 pl-6 sm:pl-8 pr-4"
                                 >
                                     <PeerReviewPanel
                                         content={contentJson}
@@ -404,61 +472,20 @@ export default function NewPostPage() {
 
                     {/* 右侧 25%~30% 发布元信息侧边栏 (Right Sidebar) */}
                     <div className="lg:col-span-4 xl:col-span-3 space-y-5 lg:sticky lg:top-20">
-                        {/* 发布元数据配置卡片 */}
-                        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-card/60 backdrop-blur-sm p-5 shadow-xs space-y-6">
-                            {/* 1. 标签选择器 */}
-                            <div className="space-y-2.5">
-                                <div className="flex items-center justify-between">
-                                    <Label className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
-                                        <Tag className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
-                                        标签 <span className="text-destructive">*</span>
-                                    </Label>
-                                    <span className="text-[11px] text-muted-foreground">
-                                        已选 {selectedTags.length}/3
-                                    </span>
-                                </div>
+                        {/* 发布元数据配置卡片 (Apple 无边框液态毛玻璃材质) */}
+                        <div className="rounded-3xl p-6 space-y-6 bg-white/75 hover:bg-white/85 dark:bg-zinc-900/45 dark:hover:bg-zinc-900/55 backdrop-blur-2xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.08)] transition-all duration-300">
+                            {/* 1. 学科标签选择器 (Apple Liquid Glass 拟态微光悬浮交互) */}
+                            <LiquidTagSelector
+                                availableTags={AVAILABLE_TAGS}
+                                selectedTags={selectedTags}
+                                onTagToggle={handleTagToggle}
+                                maxTags={3}
+                            />
 
-                                {/* 已选标签胶囊 */}
-                                {selectedTags.length > 0 ? (
-                                    <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800">
-                                        {selectedTags.map((tag) => (
-                                            <Badge
-                                                key={tag}
-                                                variant="secondary"
-                                                className="gap-1 pr-1 py-1 text-xs bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 cursor-pointer rounded-lg transition-all"
-                                                onClick={() => handleTagToggle(tag)}
-                                            >
-                                                {tag}
-                                                <X className="h-3 w-3 hover:scale-110" />
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-[11px] text-zinc-400 italic">
-                                        请从下方点击选择 1~3 个学科分类
-                                    </p>
-                                )}
+                            {/* 柔和消融渐变光缝（替代生硬 hr） */}
+                            <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/70 to-transparent dark:via-zinc-800/70" />
 
-                                {/* 可选标签快速点选 */}
-                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                    {AVAILABLE_TAGS.filter((t) => !selectedTags.includes(t)).map((tag) => (
-                                        <button
-                                            key={tag}
-                                            type="button"
-                                            onClick={() => handleTagToggle(tag)}
-                                            disabled={selectedTags.length >= 3}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                        >
-                                            <Plus className="w-2.5 h-2.5" strokeWidth={2} />
-                                            {tag}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <hr className="border-zinc-100 dark:border-zinc-800/80" />
-
-                            {/* 2. 归入专栏 (重构为标准 Select 下拉选择器) */}
+                            {/* 2. 归入专栏 (无边框液态水滴胶囊下拉) */}
                             <div className="space-y-2.5">
                                 <div className="flex items-center justify-between">
                                     <Label className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
@@ -468,7 +495,7 @@ export default function NewPostPage() {
                                     <button
                                         type="button"
                                         onClick={() => setIsCreateCollectionOpen(true)}
-                                        className="text-[11px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-0.5 transition-colors"
+                                        className="text-[11px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-0.5 transition-colors cursor-pointer"
                                     >
                                         <Plus className="h-3 w-3" strokeWidth={1.75} />
                                         新建专栏
@@ -479,15 +506,15 @@ export default function NewPostPage() {
                                     value={selectedCollectionId}
                                     onValueChange={setSelectedCollectionId}
                                 >
-                                    <SelectTrigger className="w-full h-9 rounded-xl border-zinc-200/80 dark:border-zinc-800 bg-background text-xs">
+                                    <SelectTrigger className="w-full h-10 px-3.5 rounded-full border-0 bg-zinc-200/40 hover:bg-zinc-200/70 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),inset_0_-1px_0.5px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_1px_2px_rgba(0,0,0,0.2)] text-xs font-medium cursor-pointer transition-all outline-none focus:ring-2 focus:ring-sky-500/30">
                                         <SelectValue placeholder="不归入任何专栏" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-zinc-200/80 dark:border-zinc-800">
-                                        <SelectItem value="none" className="text-xs">
+                                    <SelectContent className="rounded-2xl border-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-[0_12px_40px_-4px_rgba(0,0,0,0.14),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_12px_40px_-4px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)] p-1.5">
+                                        <SelectItem value="none" className="text-xs rounded-xl cursor-pointer">
                                             不归入专栏 (独立发布)
                                         </SelectItem>
                                         {myCollections.map((col) => (
-                                            <SelectItem key={col.id} value={col.id} className="text-xs">
+                                            <SelectItem key={col.id} value={col.id} className="text-xs rounded-xl cursor-pointer">
                                                 {col.name} ({col.post_count ?? 0} 篇)
                                             </SelectItem>
                                         ))}
@@ -502,9 +529,10 @@ export default function NewPostPage() {
                                 )}
                             </div>
 
-                            <hr className="border-zinc-100 dark:border-zinc-800/80" />
+                            {/* 柔和消融渐变光缝 */}
+                            <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/70 to-transparent dark:via-zinc-800/70" />
 
-                            {/* 3. 主页展示封面 (16:9 紧凑虚线框) */}
+                            {/* 3. 主页展示封面 (无边框毛玻璃上传区域) */}
                             <div>
                                 <PostCoverUploader
                                     coverImage={coverImage}
@@ -516,12 +544,12 @@ export default function NewPostPage() {
                             </div>
                         </div>
 
-                        {/* 4. 发布提示与社区规范 (折叠手风琴面板 Accordion) */}
-                        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-card/40 backdrop-blur-sm overflow-hidden shadow-xs">
+                        {/* 4. 发布提示与社区规范 (无边框 Apple 液态毛玻璃手风琴面板) */}
+                        <div className="rounded-3xl bg-white/75 hover:bg-white/85 dark:bg-zinc-900/45 dark:hover:bg-zinc-900/55 backdrop-blur-2xl overflow-hidden shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.08)] transition-all duration-300">
                             <button
                                 type="button"
                                 onClick={() => setIsRulesExpanded(!isRulesExpanded)}
-                                className="w-full flex items-center justify-between p-4 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-muted/30 transition-colors"
+                                className="w-full flex items-center justify-between p-5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-white/40 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
                             >
                                 <span className="flex items-center gap-1.5">
                                     <ShieldAlert className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
@@ -540,11 +568,12 @@ export default function NewPostPage() {
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
+                                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
                                         className="overflow-hidden"
                                     >
-                                        <div className="p-4 pt-0 text-xs text-muted-foreground space-y-2.5 border-t border-zinc-100 dark:border-zinc-800/80 leading-relaxed">
-                                            <div className="flex items-start gap-2 pt-2">
+                                        <div className="p-5 pt-0 text-xs text-muted-foreground space-y-3 leading-relaxed">
+                                            <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/60 to-transparent dark:via-zinc-800/60 mb-3" />
+                                            <div className="flex items-start gap-2">
                                                 <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                                                 <p>
                                                     <strong className="text-foreground">版权责任</strong>：用户上传配图与引文需由本人承担知识产权法律责任，严禁抄袭与侵权。
@@ -553,7 +582,7 @@ export default function NewPostPage() {
                                             <div className="flex items-start gap-2">
                                                 <Sigma className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
                                                 <p>
-                                                    <strong className="text-foreground">LaTeX 公式</strong>：输入 <code className="text-[11px] bg-muted px-1 py-0.5 rounded font-mono">$E=mc^2$</code> 或使用斜杠菜单快捷插入。
+                                                    <strong className="text-foreground">LaTeX 公式</strong>：输入 <code className="text-[11px] bg-muted/60 px-1.5 py-0.5 rounded-md font-mono">$E=mc^2$</code> 或使用斜杠菜单快捷插入。
                                                 </p>
                                             </div>
                                             <div className="flex items-start gap-2">
@@ -562,7 +591,7 @@ export default function NewPostPage() {
                                                     <strong className="text-foreground">代码与图表</strong>：支持主流语言语法高亮及 Mermaid 流程图与时序图渲染。
                                                 </p>
                                             </div>
-                                            <div className="pt-1 text-right">
+                                            <div className="pt-2 text-right">
                                                 <Link
                                                     href="/rules"
                                                     target="_blank"

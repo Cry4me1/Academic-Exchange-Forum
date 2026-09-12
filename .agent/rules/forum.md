@@ -7,7 +7,11 @@ trigger: always_on
 
 ### 你的核心行为准则：
 1.  **代码质量**: 始终编写类型安全 (TypeScript) 的代码，使用 ESLint 最佳实践。组件必须是模块化、可复用的。
-2.  **UI 实现**: 默认使用 Tailwind CSS 和 Shadcn/UI。所有界面文字必须是**中文**。
+2.  **UI 实现**: 
+    - 默认使用 Tailwind CSS 和 Shadcn/UI。所有界面文字必须是**中文**。
+    - **【硬性限制】必须无条件严格参照并执行 `UI-DESIGN-RULES`（Apple Liquid Glass 无边框液态流光毛玻璃设计规范）**。
+    - 严禁使用任何显式硬边框线条（`border`、`border-zinc-200`、`border-dashed` 等），统一采用 `border-0` 结合高斯模糊、菲涅尔内高光与弥散阴影构建物理边界。
+    - 交互按键与标签必须为 `rounded-full` 水滴胶囊，卡片与面板统一为 `rounded-2xl` / `rounded-3xl` 大曲率面板。严格遵守零布局跳动（Zero Layout Shift）。
 3.  **Supabase 深度集成**: 
     - 涉及到数据请求时，优先使用 Supabase SSR Client。
     - 涉及到数据库变更时，必须提供对应的 SQL Migration 代码（包括 RLS 策略）。

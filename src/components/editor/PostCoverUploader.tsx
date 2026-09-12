@@ -373,7 +373,7 @@ export function PostCoverUploader({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.98 }}
                         transition={{ duration: 0.15 }}
-                        className="relative group rounded-xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden bg-muted/20 shadow-xs"
+                        className="relative group rounded-2xl overflow-hidden shadow-[0_4px_20px_-2px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)]"
                     >
                         <div className="relative w-full aspect-[16/9] bg-zinc-950/5 dark:bg-zinc-950/40">
                             <Image
@@ -406,14 +406,14 @@ export function PostCoverUploader({
                             )}
 
                             {/* 悬浮遮罩与操作按钮 */}
-                            <div className="absolute inset-0 z-20 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                            <div className="absolute inset-0 z-20 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2 backdrop-blur-[3px]">
                                 <Button
                                     type="button"
                                     size="sm"
                                     variant="secondary"
                                     disabled={disabled || isUploading}
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="h-7 px-2.5 gap-1 text-[11px] bg-background/90 hover:bg-background text-foreground shadow-xs"
+                                    className="h-7 px-3 gap-1 rounded-full text-[11px] bg-white/90 hover:bg-white text-zinc-900 shadow-sm border-0"
                                 >
                                     {isUploading ? (
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -433,7 +433,7 @@ export function PostCoverUploader({
                                         setHasImageError(false);
                                         toast.info("已移除封面");
                                     }}
-                                    className="h-7 px-2.5 gap-1 text-[11px] shadow-xs"
+                                    className="h-7 px-3 gap-1 rounded-full text-[11px] shadow-sm border-0"
                                 >
                                     <Trash2 className="h-3 w-3" strokeWidth={1.75} />
                                     移除
@@ -456,21 +456,21 @@ export function PostCoverUploader({
                                 fileInputRef.current?.click();
                             }
                         }}
-                        className={`relative group rounded-xl border border-dashed aspect-[16/9] transition-all cursor-pointer flex flex-col items-center justify-center p-4 text-center ${
+                        className={`relative group rounded-2xl aspect-[16/9] transition-all cursor-pointer flex flex-col items-center justify-center p-4 text-center select-none backdrop-blur-md ${
                             isDragging
-                                ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                                : "border-zinc-300 dark:border-zinc-800 bg-muted/10 hover:border-zinc-400 dark:hover:border-zinc-700 hover:bg-muted/20"
+                                ? "bg-sky-500/15 shadow-[0_0_24px_rgba(56,189,248,0.25)] scale-[1.01]"
+                                : "bg-zinc-200/40 hover:bg-zinc-200/70 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),inset_0_-1px_1px_rgba(0,0,0,0.02),0_1px_2px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.2)]"
                         }`}
                     >
-                        <div className="flex flex-col items-center gap-1.5">
-                            <div className="h-8 w-8 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-center text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 group-hover:scale-105 transition-all">
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="h-9 w-9 rounded-full bg-white/90 dark:bg-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] flex items-center justify-center text-zinc-600 dark:text-zinc-300 group-hover:text-zinc-950 dark:group-hover:text-white group-hover:scale-105 transition-all">
                                 {isUploading ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                     <UploadCloud className="h-4 w-4" strokeWidth={1.75} />
                                 )}
                             </div>
-                            <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+                            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
                                 {isUploading ? "正在上传..." : "上传或拖拽封面"}
                             </p>
                             <p className="text-[10px] text-muted-foreground">

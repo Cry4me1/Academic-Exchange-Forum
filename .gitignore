@@ -46,3 +46,7 @@ scripts/record_*.js
 .antigravity/
 .agents/
 
+# Delivery tools temporary artifacts
+*DELIVERY.md
+*-evidence/
+
