@@ -121,6 +121,11 @@ interface PostDetailClientProps {
         id: string;
         username: string;
         avatar_url?: string;
+        vip_level?: number | null;
+        special_title?: string | null;
+        badges?: string[] | null;
+        is_verified?: boolean;
+        auth_provider?: string;
     } | null;
     initialIsLiked?: boolean;
     initialIsBookmarked?: boolean;
@@ -440,12 +445,31 @@ export default function PostDetailClient({
         const newComment = result.data;
         if (!newComment) return;
 
+        // 容错补全：若后端未及时携带用户等级与头衔，使用当前登录用户信息补充，彻底杜绝发送后降级为 LV1
+        if (newComment.author) {
+            if (newComment.author.vip_level === undefined || newComment.author.vip_level === null) {
+                newComment.author.vip_level = currentUser.vip_level ?? 1;
+            }
+            if (!newComment.author.special_title && currentUser.special_title) {
+                newComment.author.special_title = currentUser.special_title;
+            }
+            if (!newComment.author.badges && currentUser.badges) {
+                newComment.author.badges = currentUser.badges;
+            }
+            if (newComment.author.is_verified === undefined && currentUser.is_verified !== undefined) {
+                newComment.author.is_verified = currentUser.is_verified;
+            }
+            if (!newComment.author.auth_provider && currentUser.auth_provider) {
+                newComment.author.auth_provider = currentUser.auth_provider;
+            }
+        }
+
         // 更新评论列表
         if (parentId) {
-            // 添加到父评论的回复中
+            // 添加到父评论对应的顶级会话回复列表中
             setComments((prev) =>
                 prev.map((comment) => {
-                    if (comment.id === parentId) {
+                    if (comment.id === parentId || comment.replies?.some((r) => r.id === parentId)) {
                         return {
                             ...comment,
                             replies: [...(comment.replies || []), {
@@ -505,24 +529,14 @@ export default function PostDetailClient({
                 replies: [],
             };
 
-            // 挂载思考中的占位评论
+            // 挂载思考中的占位评论到目标顶级评论分支
             setComments((prev) => {
                 const targetParentId = parentId || newComment.id;
                 return prev.map((c) => {
-                    if (c.id === targetParentId) {
+                    if (c.id === targetParentId || c.replies?.some((r) => r.id === targetParentId)) {
                         return {
                             ...c,
                             replies: [...(c.replies || []), thinkingAiPlaceholder],
-                        };
-                    }
-                    if (c.replies && c.replies.length > 0) {
-                        return {
-                            ...c,
-                            replies: c.replies.map((r) =>
-                                r.id === targetParentId
-                                    ? { ...r, replies: [...(r.replies || []), thinkingAiPlaceholder] }
-                                    : r
-                            ),
                         };
                     }
                     return c;

@@ -25,6 +25,7 @@ interface NotificationItemProps {
     onMarkAsRead?: () => void;
     onDelete?: () => void;
     onClick?: () => void;
+    className?: string;
 }
 
 const notificationIcons: Record<Notification["type"], React.ComponentType<{ className?: string }>> = {
@@ -60,6 +61,7 @@ export function NotificationItem({
     onMarkAsRead,
     onDelete,
     onClick,
+    className,
 }: NotificationItemProps) {
     const Icon = notificationIcons[notification.type] || Bell;
     const colorClass = notificationColors[notification.type] || "text-gray-500 bg-gray-500/10";
@@ -104,7 +106,8 @@ export function NotificationItem({
                 "flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors group",
                 notification.is_read
                     ? "hover:bg-muted/50"
-                    : "bg-primary/5 hover:bg-primary/10"
+                    : "bg-primary/5 hover:bg-primary/10",
+                className
             )}
         >
             {/* 头像或图标 */}

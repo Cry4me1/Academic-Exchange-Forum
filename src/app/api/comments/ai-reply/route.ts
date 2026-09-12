@@ -228,7 +228,8 @@ ${prompt}
                     special_title,
                     vip_level,
                     is_verified,
-                    badges
+                    badges,
+                    auth_provider
                 )
             `)
             .single();

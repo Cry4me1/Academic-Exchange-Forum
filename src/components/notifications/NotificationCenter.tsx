@@ -3,13 +3,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { useNotifications } from "@/hooks/useNotifications";
-import { Bell, Check, Loader2 } from "lucide-react";
+import { Bell, Check, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { NotificationItem } from "./NotificationItem";
@@ -20,6 +19,8 @@ interface NotificationCenterProps {
 
 export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
     const [open, setOpen] = useState(false);
+    const [confirmingClear, setConfirmingClear] = useState(false);
+
     const {
         notifications,
         unreadCount,
@@ -27,6 +28,7 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        deleteAllNotifications,
     } = useNotifications(currentUserId);
 
     const handleMarkAsRead = async (notificationId: string) => {
@@ -41,6 +43,16 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
         await deleteNotification(notificationId);
     };
 
+    const handleClearAll = async () => {
+        if (!confirmingClear) {
+            setConfirmingClear(true);
+            setTimeout(() => setConfirmingClear(false), 3000);
+            return;
+        }
+        await deleteAllNotifications();
+        setConfirmingClear(false);
+    };
+
     // 根据通知类型跳转到相应页面
     const getNotificationLink = (notification: (typeof notifications)[0]) => {
         switch (notification.type) {
@@ -48,7 +60,6 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
             case "comment":
                 return notification.related_id ? `/posts/${notification.related_id}` : null;
             case "friend_request":
-                return "/friends";
             case "friend_accepted":
                 return "/friends";
             case "message":
@@ -60,13 +71,7 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
             case "duel_invite":
             case "duel_accepted":
             case "duel_rejected":
-                // 暂时跳转到 duels 列表页，或者具体的 duel 详情页
-                // 如果 related_id 是 duel_id，则跳转到 /duels/id (如果是 invite，可能需要跳转到 duels 列表看邀请卡片)
-                // 这里的 related_id 在 trigger 里存的是 duel_id
                 return notification.related_id ? `/duels` : "/duels";
-            // 或者可以直接进入详情页 /duels/${notification.related_id} 如果详情页支持 pending 状态显示
-            // 根据需求，邀请卡片在列表页，所以跳转到 /duels 比较合适
-            // 已接受的跳转到详情页 /duels/${notification.related_id}
             case "system":
                 return notification.related_id ? `/posts/${notification.related_id}` : null;
             default:
@@ -75,8 +80,8 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
     };
 
     return (
-        <DropdownMenu open={open} onOpenChange={setOpen}>
-            <DropdownMenuTrigger asChild>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
                 <Button
                     variant="ghost"
                     size="icon"
@@ -93,86 +98,114 @@ export function NotificationCenter({ currentUserId }: NotificationCenterProps) {
                         </Badge>
                     )}
                 </Button>
-            </DropdownMenuTrigger>
+            </PopoverTrigger>
 
-            <DropdownMenuContent
+            <PopoverContent
                 align="end"
-                className="w-[380px] p-0 flex flex-col max-h-[500px]"
+                className="w-[380px] sm:w-[400px] p-0 flex flex-col max-h-[520px] shadow-xl border-border/80"
                 sideOffset={8}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b">
-                    <h3 className="font-semibold text-foreground">通知</h3>
-                    {unreadCount > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleMarkAllAsRead}
-                            className="h-8 text-xs gap-1.5"
-                        >
-                            <Check className="h-3.5 w-3.5" />
-                            全部已读
-                        </Button>
-                    )}
+                <div className="flex items-center justify-between px-4 py-3 border-b bg-card rounded-t-lg select-none">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm text-foreground">通知</h3>
+                        {unreadCount > 0 && (
+                            <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
+                                {unreadCount} 未读
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        {unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleMarkAllAsRead}
+                                className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                                title="全部标为已读"
+                            >
+                                <Check className="h-3.5 w-3.5" />
+                                <span>全部已读</span>
+                            </Button>
+                        )}
+
+                        {notifications.length > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleClearAll}
+                                className={`h-7 px-2 text-xs gap-1 transition-colors ${
+                                    confirmingClear
+                                        ? "text-destructive hover:text-destructive bg-destructive/10"
+                                        : "text-muted-foreground hover:text-destructive"
+                                }`}
+                                title={confirmingClear ? "再次点击确认清空" : "清空全部通知"}
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>{confirmingClear ? "确认清空?" : "清空"}</span>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
-                {/* Notifications List */}
-                <ScrollArea className="flex-1 overflow-hidden">
+                {/* Notifications List (原生流畅滚动，无截断) */}
+                <div className="flex-1 min-h-0 max-h-[380px] overflow-y-auto overscroll-contain p-2 space-y-1">
                     {loading ? (
-                        <div className="flex items-center justify-center py-8">
+                        <div className="flex items-center justify-center py-12">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : notifications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                            <Bell className="h-10 w-10 mb-2 opacity-50" />
-                            <p className="text-sm">暂无通知</p>
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                            <Bell className="h-10 w-10 mb-2 opacity-40" />
+                            <p className="text-sm font-medium">暂无通知</p>
+                            <p className="text-xs text-muted-foreground/70 mt-0.5">有新动态时会在此提醒您</p>
                         </div>
                     ) : (
-                        <div className="p-2 space-y-1">
-                            {notifications.slice(0, 10).map((notification) => {
-                                const link = getNotificationLink(notification);
+                        notifications.map((notification) => {
+                            const link = getNotificationLink(notification);
 
-                                return link ? (
-                                    <Link
-                                        key={notification.id}
-                                        href={link}
-                                        onClick={() => setOpen(false)}
-                                    >
-                                        <NotificationItem
-                                            notification={notification}
-                                            onMarkAsRead={() => handleMarkAsRead(notification.id)}
-                                            onDelete={() => handleDelete(notification.id)}
-                                        />
-                                    </Link>
-                                ) : (
+                            return link ? (
+                                <Link
+                                    key={notification.id}
+                                    href={link}
+                                    className="block focus:outline-none"
+                                    onClick={() => setOpen(false)}
+                                >
                                     <NotificationItem
-                                        key={notification.id}
                                         notification={notification}
                                         onMarkAsRead={() => handleMarkAsRead(notification.id)}
                                         onDelete={() => handleDelete(notification.id)}
                                     />
-                                );
-                            })}
-                        </div>
+                                </Link>
+                            ) : (
+                                <div key={notification.id} className="block">
+                                    <NotificationItem
+                                        notification={notification}
+                                        onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                                        onDelete={() => handleDelete(notification.id)}
+                                    />
+                                </div>
+                            );
+                        })
                     )}
-                </ScrollArea>
+                </div>
 
                 {/* Footer */}
                 {notifications.length > 0 && (
-                    <div className="flex-shrink-0 border-t">
-                        <div className="p-2">
-                            <Link href="/notifications" onClick={() => setOpen(false)}>
-                                <Button
-                                    variant="ghost"
-                                    className="w-full justify-center text-sm"
-                                >
-                                    查看全部通知
-                                </Button>
-                            </Link>
-                        </div>
+                    <div className="flex-shrink-0 border-t bg-card/50 rounded-b-lg p-2">
+                        <Link href="/notifications" onClick={() => setOpen(false)}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-center text-xs h-8 text-muted-foreground hover:text-foreground"
+                            >
+                                查看全部通知
+                            </Button>
+                        </Link>
                     </div>
                 )}
-            </DropdownMenuContent>
-        </DropdownMenu>
+            </PopoverContent>
+        </Popover>
     );
 }

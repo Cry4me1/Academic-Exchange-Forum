@@ -320,7 +320,12 @@ export async function createComment(data: {
             author:profiles!author_id (
                 id,
                 username,
-                avatar_url
+                avatar_url,
+                vip_level,
+                special_title,
+                badges,
+                is_verified,
+                auth_provider
             )
         `)
         .single();
@@ -502,14 +507,25 @@ export async function getCommentsSorted(
             break;
     }
 
+    const authorSelect = `
+        author:profiles!author_id (
+            id,
+            username,
+            avatar_url,
+            vip_level,
+            special_title,
+            badges,
+            is_verified,
+            auth_provider
+        )
+    `;
+
     // 获取顶级评论 (按排序方式)
     const { data: topLevelComments } = await supabase
         .from("comments")
         .select(`
             *,
-            author:profiles!author_id (
-                id, username, avatar_url
-            )
+            ${authorSelect}
         `)
         .eq("post_id", postId)
         .is("parent_id", null)
@@ -520,27 +536,47 @@ export async function getCommentsSorted(
         .from("comments")
         .select(`
             *,
-            author:profiles!author_id (
-                id, username, avatar_url
-            )
+            ${authorSelect}
         `)
         .eq("post_id", postId)
         .not("parent_id", "is", null)
         .order("created_at", { ascending: true });
 
-    // 构建嵌套结构
-    const commentMap = new Map();
-    topLevelComments?.forEach(comment => {
-        commentMap.set(comment.id, { ...comment, replies: [] });
+    // 构建嵌套结构（向上追溯顶级根评论）
+    const allCommentsMap = new Map();
+    topLevelComments?.forEach((comment) => {
+        allCommentsMap.set(comment.id, { ...comment, replies: [] });
     });
-    replies?.forEach(reply => {
-        const parent = commentMap.get(reply.parent_id);
-        if (parent) {
-            parent.replies.push({ ...reply, replies: [] });
+    replies?.forEach((reply) => {
+        allCommentsMap.set(reply.id, { ...reply, replies: [] });
+    });
+
+    const findRootCommentId = (startParentId: string): string | null => {
+        let currentId: string | null = startParentId;
+        const visited = new Set<string>();
+        while (currentId) {
+            if (visited.has(currentId)) break;
+            visited.add(currentId);
+            const parent = allCommentsMap.get(currentId);
+            if (!parent) return currentId;
+            if (!parent.parent_id) return parent.id;
+            currentId = parent.parent_id;
+        }
+        return currentId;
+    };
+
+    replies?.forEach((reply) => {
+        const rootId = findRootCommentId(reply.parent_id);
+        const rootComment = rootId ? allCommentsMap.get(rootId) : null;
+        if (rootComment) {
+            rootComment.replies.push({
+                ...reply,
+                replies: [],
+            });
         }
     });
 
-    return Array.from(commentMap.values());
+    return (topLevelComments?.map((c) => allCommentsMap.get(c.id)) || []);
 }
 
 // 删除帖子（仅作者可删除）

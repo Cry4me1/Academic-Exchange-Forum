@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CommentItem, type CommentData } from "./CommentItem";
 
 interface CollapsibleRepliesProps {
@@ -39,6 +39,16 @@ export function CollapsibleReplies({
     collapseThreshold = 3,
 }: CollapsibleRepliesProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // 当 URL 带有锚点（例如 #comment-06ae250e-...）时，若目标评论在此回复列表中，自动展开避免被收起遮挡
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
+            const targetId = window.location.hash.replace("#comment-", "");
+            if (replies.some((r) => r.id === targetId)) {
+                setIsExpanded(true);
+            }
+        }
+    }, [replies]);
     const shouldCollapse = replies.length > collapseThreshold;
     const visibleReplies = shouldCollapse && !isExpanded
         ? replies.slice(0, collapseThreshold)

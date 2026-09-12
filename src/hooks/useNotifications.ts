@@ -30,6 +30,7 @@ interface UseNotificationsReturn {
     markAsRead: (notificationIds: string[]) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     deleteNotification: (notificationId: string) => Promise<void>;
+    deleteAllNotifications: () => Promise<void>;
     refresh: () => Promise<void>;
 }
 
@@ -106,23 +107,54 @@ export function useNotifications(currentUserId: string | null): UseNotifications
     const markAllAsRead = useCallback(async () => {
         if (!currentUserId) return;
 
-        await supabase
-            .from("notifications")
-            .update({ is_read: true })
-            .eq("user_id", currentUserId)
-            .eq("is_read", false);
+        try {
+            const { error: updateError } = await supabase
+                .from("notifications")
+                .update({ is_read: true })
+                .eq("user_id", currentUserId)
+                .eq("is_read", false);
 
-        setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })));
+            if (updateError) throw updateError;
+
+            setNotifications((prev) => prev.map((n: any) => ({ ...n, is_read: true })));
+            toast.success("已将全部通知标记为已读");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "标记已读失败");
+        }
     }, [currentUserId, supabase]);
 
-    // 删除通知
+    // 删除单条通知
     const deleteNotification = useCallback(
         async (notificationId: string) => {
-            await supabase.from("notifications").delete().eq("id", notificationId);
-            setNotifications((prev) => prev.filter((n: any) => n.id !== notificationId));
+            try {
+                const { error: delError } = await supabase.from("notifications").delete().eq("id", notificationId);
+                if (delError) throw delError;
+                setNotifications((prev) => prev.filter((n: any) => n.id !== notificationId));
+            } catch (err) {
+                toast.error(err instanceof Error ? err.message : "删除通知失败");
+            }
         },
         [supabase]
     );
+
+    // 清空所有通知
+    const deleteAllNotifications = useCallback(async () => {
+        if (!currentUserId) return;
+
+        try {
+            const { error: delAllError } = await supabase
+                .from("notifications")
+                .delete()
+                .eq("user_id", currentUserId);
+
+            if (delAllError) throw delAllError;
+
+            setNotifications([]);
+            toast.success("已清空所有通知");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "清空通知失败");
+        }
+    }, [currentUserId, supabase]);
 
     // 计算未读数量
     const unreadCount = notifications.filter((n: any) => !n.is_read).length;
@@ -191,6 +223,7 @@ export function useNotifications(currentUserId: string | null): UseNotifications
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        deleteAllNotifications,
         refresh: fetchNotifications,
     };
 }

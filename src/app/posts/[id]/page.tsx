@@ -190,23 +190,42 @@ async function getComments(postId: string) {
         .not("parent_id", "is", null)
         .order("created_at", { ascending: true });
 
-    // 构建嵌套结构
-    const commentMap = new Map();
+    // 构建所有评论映射，支持嵌套多层回复（如 AI 回复子评论）顺藤摸瓜追溯至顶级根评论
+    const allCommentsMap = new Map();
     topLevelComments?.forEach((comment) => {
-        commentMap.set(comment.id, { ...comment, replies: [] });
+        allCommentsMap.set(comment.id, { ...comment, replies: [] });
+    });
+    replies?.forEach((reply) => {
+        allCommentsMap.set(reply.id, { ...reply, replies: [] });
     });
 
+    // 辅助函数：根据 parent_id 追溯顶级根评论
+    const findRootCommentId = (startParentId: string): string | null => {
+        let currentId: string | null = startParentId;
+        const visited = new Set<string>();
+        while (currentId) {
+            if (visited.has(currentId)) break;
+            visited.add(currentId);
+            const parent = allCommentsMap.get(currentId);
+            if (!parent) return currentId;
+            if (!parent.parent_id) return parent.id;
+            currentId = parent.parent_id;
+        }
+        return currentId;
+    };
+
     replies?.forEach((reply) => {
-        const parent = commentMap.get(reply.parent_id);
-        if (parent) {
-            parent.replies.push({
+        const rootId = findRootCommentId(reply.parent_id);
+        const rootComment = rootId ? allCommentsMap.get(rootId) : null;
+        if (rootComment) {
+            rootComment.replies.push({
                 ...reply,
-                replies: [], // 限制2层，第二层不再有子回复
+                replies: [], // 扁平化归入该主楼会话下
             });
         }
     });
 
-    return Array.from(commentMap.values());
+    return topLevelComments?.map((c) => allCommentsMap.get(c.id)) || [];
 }
 
 // 获取作者其他文章
@@ -289,7 +308,7 @@ async function getCurrentUser() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url")
+        .select("id, username, avatar_url, vip_level, special_title, badges, is_verified, auth_provider")
         .eq("id", user.id)
         .single();
 

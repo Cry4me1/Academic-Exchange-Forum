@@ -7,8 +7,18 @@ import { createClient } from "@/lib/supabase/client";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { NotificationItem } from "@/components/notifications/NotificationItem";
 import { Button } from "@/components/ui/button";
-import { Loader2, Bell, Check, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Bell, Check, ArrowLeft, Trash2 } from "lucide-react";
 
 export default function NotificationsPage() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -34,6 +44,7 @@ export default function NotificationsPage() {
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        deleteAllNotifications,
     } = useNotifications(currentUserId);
 
     const handleMarkAsRead = async (notificationId: string) => {
@@ -59,6 +70,10 @@ export default function NotificationsPage() {
                     : "/messages";
             case "mention":
                 return notification.related_id ? `/posts/${notification.related_id}` : null;
+            case "duel_invite":
+            case "duel_accepted":
+            case "duel_rejected":
+                return notification.related_id ? `/duels` : "/duels";
             case "system":
                 return notification.related_id ? `/posts/${notification.related_id}` : null;
             default:
@@ -97,21 +112,55 @@ export default function NotificationsPage() {
                     </div>
                 </div>
 
-                {unreadCount > 0 && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={markAllAsRead}
-                        className="gap-1.5"
-                    >
-                        <Check className="h-4 w-4" />
-                        全部已读
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={markAllAsRead}
+                            className="gap-1.5"
+                        >
+                            <Check className="h-4 w-4" />
+                            全部已读
+                        </Button>
+                    )}
+
+                    {notifications.length > 0 && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 border-border/80"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    清空全部
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>确定清空全部通知？</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        该操作将永久删除您当前收到的所有学术通知与互动消息，清空后无法恢复。
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>取消</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={deleteAllNotifications}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        确认清空
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
             </div>
 
-            {/* Notifications List */}
-            <div className="bg-card rounded-xl border shadow-sm">
+            {/* Notifications List - 解决异常分行线：容器统一 divide-y，每一个子项均使用严格的 block-level */}
+            <div className="bg-card rounded-xl border shadow-sm divide-y divide-border/60 overflow-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center py-16">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -123,28 +172,31 @@ export default function NotificationsPage() {
                         <p className="text-sm">当有新动态时，会在这里显示</p>
                     </div>
                 ) : (
-                    <div className="divide-y">
-                        {notifications.map((notification) => {
-                            const link = getNotificationLink(notification);
+                    notifications.map((notification) => {
+                        const link = getNotificationLink(notification);
+                        const item = (
+                            <NotificationItem
+                                notification={notification}
+                                onMarkAsRead={() => handleMarkAsRead(notification.id)}
+                                onDelete={() => handleDelete(notification.id)}
+                                className="rounded-none px-4 py-3.5"
+                            />
+                        );
 
-                            return link ? (
-                                <Link key={notification.id} href={link}>
-                                    <NotificationItem
-                                        notification={notification}
-                                        onMarkAsRead={() => handleMarkAsRead(notification.id)}
-                                        onDelete={() => handleDelete(notification.id)}
-                                    />
-                                </Link>
-                            ) : (
-                                <NotificationItem
-                                    key={notification.id}
-                                    notification={notification}
-                                    onMarkAsRead={() => handleMarkAsRead(notification.id)}
-                                    onDelete={() => handleDelete(notification.id)}
-                                />
-                            );
-                        })}
-                    </div>
+                        return link ? (
+                            <Link
+                                key={notification.id}
+                                href={link}
+                                className="block w-full focus:outline-none transition-colors"
+                            >
+                                {item}
+                            </Link>
+                        ) : (
+                            <div key={notification.id} className="block w-full">
+                                {item}
+                            </div>
+                        );
+                    })
                 )}
             </div>
         </div>
