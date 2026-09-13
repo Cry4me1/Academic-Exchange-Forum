@@ -27,6 +27,11 @@ import {
     Subtitles,
     FileUp,
     HelpCircle,
+    Table as TableIcon,
+    Type,
+    Check,
+    Cpu,
+    Binary,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { onUpload } from "@/lib/image-upload";
@@ -56,6 +61,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { MathPalette } from "./MathPalette";
+import { STEPPER_PRESETS } from "./extensions/algorithm-stepper/presets";
 
 interface AcademicQuickToolbarProps {
     className?: string;
@@ -72,6 +78,21 @@ export default function AcademicQuickToolbar({
     const [isUploading, setIsUploading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [, setForceUpdate] = useState(0);
+
+    // 订阅编辑器 transaction 与 selectionUpdate 事件，保证工具栏选中态与格式实时响应
+    useEffect(() => {
+        if (!editor) return;
+        const handleUpdate = () => {
+            setForceUpdate((v) => v + 1);
+        };
+        editor.on("transaction", handleUpdate);
+        editor.on("selectionUpdate", handleUpdate);
+        return () => {
+            editor.off("transaction", handleUpdate);
+            editor.off("selectionUpdate", handleUpdate);
+        };
+    }, [editor]);
 
     // 监听窗口滚动，以在吸顶时无缝呈现柔和阴影与背景毛玻璃
     useEffect(() => {
@@ -183,6 +204,20 @@ export default function AcademicQuickToolbar({
             }
         }
     };
+
+    // 动态判断当前光标所在块的标题/文本层级
+    const isH1 = editor?.isActive("heading", { level: 1 }) ?? false;
+    const isH2 = editor?.isActive("heading", { level: 2 }) ?? false;
+    const isH3 = editor?.isActive("heading", { level: 3 }) ?? false;
+    const isAnyHeading = isH1 || isH2 || isH3;
+
+    const currentBlockInfo = isH1
+        ? { label: "H1", icon: Heading1, active: true }
+        : isH2
+        ? { label: "H2", icon: Heading2, active: true }
+        : isH3
+        ? { label: "H3", icon: Heading3, active: true }
+        : { label: "正文", icon: Type, active: false };
 
     return (
         <TooltipProvider delayDuration={200}>
@@ -406,7 +441,14 @@ export default function AcademicQuickToolbar({
                                     <ChevronDown size={11} className="text-zinc-400" />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-48 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5">
+                            <DropdownMenuContent
+                                align="start"
+                                onCloseAutoFocus={(e) => {
+                                    e.preventDefault();
+                                    editor?.commands.focus();
+                                }}
+                                className="w-48 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5"
+                            >
                                 <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
                                     严谨学术环境
                                 </DropdownMenuLabel>
@@ -522,49 +564,277 @@ export default function AcademicQuickToolbar({
                                 插入 Mermaid 流程图/架构图
                             </TooltipContent>
                         </Tooltip>
+
+                        {/* 数据表格下拉菜单 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={cn(
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer flex items-center gap-0.5",
+                                        editor?.isActive("table")
+                                            ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 dark:hover:bg-blue-500/20"
+                                    )}
+                                    title="插入学术数据表格"
+                                >
+                                    <TableIcon size={15} />
+                                    <ChevronDown size={10} className="text-zinc-400" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="start"
+                                onCloseAutoFocus={(e) => {
+                                    e.preventDefault();
+                                    editor?.commands.focus();
+                                }}
+                                className="w-52 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5"
+                            >
+                                <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
+                                    插入学术数据表格
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        (editor?.chain().focus() as any).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
+                                >
+                                    <TableIcon size={14} className="text-blue-500" />
+                                    <span>标准数据表 (3×3)</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        editor?.chain().focus().insertContent({
+                                            type: "table",
+                                            content: [
+                                                {
+                                                    type: "tableRow",
+                                                    content: [
+                                                        { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "模型 / 方法" }] }] },
+                                                        { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "参数量 (M)" }] }] },
+                                                        { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "准确率 (%)" }] }] },
+                                                        { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "推理延时 (ms)" }] }] },
+                                                    ],
+                                                },
+                                                {
+                                                    type: "tableRow",
+                                                    content: [
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Baseline" }] }] },
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "25.6" }] }] },
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "76.3" }] }] },
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "12.4" }] }] },
+                                                    ],
+                                                },
+                                                {
+                                                    type: "tableRow",
+                                                    content: [
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Scholarly-Net (Ours)" }] }] },
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "21.2" }] }] },
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "82.5" }] }] },
+                                                        { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "8.1" }] }] },
+                                                    ],
+                                                },
+                                            ],
+                                        }).run();
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
+                                >
+                                    <Sparkles size={14} className="text-emerald-500" />
+                                    <div className="flex flex-col">
+                                        <span>评测对比表 (Benchmark)</span>
+                                        <span className="text-[10px] text-muted-foreground">支持一键转柱状/折线图</span>
+                                    </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-zinc-200/50 dark:bg-zinc-800/60 my-1" />
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        (editor?.chain().focus() as any).insertTable({ rows: 4, cols: 4, withHeaderRow: true }).run();
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
+                                >
+                                    <TableIcon size={14} className="text-indigo-500" />
+                                    <span>大型数据网格 (4×4)</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* 算法推演步进器下拉菜单 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    type="button"
+                                    className={cn(
+                                        "p-1.5 rounded-full transition-all border-0 cursor-pointer flex items-center gap-0.5",
+                                        editor?.isActive("algorithmStepper")
+                                            ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 dark:hover:bg-sky-500/20"
+                                    )}
+                                    title="插入算法全景时序推演步进器"
+                                >
+                                    <Cpu size={15} />
+                                    <ChevronDown size={10} className="text-zinc-400" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="start"
+                                onCloseAutoFocus={(e) => {
+                                    e.preventDefault();
+                                    editor?.commands.focus();
+                                }}
+                                className="w-56 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5"
+                            >
+                                <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
+                                    插入算法与公式时序推演看板
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        editor?.chain().focus().insertContent({
+                                            type: "algorithmStepper",
+                                            attrs: STEPPER_PRESETS["cpp-quicksort"],
+                                        }).run();
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
+                                >
+                                    <Cpu size={14} className="text-sky-500" />
+                                    <div className="flex flex-col">
+                                        <span>C++ 快速排序双指针分区</span>
+                                        <span className="text-[10px] text-muted-foreground">基准选取/双向扫描/原地交换</span>
+                                    </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        editor?.chain().focus().insertContent({
+                                            type: "algorithmStepper",
+                                            attrs: STEPPER_PRESETS["cpp-binary-search"],
+                                        }).run();
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
+                                >
+                                    <Binary size={14} className="text-emerald-500" />
+                                    <div className="flex flex-col">
+                                        <span>C++ 二分查找区间折半</span>
+                                        <span className="text-[10px] text-muted-foreground">中点防溢出/区间收缩推演</span>
+                                    </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        editor?.chain().focus().insertContent({
+                                            type: "algorithmStepper",
+                                            attrs: STEPPER_PRESETS["math-euler"],
+                                        }).run();
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl"
+                                >
+                                    <Sigma size={14} className="text-purple-500" />
+                                    <div className="flex flex-col">
+                                        <span>欧拉恒等式 (e^(iπ)+1=0) 推导</span>
+                                        <span className="text-[10px] text-muted-foreground">复指数泰勒级数严密证明</span>
+                                    </div>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     {/* ---------- 分组 4: 标题与结构排版 ---------- */}
                     <div className="flex items-center gap-0.5">
-                        {/* 标题下拉菜单 */}
+                        {/* 标题与正文段落切换下拉菜单 */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button
                                     type="button"
                                     className={cn(
-                                        "inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-all border-0 cursor-pointer",
-                                        editor?.isActive("heading")
-                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
-                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06]"
+                                        "inline-flex items-center justify-between gap-1 px-2 py-1 text-xs rounded-full transition-all border-0 cursor-pointer min-w-[58px]",
+                                        currentBlockInfo.active
+                                            ? "bg-zinc-200/80 text-zinc-900 dark:bg-white/20 dark:text-zinc-100 font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/40 dark:hover:bg-white/[0.06] font-medium"
                                     )}
+                                    title="切换标题与正文格式"
                                 >
-                                    <Heading1 size={14} />
-                                    <ChevronDown size={10} />
+                                    <div className="flex items-center gap-1">
+                                        <currentBlockInfo.icon size={13} className={currentBlockInfo.active ? "text-primary" : "text-zinc-500 dark:text-zinc-400"} />
+                                        <span className="text-[11px] font-medium">{currentBlockInfo.label}</span>
+                                    </div>
+                                    <ChevronDown size={10} className="text-zinc-400 shrink-0" />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-36 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5">
+                            <DropdownMenuContent
+                                align="start"
+                                onCloseAutoFocus={(e) => {
+                                    e.preventDefault();
+                                    editor?.commands.focus();
+                                }}
+                                className="w-44 text-xs rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] p-1.5"
+                            >
+                                {/* 正文 (普通段落) */}
                                 <DropdownMenuItem
-                                    onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
-                                    className={cn("flex items-center gap-2 cursor-pointer rounded-xl", editor?.isActive("heading", { level: 1 }) && "font-bold text-primary")}
+                                    onSelect={() => {
+                                        editor?.chain().focus().setParagraph().run();
+                                    }}
+                                    className={cn(
+                                        "flex items-center justify-between gap-2 cursor-pointer rounded-xl px-2.5 py-1.5 transition-colors border-0",
+                                        !isAnyHeading && "bg-zinc-100 dark:bg-white/10 font-medium text-primary"
+                                    )}
                                 >
-                                    <Heading1 size={14} />
-                                    <span>一级大标题</span>
+                                    <div className="flex items-center gap-2">
+                                        <Type size={14} className={!isAnyHeading ? "text-primary" : "text-zinc-500"} />
+                                        <span>正文 (普通文本)</span>
+                                    </div>
+                                    {!isAnyHeading && <Check size={12} className="text-primary shrink-0" />}
                                 </DropdownMenuItem>
+
+                                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-1" />
+
+                                {/* 一级大标题 */}
                                 <DropdownMenuItem
-                                    onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-                                    className={cn("flex items-center gap-2 cursor-pointer rounded-xl", editor?.isActive("heading", { level: 2 }) && "font-bold text-primary")}
+                                    onSelect={() => {
+                                        editor?.chain().focus().toggleHeading({ level: 1 }).run();
+                                    }}
+                                    className={cn(
+                                        "flex items-center justify-between gap-2 cursor-pointer rounded-xl px-2.5 py-1.5 transition-colors border-0",
+                                        isH1 && "bg-zinc-100 dark:bg-white/10 font-medium text-primary"
+                                    )}
                                 >
-                                    <Heading2 size={14} />
-                                    <span>二级中标题</span>
+                                    <div className="flex items-center gap-2">
+                                        <Heading1 size={14} className={isH1 ? "text-primary" : "text-zinc-500"} />
+                                        <span className="font-bold">一级大标题 (H1)</span>
+                                    </div>
+                                    {isH1 && <Check size={12} className="text-primary shrink-0" />}
                                 </DropdownMenuItem>
+
+                                {/* 二级中标题 */}
                                 <DropdownMenuItem
-                                    onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-                                    className={cn("flex items-center gap-2 cursor-pointer rounded-xl", editor?.isActive("heading", { level: 3 }) && "font-bold text-primary")}
+                                    onSelect={() => {
+                                        editor?.chain().focus().toggleHeading({ level: 2 }).run();
+                                    }}
+                                    className={cn(
+                                        "flex items-center justify-between gap-2 cursor-pointer rounded-xl px-2.5 py-1.5 transition-colors border-0",
+                                        isH2 && "bg-zinc-100 dark:bg-white/10 font-medium text-primary"
+                                    )}
                                 >
-                                    <Heading3 size={14} />
-                                    <span>三级小标题</span>
+                                    <div className="flex items-center gap-2">
+                                        <Heading2 size={14} className={isH2 ? "text-primary" : "text-zinc-500"} />
+                                        <span className="font-semibold">二级中标题 (H2)</span>
+                                    </div>
+                                    {isH2 && <Check size={12} className="text-primary shrink-0" />}
+                                </DropdownMenuItem>
+
+                                {/* 三级小标题 */}
+                                <DropdownMenuItem
+                                    onSelect={() => {
+                                        editor?.chain().focus().toggleHeading({ level: 3 }).run();
+                                    }}
+                                    className={cn(
+                                        "flex items-center justify-between gap-2 cursor-pointer rounded-xl px-2.5 py-1.5 transition-colors border-0",
+                                        isH3 && "bg-zinc-100 dark:bg-white/10 font-medium text-primary"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Heading3 size={14} className={isH3 ? "text-primary" : "text-zinc-500"} />
+                                        <span>三级小标题 (H3)</span>
+                                    </div>
+                                    {isH3 && <Check size={12} className="text-primary shrink-0" />}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

@@ -24,6 +24,12 @@ import { AcademicBlock } from "./extensions/academic-block/academic-block";
 import { CrossRefNode } from "./extensions/cross-ref/cross-ref-node";
 import { SidenoteNode } from "./extensions/sidenote/sidenote-node";
 import { suggestionItems } from "./slash-command";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import { TrailingNode } from "./extensions/trailing-node";
+import { AlgorithmStepperNode } from "./extensions/algorithm-stepper/algorithm-stepper-node";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(all);
@@ -131,7 +137,7 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         GlobalDragHandle.configure({
             dragHandleWidth: 20,
             scrollTreshold: 100,
-            customNodes: ["academicBlock", "codeBlock", "mermaidBlock"],
+            customNodes: ["academicBlock", "codeBlock", "mermaidBlock", "algorithmStepper"],
         }),
         // Auto joiner - fixes list joining when dragging
         AutoJoiner.configure({
@@ -151,6 +157,19 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         AcademicBlock,
         CrossRefNode,
         SidenoteNode,
+        AlgorithmStepperNode,
+        // Table extensions
+        Table.configure({
+            resizable: true,
+            HTMLAttributes: {
+                class: "scholarly-liquid-table",
+            },
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        // Ensure trailing paragraph after tables/codeblocks
+        TrailingNode,
     ];
 }
 

@@ -20,6 +20,11 @@ import { AcademicBlock } from "./extensions/academic-block/academic-block";
 import { CrossRefNode } from "./extensions/cross-ref/cross-ref-node";
 import { SidenoteNode } from "./extensions/sidenote/sidenote-node";
 import { MentionViewerNode } from "./extensions/mention";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import { AlgorithmStepperNode } from "./extensions/algorithm-stepper/algorithm-stepper-node";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(all);
@@ -157,6 +162,17 @@ export const viewerExtensions: any[] = [
     AcademicBlock,
     CrossRefNode,
     SidenoteNode,
+    AlgorithmStepperNode,
     // Mention node
     MentionViewerNode,
+    // Table extensions (Readonly in viewer)
+    Table.configure({
+        resizable: false,
+        HTMLAttributes: {
+            class: "scholarly-liquid-table",
+        },
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
 ];

@@ -1,6 +1,7 @@
 import { onUpload } from "@/lib/image-upload";
-import { CheckSquare, Code, Heading1, Heading2, Heading3, ImageIcon, List, ListOrdered, MessageSquarePlus, Sigma, Sparkles, TextQuote, Workflow } from "lucide-react";
+import { CheckSquare, Code, Cpu, Heading1, Heading2, Heading3, ImageIcon, List, ListOrdered, MessageSquarePlus, Sigma, Sparkles, Table as TableIcon, TextQuote, Workflow } from "lucide-react";
 import { CommandItemProps } from "./extensions/slash-command-extension";
+import { STEPPER_PRESETS } from "./extensions/algorithm-stepper/presets";
 
 export const suggestionItems: CommandItemProps[] = [
     {
@@ -136,6 +137,62 @@ export const suggestionItems: CommandItemProps[] = [
                     attrs: {
                         content: "graph TD\n    A[开始] --> B{判断}\n    B -->|是| C[执行]\n    B -->|否| D[结束]",
                     },
+                })
+                .run();
+        },
+    },
+    {
+        title: "数据表格 (3×3)",
+        description: "插入标准学术数据表格，支持增删行列与自适应缩放",
+        searchTerms: ["table", "biaoge", "grid", "表格", "数据表", "数据"],
+        icon: <TableIcon size={18} className="text-blue-500" />,
+        command: ({ editor, range }) => {
+            (editor.chain().focus().deleteRange(range) as any)
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run();
+        },
+    },
+    {
+        title: "学术评测对比表 (Benchmark)",
+        description: "插入模型精度/延时/参数量评测对比表，支持一键转图表",
+        searchTerms: ["benchmark", "experiment", "duibi", "实验", "对照", "评测", "table", "chart"],
+        icon: <TableIcon size={18} className="text-emerald-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "table",
+                    content: [
+                        {
+                            type: "tableRow",
+                            content: [
+                                { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "模型 / 方法" }] }] },
+                                { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "参数量 (M)" }] }] },
+                                { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "准确率 (%)" }] }] },
+                                { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "推理延时 (ms)" }] }] },
+                            ],
+                        },
+                        {
+                            type: "tableRow",
+                            content: [
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Baseline" }] }] },
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "25.6" }] }] },
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "76.3" }] }] },
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "12.4" }] }] },
+                            ],
+                        },
+                        {
+                            type: "tableRow",
+                            content: [
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Scholarly-Net (Ours)" }] }] },
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "21.2" }] }] },
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "82.5" }] }] },
+                                { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "8.1" }] }] },
+                            ],
+                        },
+                    ],
                 })
                 .run();
         },
@@ -488,6 +545,23 @@ export const suggestionItems: CommandItemProps[] = [
                         targetId: "",
                         refType: "equation",
                     },
+                })
+                .run();
+        },
+    },
+    {
+        title: "算法推演步进器",
+        description: "插入时序算法/数学推演看板 (C++ 快排/二分/欧拉公式)",
+        searchTerms: ["stepper", "bujin", "suanfa", "algorithm", "quicksort", "euler", "cpp", "math"],
+        icon: <Cpu size={18} className="text-sky-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "algorithmStepper",
+                    attrs: STEPPER_PRESETS["cpp-quicksort"],
                 })
                 .run();
         },

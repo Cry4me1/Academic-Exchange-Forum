@@ -17,6 +17,7 @@ import { useMemo } from "react";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import BubbleMenu from "./BubbleMenu";
+import TableBubbleMenu from "./TableBubbleMenu";
 import { SlashAISelector } from "./generative/slash-ai-selector";
 import { createExtensions } from "./extensions";
 import { toast } from "sonner";
@@ -202,6 +203,7 @@ export default function NovelCollabEditor({
                     </EditorCommand>
                     <ImageResizer />
                     <BubbleMenu />
+                    <TableBubbleMenu />
                     <SlashAISelector />
                 </EditorContent>
             </EditorRoot>

@@ -22,6 +22,7 @@ import {
     markdownToTiptapHtml,
 } from "@/lib/markdown-parser";
 import BubbleMenu from "./BubbleMenu";
+import TableBubbleMenu from "./TableBubbleMenu";
 import AcademicQuickToolbar from "./AcademicQuickToolbar";
 // Apple Liquid Glass Toolbar integration synced
 import { defaultExtensions } from "./extensions";
@@ -286,6 +287,7 @@ export default function NovelEditor({
                     </EditorCommand>
                     <ImageResizer />
                     <BubbleMenu />
+                    <TableBubbleMenu />
                     <SlashAISelector />
                 </EditorContent>
             </EditorRoot>

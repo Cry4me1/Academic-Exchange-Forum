@@ -1667,8 +1667,13 @@
   /* 隐藏所有非打印 UI 元素 */
   header.sticky,
   aside[aria-label="打印工具栏"],
+  .table-chart-viewer-portal,
   .print\:hidden {
     display: none !important;
+  }
+
+  table.scholarly-liquid-table {
+    display: table !important;
   }
 
   /* 避免代码块、定理块、图表、引用在换页时被生硬截断 */
@@ -1695,3 +1700,160 @@
     color: inherit !important;
   }
 }
+
+/* ==========================================================================
+   Scholarly Apple Liquid Glass Table System
+   ========================================================================== */
+
+.tableWrapper {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-radius: 1rem;
+  max-width: 100%;
+}
+
+.tableWrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.3);
+  border-radius: 9999px;
+}
+
+/* 匹配富文本编辑器、阅读器与全站所有 Markdown 表格 */
+.novel-editor-container .ProseMirror table,
+.novel-viewer-container table,
+.rich-text-content table,
+.prose table,
+table.scholarly-liquid-table {
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
+  margin: 1.25rem 0 !important;
+  border-radius: 0.875rem !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(228, 228, 231, 0.8) !important;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0.5px rgba(255, 255, 255, 0.8) !important;
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+:is(.dark *) .novel-editor-container .ProseMirror table,
+:is(.dark *) .novel-viewer-container table,
+:is(.dark *) .rich-text-content table,
+:is(.dark *) .prose table,
+:is(.dark *) table.scholarly-liquid-table {
+  border: 1px solid rgba(63, 63, 70, 0.6) !important;
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0.5px rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(24, 24, 27, 0.5) !important;
+}
+
+/* 单元格与表头清晰网格边界 */
+.novel-editor-container .ProseMirror table th,
+.novel-editor-container .ProseMirror table td,
+.novel-viewer-container table th,
+.novel-viewer-container table td,
+.rich-text-content table th,
+.rich-text-content table td,
+.prose table th,
+.prose table td,
+table.scholarly-liquid-table th,
+table.scholarly-liquid-table td {
+  padding: 0.625rem 0.875rem !important;
+  vertical-align: middle !important;
+  text-align: left !important;
+  border: 1px solid rgba(228, 228, 231, 0.8) !important;
+  position: relative !important;
+  min-width: 100px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+:is(.dark *) .novel-editor-container .ProseMirror table th,
+:is(.dark *) .novel-editor-container .ProseMirror table td,
+:is(.dark *) .novel-viewer-container table th,
+:is(.dark *) .novel-viewer-container table td,
+:is(.dark *) .rich-text-content table th,
+:is(.dark *) .rich-text-content table td,
+:is(.dark *) .prose table th,
+:is(.dark *) .prose table td,
+:is(.dark *) table.scholarly-liquid-table th,
+:is(.dark *) table.scholarly-liquid-table td {
+  border: 1px solid rgba(63, 63, 70, 0.5) !important;
+}
+
+/* 表头高斯磨砂与区分色 */
+.novel-editor-container .ProseMirror table th,
+.novel-viewer-container table th,
+.rich-text-content table th,
+.prose table th,
+table.scholarly-liquid-table th {
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  letter-spacing: 0.025em !important;
+  color: var(--foreground) !important;
+  background-color: rgba(244, 244, 245, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+:is(.dark *) .novel-editor-container .ProseMirror table th,
+:is(.dark *) .novel-viewer-container table th,
+:is(.dark *) .rich-text-content table th,
+:is(.dark *) .prose table th,
+:is(.dark *) table.scholarly-liquid-table th {
+  background-color: rgba(39, 39, 42, 0.85) !important;
+}
+
+/* 行悬浮微光效应 (Row Hover Aura) */
+.novel-editor-container .ProseMirror table tbody tr,
+.novel-viewer-container table tbody tr,
+.rich-text-content table tbody tr,
+table.scholarly-liquid-table tbody tr {
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.novel-editor-container .ProseMirror table tbody tr:hover,
+.novel-viewer-container table tbody tr:hover,
+.rich-text-content table tbody tr:hover,
+table.scholarly-liquid-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.025) !important;
+}
+
+:is(.dark *) .novel-editor-container .ProseMirror table tbody tr:hover,
+:is(.dark *) .novel-viewer-container table tbody tr:hover,
+:is(.dark *) .rich-text-content table tbody tr:hover,
+:is(.dark *) table.scholarly-liquid-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.035) !important;
+}
+
+/* 单元格被选中的高亮 (ProseMirror selectedCell) */
+.ProseMirror .selectedCell:after {
+  background: rgba(14, 165, 233, 0.15) !important;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/* TipTap 列宽拖拽把手 */
+.column-resize-handle {
+  bottom: -2px;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+  background-color: rgba(14, 165, 233, 0.7);
+  pointer-events: none;
+}
+
+/* 算法时序推演步进器打印适配 */
+@media print {
+  .scholarly-algorithm-stepper-wrapper {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+}
+
+
