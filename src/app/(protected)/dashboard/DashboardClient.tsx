@@ -181,7 +181,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     return (
         <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950/40 text-foreground antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
             {/* 顶部导航栏 */}
-            <header className="sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80">
+            <header className="sticky top-0 z-50 border-0 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-[inset_0_-1px_0.5px_rgba(255,255,255,0.85),0_4px_24px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_-1px_0.5px_rgba(255,255,255,0.08),0_4px_24px_-2px_rgba(0,0,0,0.3)]">
                 <div className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
@@ -192,7 +192,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                     alt="Scholarly Logo" 
                                     width={30} 
                                     height={30} 
-                                    className="rounded-lg object-cover border border-zinc-200/80 dark:border-zinc-800 transition-transform group-hover:scale-105" 
+                                    className="rounded-xl object-cover border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15)] transition-transform group-hover:scale-105" 
                                 />
                                 <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                                     Scholarly
@@ -222,7 +222,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                         <button
                                             type="button"
                                             onClick={() => setIsRechargeOpen(true)}
-                                            className="hidden sm:inline-flex items-center gap-1.5 h-8.5 px-3 rounded-lg border border-amber-500/20 bg-amber-500/8 hover:bg-amber-500/15 text-amber-700 dark:text-amber-400 transition-all duration-150 shadow-2xs cursor-pointer select-none"
+                                            className="hidden sm:inline-flex items-center gap-1.5 h-8.5 px-3 rounded-full border-0 bg-amber-500/10 hover:bg-amber-500/18 text-amber-700 dark:text-amber-400 backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(245,158,11,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(245,158,11,0.2)] transition-all duration-150 cursor-pointer select-none"
                                         >
                                             <Coins className="h-3.5 w-3.5 text-amber-500" strokeWidth={1.75} />
                                             <span className="text-xs font-semibold font-mono tabular-nums">
@@ -230,9 +230,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                             </span>
                                         </button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="text-xs">
-                                        <p className="font-semibold text-current">当前学术积分: {creditBalance !== null ? creditBalance.toLocaleString() : '...'}</p>
-                                        <p className="text-[10px] opacity-75 mt-0.5">点击快捷充值积分</p>
+                                    <TooltipContent
+                                        side="bottom"
+                                        sideOffset={8}
+                                        className="text-xs border-0 rounded-2xl bg-white/90 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_24px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-2px_rgba(0,0,0,0.4)] px-3 py-2 z-50 pointer-events-none"
+                                    >
+                                        <p className="font-medium text-zinc-800 dark:text-zinc-100">当前学术积分: <span className="font-mono text-amber-600 dark:text-amber-400 font-semibold">{creditBalance !== null ? creditBalance.toLocaleString() : '...'}</span></p>
+                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">点击快捷充值积分</p>
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -240,7 +244,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             {/* 用户菜单 */}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="relative h-8.5 w-8.5 rounded-full p-0 border border-zinc-200/80 dark:border-zinc-800">
+                                    <Button variant="ghost" className="relative h-8.5 w-8.5 rounded-full p-0 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_rgba(0,0,0,0.3)]">
                                         <Avatar className="h-8.5 w-8.5">
                                             <AvatarImage src={currentUser?.avatar_url || ""} alt="用户头像" />
                                             <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold">
@@ -249,7 +253,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                         </Avatar>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56 text-xs">
+                                <DropdownMenuContent align="end" className="w-56 text-xs border-0 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_12px_40px_-4px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-4px_rgba(0,0,0,0.5)]">
                                     <DropdownMenuLabel className="font-normal py-2">
                                         <div className="flex flex-col space-y-0.5">
                                             <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{currentUser?.username || "当前学者"}</p>
@@ -303,12 +307,12 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             className="sticky top-24 space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
                         >
                             {/* 主导航 */}
-                            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-3 shadow-xs">
+                            <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
                                 <MainNav />
                             </div>
 
                             {/* 好友列表 */}
-                            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 p-4 shadow-xs">
+                            <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-4 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
                                 <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2.5 px-1 tracking-tight">
                                     好友动态
                                 </h3>
@@ -346,7 +350,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         </motion.div>
 
                         {/* Tabs 筛选器 */}
-                        <motion.div variants={fadeInUp} className="mb-6 sticky top-20 z-30 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-md py-1.5">
+                        <motion.div variants={fadeInUp} className="mb-6 sticky top-20 z-30 bg-zinc-50/70 dark:bg-zinc-950/70 backdrop-blur-xl py-1.5">
                             <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
                         </motion.div>
 

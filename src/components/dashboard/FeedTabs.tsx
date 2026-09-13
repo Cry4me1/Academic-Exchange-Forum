@@ -51,11 +51,11 @@ export function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
     return (
         <div
             ref={containerRef}
-            className="relative flex items-center gap-1 p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 overflow-x-auto scrollbar-hidden"
+            className="relative flex items-center gap-1 p-1 bg-white/60 dark:bg-zinc-900/50 backdrop-blur-2xl rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_8px_32px_-4px_rgba(0,0,0,0.3)] overflow-x-auto scrollbar-hidden"
         >
             {/* 滑块指示器 */}
             <motion.div
-                className="absolute top-1 bottom-1 bg-white dark:bg-zinc-800 rounded-md shadow-xs border border-zinc-200/80 dark:border-zinc-700/60 pointer-events-none"
+                className="absolute top-1 bottom-1 bg-white/95 dark:bg-zinc-800/90 rounded-full border-0 shadow-[0_2px_10px_-1px_rgba(0,0,0,0.1),inset_0_1px_0.5px_rgba(255,255,255,1)] dark:shadow-[0_2px_10px_-1px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.18)] backdrop-blur-md pointer-events-none"
                 animate={{
                     left: indicatorStyle.left,
                     width: indicatorStyle.width,
@@ -79,15 +79,15 @@ export function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
                         data-tab={tab.value}
                         onClick={() => onTabChange(tab.value)}
                         className={cn(
-                            "relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 whitespace-nowrap",
-                            "flex-1 min-w-fit select-none",
+                            "relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors duration-150 whitespace-nowrap",
+                            "flex-1 min-w-fit select-none border-0",
                             isActive
-                                ? "text-zinc-900 dark:text-zinc-100 font-semibold"
-                                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                ? "text-zinc-950 dark:text-white font-medium"
+                                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 font-medium"
                         )}
                     >
                         <Icon 
-                            className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-500")} 
+                            className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isActive ? "text-zinc-950 dark:text-white" : "text-zinc-400 dark:text-zinc-500")} 
                             strokeWidth={1.75}
                         />
                         <span>{tab.label}</span>

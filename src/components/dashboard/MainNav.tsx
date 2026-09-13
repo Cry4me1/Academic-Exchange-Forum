@@ -60,12 +60,12 @@ export function MainNav() {
                         href={item.href}
                         onClick={() => handleNavClick(item)}
                         className={cn(
-                            "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 relative select-none",
+                            "group flex items-center gap-3 px-3 py-2 rounded-full text-sm font-medium transition-all duration-150 relative select-none border-0",
                             isActive
-                                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold shadow-2xs"
-                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50",
-                            item.isVip && !isActive && "text-amber-600/90 dark:text-amber-400/90 hover:bg-amber-500/5",
-                            item.isVip && isActive && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                ? "bg-white/90 dark:bg-zinc-800/90 text-zinc-950 dark:text-zinc-50 shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_2px_8px_-1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(0,0,0,0.4)] backdrop-blur-md font-medium"
+                                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/60 dark:hover:bg-zinc-800/40 font-medium",
+                            item.isVip && !isActive && "text-amber-600/90 dark:text-amber-400/90 hover:bg-amber-500/10",
+                            item.isVip && isActive && "bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(245,158,11,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(245,158,11,0.25)]"
                         )}
                     >
                         <span className="relative flex items-center justify-center shrink-0">
@@ -88,13 +88,13 @@ export function MainNav() {
                         <span className="truncate flex-1 tracking-tight">{item.label}</span>
 
                         {showHighlight && (
-                            <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.2 rounded font-medium">
+                            <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-1.5 py-0.2 rounded-full font-medium">
                                 新
                             </span>
                         )}
 
                         {item.isVip && (
-                            <span className="text-[10px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.2 rounded font-semibold tracking-wider">
+                            <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-1.5 py-0.2 rounded-full font-medium tracking-wider">
                                 VIP
                             </span>
                         )}
@@ -102,18 +102,19 @@ export function MainNav() {
                 );
             })}
 
-            <div className="pt-2 mt-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
-                <Link
-                    href="/settings"
-                    className="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-all duration-150"
-                >
-                    <Settings
-                        className="h-4.5 w-4.5 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors"
-                        strokeWidth={1.75}
-                    />
-                    <span className="truncate tracking-tight">{tNav.settings}</span>
-                </Link>
-            </div>
+            {/* 渐变消融分割微光缝 */}
+            <div className="my-2 h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
+            <Link
+                href="/settings"
+                className="group flex items-center gap-3 px-3 py-2 rounded-full text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/60 dark:hover:bg-zinc-800/40 transition-all duration-150 border-0"
+            >
+                <Settings
+                    className="h-4.5 w-4.5 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors"
+                    strokeWidth={1.75}
+                />
+                <span className="truncate tracking-tight">{tNav.settings}</span>
+            </Link>
         </nav>
     );
 }

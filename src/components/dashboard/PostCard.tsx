@@ -187,6 +187,7 @@ export function PostCard({
     return <TextOnlyCard />;
 
     // ============================================================
+    // ============================================================
     // 顶部公共作者栏组件
     // ============================================================
     function PostHeader() {
@@ -195,20 +196,20 @@ export function PostCard({
                 {/* 左侧：头像 + 昵称 + 身份徽章 + 日期（自然横向排列，严格抗折行） */}
                 <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                     <Link href={`/user/${author.id}`} className="shrink-0 flex items-center gap-2 min-w-0">
-                        <Avatar className="h-7.5 w-7.5 border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
+                        <Avatar className="h-7.5 w-7.5 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] shrink-0">
                             <AvatarImage src={author.avatar} alt={author.name} />
-                            <AvatarFallback className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold">
+                            <AvatarFallback className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium">
                                 {author.initials}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[130px]">
+                        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[130px]">
                             {author.name}
                         </span>
                     </Link>
 
                     {/* 身份徽章 - 低饱和度中性微胶囊 */}
                     {author.special_title && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700/70 shrink-0">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] shrink-0">
                             {author.special_title}
                         </span>
                     )}
@@ -230,7 +231,7 @@ export function PostCard({
                         <Link
                             href={`/collections/${finalCollections[0].id || ''}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors max-w-[110px]"
+                            className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-colors max-w-[110px]"
                         >
                             <BookOpen className="h-2.5 w-2.5 text-zinc-400" strokeWidth={1.75} />
                             <span className="truncate">{finalCollections[0].name}</span>
@@ -239,17 +240,17 @@ export function PostCard({
 
                     {/* 置顶/已解决/求助徽标 */}
                     {isPinned && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                             <Pin className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.75} /> {tPost.pinned}
                         </span>
                     )}
                     {isSolved && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                             <CheckCircle2 className="h-2.5 w-2.5" strokeWidth={1.75} /> {tPost.solved}
                         </span>
                     )}
                     {isHelpWanted && !isSolved && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                             <HelpCircle className="h-2.5 w-2.5" strokeWidth={1.75} /> {tPost.helpWanted}
                         </span>
                     )}
@@ -260,12 +261,12 @@ export function PostCard({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6.5 w-6.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-6.5 w-6.5 rounded-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity border-0"
                             >
                                 <MoreHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="text-xs">
+                        <DropdownMenuContent align="end" className="text-xs border-0 rounded-2xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_12px_40px_-4px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-4px_rgba(0,0,0,0.5)]">
                             <DropdownMenuItem>{tPost.report}</DropdownMenuItem>
                             <DropdownMenuItem>{tPost.blockAuthor}</DropdownMenuItem>
                             <DropdownMenuItem onClick={handleShare}>{tPost.copyLink}</DropdownMenuItem>
@@ -281,42 +282,46 @@ export function PostCard({
     // ============================================================
     function PostFooter() {
         return (
-            <div className="flex items-center justify-between px-5 py-2.5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-900/40">
-                <div className="flex items-center gap-3.5">
-                    <ActionButton
-                        icon={<Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} strokeWidth={1.75} />}
-                        count={likeCount}
-                        active={isLiked}
-                        activeColor="text-rose-500 dark:text-rose-400"
-                        onClick={handleLike}
-                        disabled={isPending}
-                        animate={justLiked}
-                        particleType="heart"
-                    />
-                    <Link href={`/posts/${id}#comments`}>
+            <div className="flex flex-col">
+                {/* 渐变消融内部光缝 */}
+                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+                <div className="flex items-center justify-between px-5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-md">
+                    <div className="flex items-center gap-3.5">
                         <ActionButton
-                            icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} />}
-                            count={comments}
+                            icon={<Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} strokeWidth={1.75} />}
+                            count={likeCount}
+                            active={isLiked}
+                            activeColor="text-rose-500 dark:text-rose-400"
+                            onClick={handleLike}
+                            disabled={isPending}
+                            animate={justLiked}
+                            particleType="heart"
+                        />
+                        <Link href={`/posts/${id}#comments`}>
+                            <ActionButton
+                                icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                                count={comments}
+                                hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
+                            />
+                        </Link>
+                        <ActionButton
+                            icon={<Share2 className="h-3.5 w-3.5" strokeWidth={1.75} />}
+                            onClick={handleShare}
                             hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
                         />
-                    </Link>
+                    </div>
+
                     <ActionButton
-                        icon={<Share2 className="h-3.5 w-3.5" strokeWidth={1.75} />}
-                        onClick={handleShare}
+                        icon={<Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} strokeWidth={1.75} />}
+                        active={isBookmarked}
+                        activeColor="text-amber-500 dark:text-amber-400"
+                        onClick={handleBookmark}
+                        disabled={isPending}
                         hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
+                        animate={justBookmarked}
+                        particleType="star"
                     />
                 </div>
-
-                <ActionButton
-                    icon={<Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} strokeWidth={1.75} />}
-                    active={isBookmarked}
-                    activeColor="text-amber-500 dark:text-amber-400"
-                    onClick={handleBookmark}
-                    disabled={isPending}
-                    hoverColor="hover:text-zinc-900 dark:hover:text-zinc-100"
-                    animate={justBookmarked}
-                    particleType="star"
-                />
             </div>
         );
     }
@@ -326,14 +331,14 @@ export function PostCard({
     // ============================================================
     function CoverCard() {
         return (
-            <div className="group rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden shadow-2xs hover:shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between">
+            <div className="group rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_8px_32px_-4px_rgba(0,0,0,0.4)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_12px_36px_-4px_rgba(0,0,0,0.09)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.22),0_12px_36px_-4px_rgba(0,0,0,0.55)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between">
                 <div className="p-5">
                     {/* 顶部作者栏 */}
                     <PostHeader />
 
                     {/* 图片视窗容器 (16:9 固定比例，微弱内描边，悬停微缩放) */}
                     <Link href={`/posts/${id}`} className="block">
-                        <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3.5 border border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-100 dark:bg-zinc-800 ring-1 ring-inset ring-black/5 dark:ring-white/10">
+                        <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3.5 border-0 bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)]">
                             <Image
                                 src={coverImage!}
                                 alt={title}
@@ -362,13 +367,13 @@ export function PostCard({
                         </p>
                     )}
 
-                    {/* 学科/分类 Tag (统一为极简扁平中性胶囊) */}
+                    {/* 学科/分类 Tag (统一为水滴胶囊) */}
                     {tags.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mt-3">
                             {tags.slice(0, 3).map((tag) => (
                                 <span
                                     key={tag}
-                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-400 transition-colors"
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/60 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] text-zinc-600 dark:text-zinc-400 transition-colors"
                                 >
                                     {tag}
                                 </span>
@@ -388,7 +393,7 @@ export function PostCard({
     // ============================================================
     function TextOnlyCard() {
         return (
-            <div className="group rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden shadow-2xs hover:shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between">
+            <div className="group rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_8px_32px_-4px_rgba(0,0,0,0.4)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_12px_36px_-4px_rgba(0,0,0,0.09)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.22),0_12px_36px_-4px_rgba(0,0,0,0.55)] hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between">
                 <div className="p-5">
                     {/* 顶部作者栏 */}
                     <PostHeader />
@@ -407,13 +412,13 @@ export function PostCard({
                         </p>
                     )}
 
-                    {/* 学科/分类 Tag (统一为极简扁平中性胶囊) */}
+                    {/* 学科/分类 Tag (统一为水滴胶囊) */}
                     {tags.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 mt-3.5">
                             {tags.slice(0, 3).map((tag) => (
                                 <span
                                     key={tag}
-                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-600 dark:text-zinc-400 transition-colors"
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/60 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] text-zinc-600 dark:text-zinc-400 transition-colors"
                                 >
                                     {tag}
                                 </span>
@@ -483,8 +488,8 @@ function ActionButton({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                "relative inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors duration-150 select-none",
-                "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                "relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-150 select-none border-0",
+                "text-zinc-500 dark:text-zinc-400 hover:bg-white/70 dark:hover:bg-zinc-800/70",
                 active ? activeColor : hoverColor,
                 disabled && "opacity-50"
             )}

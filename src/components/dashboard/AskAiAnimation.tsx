@@ -145,7 +145,7 @@ const AskAiAnimation: React.FC = () => {
     );
 
     return (
-        <div className="w-full aspect-[8/5] bg-slate-50 relative select-none overflow-hidden rounded-lg cursor-default border border-slate-100 dark:bg-slate-900 dark:border-slate-800">
+        <div className="w-full aspect-[8/5] bg-slate-50/80 relative select-none overflow-hidden rounded-xl cursor-default border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:bg-slate-900/80 dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
             <svg
                 viewBox="0 0 800 500"
                 className="w-full h-full"

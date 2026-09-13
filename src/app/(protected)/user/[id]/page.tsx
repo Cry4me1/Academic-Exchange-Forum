@@ -447,7 +447,7 @@ export default function UserProfilePage() {
                 <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-1">未找到该学者档案</h1>
                 <p className="text-xs text-zinc-500 mb-5 max-w-sm">该用户可能已注销或地址有误，请核对后再试。</p>
                 <Link href="/dashboard">
-                    <Button variant="outline" size="sm" className="rounded-lg shadow-2xs">
+                    <Button variant="outline" size="sm" className="rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
                         返回学术主页
                     </Button>
                 </Link>
@@ -469,7 +469,7 @@ export default function UserProfilePage() {
         return (
             <div
                 key={post.id}
-                className="group relative rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/90 p-4 sm:p-5 shadow-2xs hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5"
+                className="group relative rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl p-4 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_12px_40px_-6px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_12px_40px_-6px_rgba(0,0,0,0.4)] transition-all duration-200 hover:-translate-y-0.5"
             >
                 <div className="flex flex-col space-y-2.5">
                     {/* 标题与状态标识 */}
@@ -480,13 +480,13 @@ export default function UserProfilePage() {
                             </h3>
                         </Link>
                         {isPending && (
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[11px] font-normal shrink-0 rounded-md">
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(245,158,11,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5">
                                 待审核
                             </Badge>
                         )}
                         {isRejected && (
                             <Link href={`/posts/${post.id}/edit`}>
-                                <Badge variant="destructive" className="text-[11px] shrink-0 hover:bg-destructive/90 transition-colors cursor-pointer flex items-center gap-1 rounded-md">
+                                <Badge variant="destructive" className="text-[11px] shrink-0 hover:bg-destructive/90 transition-colors cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-0.5 border-0 shadow-xs font-medium">
                                     <Pencil className="h-3 w-3" />
                                     <span>需修改</span>
                                 </Badge>
@@ -496,7 +496,7 @@ export default function UserProfilePage() {
 
                     {/* 驳回原因提示条 */}
                     {isRejected && (
-                        <div className="p-3 rounded-lg bg-red-500/8 border border-red-500/20 text-xs text-red-600 dark:text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="p-3 rounded-xl bg-red-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-red-600 dark:text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                             <div className="flex items-start gap-2 flex-1">
                                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
                                 <div className="leading-relaxed">
@@ -505,7 +505,7 @@ export default function UserProfilePage() {
                                 </div>
                             </div>
                             <Link href={`/posts/${post.id}/edit`} className="self-end sm:self-center">
-                                <Button size="sm" variant="destructive" className="h-7 text-xs gap-1.5 shrink-0 shadow-xs font-medium rounded-md">
+                                <Button size="sm" variant="destructive" className="h-7 text-xs gap-1.5 shrink-0 shadow-xs font-medium rounded-full border-0 px-3 cursor-pointer">
                                     <Pencil className="h-3 w-3" />
                                     前往修改
                                 </Button>
@@ -519,35 +519,39 @@ export default function UserProfilePage() {
                     </p>
 
                     {/* 底部元信息栏 */}
-                    <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/80 text-xs text-zinc-400 dark:text-zinc-500">
-                        <div className="flex items-center gap-2">
-                            <span>{new Date(post.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "short", day: "numeric" })}</span>
-                            {extraInfo && (
-                                <>
-                                    <span>·</span>
-                                    <span>{extraInfo.label}于 {new Date(extraInfo.time).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}</span>
-                                </>
-                            )}
-                        </div>
+                    <div className="pt-2">
+                        {/* 渐变消融微光缝 */}
+                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-2" />
+                        <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
+                            <div className="flex items-center gap-2">
+                                <span>{new Date(post.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "short", day: "numeric" })}</span>
+                                {extraInfo && (
+                                    <>
+                                        <span>·</span>
+                                        <span>{extraInfo.label}于 {new Date(extraInfo.time).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}</span>
+                                    </>
+                                )}
+                            </div>
 
-                        <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-                                <Heart className="h-3.5 w-3.5 text-zinc-400" />
-                                <span>{post.like_count || 0}</span>
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-                                <MessageCircle className="h-3.5 w-3.5 text-zinc-400" />
-                                <span>{post.comment_count || 0}</span>
-                            </span>
-                            {isOwnProfile && !isRejected && (
-                                <Link
-                                    href={`/posts/${post.id}/edit`}
-                                    className="ml-1 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                                >
-                                    <Pencil className="h-3 w-3" />
-                                    <span>编辑</span>
-                                </Link>
-                            )}
+                            <div className="flex items-center gap-3">
+                                <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                                    <Heart className="h-3.5 w-3.5 text-zinc-400" />
+                                    <span>{post.like_count || 0}</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                                    <MessageCircle className="h-3.5 w-3.5 text-zinc-400" />
+                                    <span>{post.comment_count || 0}</span>
+                                </span>
+                                {isOwnProfile && !isRejected && (
+                                    <Link
+                                        href={`/posts/${post.id}/edit`}
+                                        className="ml-1 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                                    >
+                                        <Pencil className="h-3 w-3" />
+                                        <span>编辑</span>
+                                    </Link>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -570,7 +574,7 @@ export default function UserProfilePage() {
                 <div className="flex items-center justify-between">
                     <Link
                         href="/dashboard"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-zinc-200/60 dark:border-zinc-800/60 shadow-2xs hover:shadow-xs transition-all"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
                         <span>返回广场</span>
@@ -582,7 +586,7 @@ export default function UserProfilePage() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-900/90 shadow-xs backdrop-blur-xl overflow-hidden"
+                    className="rounded-3xl border-0 bg-white/80 dark:bg-zinc-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] backdrop-blur-2xl overflow-hidden"
                 >
                     {/* 1. Header 层次化：固定比例 Cover 横幅 */}
                     <div className={cn("w-full h-44 sm:h-52 relative transition-all duration-500 overflow-hidden", currentBannerGradient)}>
@@ -599,13 +603,13 @@ export default function UserProfilePage() {
 
                     {/* 封禁/禁言状态条 */}
                     {profile.is_banned && (
-                        <div className="flex items-center gap-2 px-6 py-2.5 bg-red-500/10 border-b border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium">
+                        <div className="flex items-center gap-2 px-6 py-2.5 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                             <Ban className="h-4 w-4 shrink-0" />
                             <span>该用户已被系统封禁限制</span>
                         </div>
                     )}
                     {!profile.is_banned && profile.is_muted && (
-                        <div className="flex items-center gap-2 px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-medium">
+                        <div className="flex items-center gap-2 px-6 py-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                             <VolumeX className="h-4 w-4 shrink-0" />
                             <span>该用户处于禁言状态</span>
                             {profile.muted_until && (
@@ -620,11 +624,11 @@ export default function UserProfilePage() {
                     <div className="px-5 sm:px-7 pb-6 pt-0">
                         {/* 悬浮重叠头像与右侧主操作按钮 */}
                         <div className="flex items-end justify-between gap-4 -mt-12 sm:-mt-14 mb-4">
-                            {/* 头像：半重叠悬浮，带白边描边与柔和投影，以及在线状态指示灯 */}
+                            {/* 头像：半重叠悬浮，带水滴流体曲率与柔和投影，以及在线状态指示灯 */}
                             <div className="relative inline-block shrink-0 select-none">
-                                <Avatar className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl ring-4 ring-white dark:ring-zinc-900 shadow-md bg-zinc-100 dark:bg-zinc-800">
-                                    <AvatarImage src={profile.avatar_url || ""} alt={displayName} className="object-cover" />
-                                    <AvatarFallback className="text-3xl sm:text-4xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-2xl">
+                                <Avatar className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl border-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_8px_24px_-4px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2),0_8px_24px_-4px_rgba(0,0,0,0.5)] ring-4 ring-white/90 dark:ring-zinc-900/90 bg-zinc-100 dark:bg-zinc-800 backdrop-blur-md">
+                                    <AvatarImage src={profile.avatar_url || ""} alt={displayName} className="object-cover rounded-3xl" />
+                                    <AvatarFallback className="text-3xl sm:text-4xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-3xl">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
@@ -633,9 +637,9 @@ export default function UserProfilePage() {
                                 <span
                                     title={isOnline(profile.id) ? "当前在线" : "离线"}
                                     className={cn(
-                                        "absolute -bottom-1 -right-1 z-20 rounded-full ring-4 ring-white dark:ring-zinc-900 shadow-2xs transition-colors",
+                                        "absolute -bottom-1 -right-1 z-20 rounded-full ring-3 ring-white dark:ring-zinc-900 transition-all",
                                         isOnline(profile.id)
-                                            ? "h-5 w-5 bg-emerald-500 flex items-center justify-center"
+                                            ? "h-5 w-5 bg-emerald-500 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                                             : "h-4 w-4 bg-zinc-400 dark:bg-zinc-500"
                                     )}
                                 >
@@ -651,18 +655,18 @@ export default function UserProfilePage() {
                                     <>
                                         {isFriend ? (
                                             <Link href={`/messages?user=${userId}`}>
-                                                <Button size="sm" className="h-8 px-3.5 text-xs font-medium rounded-lg shadow-2xs gap-1.5">
+                                                <Button size="sm" className="h-8 px-4 text-xs font-medium rounded-full border-0 bg-zinc-950/85 hover:bg-zinc-900/95 text-white dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.2),inset_0_1px_1px_rgba(255,255,255,0.8)] gap-1.5 transition-all active:scale-[0.97] cursor-pointer">
                                                     <MessageCircle className="h-3.5 w-3.5" />
                                                     <span>发送私信</span>
                                                 </Button>
                                             </Link>
                                         ) : friendRequestSent ? (
-                                            <Button disabled variant="outline" size="sm" className="h-8 px-3.5 text-xs rounded-lg gap-1.5">
+                                            <Button disabled variant="outline" size="sm" className="h-8 px-4 text-xs font-medium rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-400 gap-1.5">
                                                 <UserCheck className="h-3.5 w-3.5" />
                                                 <span>已发好友申请</span>
                                             </Button>
                                         ) : (
-                                            <Button onClick={handleAddFriend} size="sm" className="h-8 px-3.5 text-xs font-medium rounded-lg shadow-2xs gap-1.5">
+                                            <Button onClick={handleAddFriend} size="sm" className="h-8 px-4 text-xs font-medium rounded-full border-0 bg-zinc-950/85 hover:bg-zinc-900/95 text-white dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.2),inset_0_1px_1px_rgba(255,255,255,0.8)] gap-1.5 transition-all active:scale-[0.97] cursor-pointer">
                                                 <UserPlus className="h-3.5 w-3.5" />
                                                 <span>添加好友</span>
                                             </Button>
@@ -672,7 +676,7 @@ export default function UserProfilePage() {
 
                                 {isOwnProfile && (
                                     <Link href="/settings/profile">
-                                        <Button variant="outline" size="sm" className="h-8 px-3.5 text-xs font-medium rounded-lg border-zinc-200/80 dark:border-zinc-700/80 shadow-2xs gap-1.5">
+                                        <Button variant="ghost" size="sm" className="h-8 px-3.5 text-xs font-medium rounded-full border-0 bg-zinc-100/80 hover:bg-zinc-200/80 dark:bg-zinc-800/70 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_8px_-1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_2px_8px_-1px_rgba(0,0,0,0.3)] gap-1.5 transition-all active:scale-[0.97] cursor-pointer">
                                             <Pencil className="h-3.5 w-3.5" />
                                             <span>编辑个人资料</span>
                                         </Button>
@@ -690,12 +694,12 @@ export default function UserProfilePage() {
 
                                 {/* 单个高权重角色 Badge */}
                                 {profile.is_developer ? (
-                                    <span className="inline-flex items-center gap-1 h-5 px-2 rounded-full text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 shrink-0 shadow-2xs">
+                                    <span className="inline-flex items-center gap-1 h-5 px-2.5 rounded-full text-[11px] font-medium bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_1px_4px_rgba(0,0,0,0.3)] shrink-0">
                                         <Code2 className="h-3 w-3 text-zinc-500" strokeWidth={2} />
                                         <span>{profile.developer_title || "系统开发者"}</span>
                                     </span>
                                 ) : profile.special_title ? (
-                                    <span className="inline-flex items-center h-5 px-2 rounded-full text-[11px] font-medium bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/25 shrink-0">
+                                    <span className="inline-flex items-center h-5 px-2.5 rounded-full text-[11px] font-medium bg-violet-500/15 dark:bg-violet-500/25 text-violet-700 dark:text-violet-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(139,92,246,0.15)] shrink-0">
                                         {profile.special_title}
                                     </span>
                                 ) : (
@@ -723,46 +727,50 @@ export default function UserProfilePage() {
                         </div>
 
                         {/* 横向排布的 Lucide 元信息 Meta 标签 */}
-                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500 dark:text-zinc-400 mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
-                            {profile.gender && profile.gender !== "private" && (
-                                <span className="inline-flex items-center gap-1 font-medium text-zinc-600 dark:text-zinc-300">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-                                    <span>{genderLabels[profile.gender] || profile.gender}</span>
-                                </span>
-                            )}
-                            {profile.country && (
-                                <span className="inline-flex items-center gap-1">
-                                    <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>{profile.country}</span>
-                                </span>
-                            )}
-                            {profile.language && (
-                                <span className="inline-flex items-center gap-1">
-                                    <Globe className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>{profile.language === "zh" ? "中文" : profile.language === "en" ? "English" : profile.language}</span>
-                                </span>
-                            )}
-                            {profile.created_at && (
-                                <span className="inline-flex items-center gap-1">
-                                    <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>{new Date(profile.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "long" })} 加入社区</span>
-                                </span>
-                            )}
-                            {(profile.duel_wins || 0) + (profile.duel_losses || 0) > 0 && (
-                                <span className="inline-flex items-center gap-1">
-                                    <Swords className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>学术辩论 {profile.duel_wins || 0} 胜 / {profile.duel_losses || 0} 负</span>
-                                </span>
-                            )}
+                        <div className="mt-4 pt-3 space-y-3">
+                            {/* 渐变消融微光缝 */}
+                            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+                            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500 dark:text-zinc-400">
+                                {profile.gender && profile.gender !== "private" && (
+                                    <span className="inline-flex items-center gap-1 font-medium text-zinc-600 dark:text-zinc-300">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                                        <span>{genderLabels[profile.gender] || profile.gender}</span>
+                                    </span>
+                                )}
+                                {profile.country && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>{profile.country}</span>
+                                    </span>
+                                )}
+                                {profile.language && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <Globe className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>{profile.language === "zh" ? "中文" : profile.language === "en" ? "English" : profile.language}</span>
+                                    </span>
+                                )}
+                                {profile.created_at && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>{new Date(profile.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "long" })} 加入社区</span>
+                                    </span>
+                                )}
+                                {(profile.duel_wins || 0) + (profile.duel_losses || 0) > 0 && (
+                                    <span className="inline-flex items-center gap-1">
+                                        <Swords className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>学术辩论 {profile.duel_wins || 0} 胜 / {profile.duel_losses || 0} 负</span>
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         {/* 荣誉勋章与细致角色标签 */}
                         {profile.badges && profile.badges.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2">
+                            <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-1">
                                 {profile.badges.map((badge, idx) => (
                                     <span
                                         key={idx}
-                                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-normal bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60"
+                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-zinc-100/80 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]"
                                     >
                                         {badge}
                                     </span>
@@ -781,36 +789,36 @@ export default function UserProfilePage() {
                 >
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         {/* 现代化 TabsList 切换条 */}
-                        <div className="border-b border-zinc-200/80 dark:border-zinc-800 pb-2">
-                            <TabsList className="h-auto p-1 bg-zinc-100/80 dark:bg-zinc-800/60 backdrop-blur-md rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 flex flex-wrap gap-1 w-full sm:w-auto justify-start">
+                        <div className="pb-2">
+                            <TabsList className="h-auto p-1.5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.2)] flex flex-wrap gap-1 w-full sm:w-auto justify-start">
                                 <TabsTrigger
                                     value="posts"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs text-zinc-600 dark:text-zinc-400 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5"
+                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
                                 >
                                     <span>帖子</span>
-                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-600 dark:text-zinc-300">
+                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
                                         {posts.length}
                                     </span>
                                 </TabsTrigger>
 
                                 <TabsTrigger
                                     value="collections"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs text-zinc-600 dark:text-zinc-400 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5"
+                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
                                 >
                                     <BookOpen className="h-3.5 w-3.5 text-zinc-400" />
                                     <span>专栏</span>
-                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-600 dark:text-zinc-300">
+                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
                                         {collections.length}
                                     </span>
                                 </TabsTrigger>
 
                                 <TabsTrigger
                                     value="likes"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs text-zinc-600 dark:text-zinc-400 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5"
+                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
                                 >
                                     <Heart className="h-3.5 w-3.5 text-zinc-400" />
                                     <span>点赞</span>
-                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-600 dark:text-zinc-300">
+                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
                                         {likedPosts.length}
                                     </span>
                                 </TabsTrigger>
@@ -819,22 +827,22 @@ export default function UserProfilePage() {
                                     <>
                                         <TabsTrigger
                                             value="bookmarks"
-                                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs text-zinc-600 dark:text-zinc-400 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5"
+                                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
                                         >
                                             <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
                                             <span>收藏</span>
-                                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-600 dark:text-zinc-300">
+                                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
                                                 {bookmarkedPosts.length}
                                             </span>
                                         </TabsTrigger>
 
                                         <TabsTrigger
                                             value="followed_collections"
-                                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-2xs text-zinc-600 dark:text-zinc-400 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5"
+                                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
                                         >
                                             <BookMarked className="h-3.5 w-3.5 text-zinc-400" />
                                             <span>关注专栏</span>
-                                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/70 dark:bg-zinc-700/70 text-zinc-600 dark:text-zinc-300">
+                                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
                                                 {followedCollections.length}
                                             </span>
                                         </TabsTrigger>
@@ -850,14 +858,14 @@ export default function UserProfilePage() {
                                     {posts.map((post) => renderPostCard(post))}
                                 </div>
                             ) : (
-                                <div className="text-center py-14 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white/40 dark:bg-zinc-900/40">
+                                <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
                                     <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
                                         <Pencil className="h-5 w-5" />
                                     </div>
                                     <p className="text-xs text-zinc-500 font-medium">暂无发布的学术帖子</p>
                                     {isOwnProfile && (
                                         <Link href="/posts/new">
-                                            <Button variant="outline" size="sm" className="mt-3 text-xs rounded-lg shadow-2xs">
+                                            <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
                                                 发布第一篇学术讨论
                                             </Button>
                                         </Link>
@@ -873,7 +881,7 @@ export default function UserProfilePage() {
                                     {isOwnProfile && (
                                         <div className="flex justify-end">
                                             <Link href="/collections/manage">
-                                                <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-lg shadow-2xs">
+                                                <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
                                                     <BookOpen className="h-3.5 w-3.5" />
                                                     <span>管理我的专栏</span>
                                                 </Button>
@@ -897,7 +905,7 @@ export default function UserProfilePage() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-14 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white/40 dark:bg-zinc-900/40">
+                                <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
                                     <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
                                         <BookOpen className="h-5 w-5" />
                                     </div>
@@ -906,7 +914,7 @@ export default function UserProfilePage() {
                                     </p>
                                     {isOwnProfile && (
                                         <Link href="/collections/manage">
-                                            <Button variant="outline" size="sm" className="mt-3 text-xs rounded-lg shadow-2xs">
+                                            <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
                                                 创建第一个专栏
                                             </Button>
                                         </Link>
@@ -924,7 +932,7 @@ export default function UserProfilePage() {
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-center py-14 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white/40 dark:bg-zinc-900/40">
+                                <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
                                     <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
                                         <Heart className="h-5 w-5" />
                                     </div>
@@ -944,7 +952,7 @@ export default function UserProfilePage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-14 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white/40 dark:bg-zinc-900/40">
+                                        <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
                                             <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
                                                 <Bookmark className="h-5 w-5" />
                                             </div>
@@ -973,13 +981,13 @@ export default function UserProfilePage() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-14 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white/40 dark:bg-zinc-900/40">
+                                        <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
                                             <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
                                                 <BookMarked className="h-5 w-5" />
                                             </div>
                                             <p className="text-xs text-zinc-500 font-medium">还没有关注任何学术专栏</p>
                                             <Link href="/trending">
-                                                <Button variant="outline" size="sm" className="mt-3 text-xs rounded-lg shadow-2xs">
+                                                <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
                                                     探索热门学术专栏
                                                 </Button>
                                             </Link>

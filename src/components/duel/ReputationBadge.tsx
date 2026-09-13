@@ -87,8 +87,8 @@ export function ReputationBadge({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <span
-                        className={`inline-flex items-center font-medium cursor-help border select-none transition-all shadow-2xs
-                            ${rank.bgColor} ${rank.color} ${rank.borderColor} ${sizeClasses[size]}`}
+                        className={`inline-flex items-center font-medium cursor-help border-0 select-none transition-all shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]
+                            ${rank.bgColor} ${rank.color} ${sizeClasses[size]}`}
                     >
                         <Shield className={`${iconSizes[size]} shrink-0 opacity-70`} strokeWidth={1.75} />
                         <span className="font-mono font-semibold tabular-nums">
@@ -96,17 +96,17 @@ export function ReputationBadge({
                         </span>
                     </span>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="w-64 p-0">
+                <TooltipContent side="bottom" sideOffset={6} className="w-64 p-0 border-0 rounded-2xl bg-white/90 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 backdrop-blur-2xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_12px_40px_-6px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_12px_40px_-6px_rgba(0,0,0,0.5)] overflow-hidden">
                     <div className="p-4 space-y-3">
                         {/* 段位标题 */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 {isDevMode ? (
-                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-xs">
                                         <Code2 className="h-5 w-5 text-white" />
                                     </div>
                                 ) : (
-                                    <div className={`h-9 w-9 rounded-lg ${rank.bgColor} ${rank.borderColor} border flex items-center justify-center`}>
+                                    <div className={`h-9 w-9 rounded-xl ${rank.bgColor} border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] flex items-center justify-center`}>
                                         <Shield className={`h-5 w-5 ${rank.color}`} />
                                     </div>
                                 )}

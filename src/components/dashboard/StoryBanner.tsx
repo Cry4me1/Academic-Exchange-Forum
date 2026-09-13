@@ -161,7 +161,7 @@ export function StoryBanner() {
         return (
             <div className="flex gap-3 overflow-hidden">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="animate-pulse shrink-0 w-60 h-28 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800/60" />
+                    <div key={i} className="animate-pulse shrink-0 w-60 h-28 rounded-2xl bg-white/70 dark:bg-zinc-800/40 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]" />
                 ))}
             </div>
         );
@@ -176,7 +176,7 @@ export function StoryBanner() {
                 <button
                     type="button"
                     onClick={() => scroll("left")}
-                    className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-105"
+                    className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full border-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_4px_16px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_4px_16px_-2px_rgba(0,0,0,0.5)] flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-105 select-none cursor-pointer"
                 >
                     <ChevronLeft className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
                 </button>
@@ -187,7 +187,7 @@ export function StoryBanner() {
                 <button
                     type="button"
                     onClick={() => scroll("right")}
-                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-105"
+                    className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 h-7 w-7 rounded-full border-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_4px_16px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_4px_16px_-2px_rgba(0,0,0,0.5)] flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity hover:scale-105 select-none cursor-pointer"
                 >
                     <ChevronRight className="h-3.5 w-3.5 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
                 </button>
@@ -228,15 +228,15 @@ export function StoryBanner() {
 function TrendingSlide({ post }: { post: TrendingPost }) {
     return (
         <Link href={`/posts/${post.id}`}>
-            <div className="w-60 h-28 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md p-3.5 flex flex-col justify-between cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs hover:-translate-y-0.5 transition-all duration-150 group/slide">
+            <div className="w-60 h-28 rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_8px_24px_-4px_rgba(0,0,0,0.35)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_12px_28px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.22),0_12px_28px_-4px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 p-3.5 flex flex-col justify-between cursor-pointer transition-all duration-150 group/slide">
                 {/* 顶栏 */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                         <Flame className="h-3 w-3 text-orange-500" strokeWidth={1.75} />
-                        <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wider">热门</span>
+                        <span className="text-[10px] font-medium text-orange-500 uppercase tracking-wider">热门</span>
                     </div>
                     <div className="flex items-center gap-1.5 min-w-0">
-                        <Avatar className="h-4.5 w-4.5 border border-zinc-200/80 dark:border-zinc-700 shrink-0">
+                        <Avatar className="h-4.5 w-4.5 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] shrink-0">
                             <AvatarImage src={post.author?.avatar_url || ""} />
                             <AvatarFallback className="text-[8px]">
                                 {(post.author?.username || "?")[0].toUpperCase()}
@@ -249,7 +249,7 @@ function TrendingSlide({ post }: { post: TrendingPost }) {
                 </div>
 
                 {/* 标题 */}
-                <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 group-hover/slide:text-primary transition-colors">
+                <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 group-hover/slide:text-primary transition-colors">
                     {post.title}
                 </p>
 
@@ -274,18 +274,18 @@ function TopPosterSlide({ user }: { user: WeeklyTopPoster }) {
     const displayName = user.username || "学者";
     return (
         <Link href={`/user/${user.id}`}>
-            <div className="w-48 h-28 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-3.5 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-amber-500/30 hover:shadow-xs hover:-translate-y-0.5 transition-all duration-150">
-                <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            <div className="w-48 h-28 rounded-2xl border-0 bg-amber-500/8 dark:bg-amber-500/10 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_8px_24px_-4px_rgba(245,158,11,0.08)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-4px_rgba(0,0,0,0.35)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_12px_28px_-4px_rgba(245,158,11,0.14)] hover:-translate-y-0.5 p-3.5 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all duration-150">
+                <div className="flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                     <Crown className="h-3 w-3" strokeWidth={1.75} /> 本周之星
                 </div>
-                <Avatar className="h-8 w-8 border border-amber-500/30">
+                <Avatar className="h-8 w-8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)]">
                     <AvatarImage src={user.avatar_url || ""} alt={displayName} />
-                    <AvatarFallback className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-xs">
+                    <AvatarFallback className="bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium text-xs">
                         {displayName[0].toUpperCase()}
                     </AvatarFallback>
                 </Avatar>
                 <div className="text-center">
-                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[120px]">{displayName}</p>
+                    <p className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate max-w-[120px]">{displayName}</p>
                     <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">本周 {user.post_count} 篇成果</p>
                 </div>
             </div>
@@ -295,8 +295,8 @@ function TopPosterSlide({ user }: { user: WeeklyTopPoster }) {
 
 function EmptyWeeklySlide() {
     return (
-        <div className="w-52 h-28 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 p-3.5 flex flex-col items-center justify-center gap-1.5">
-            <div className="h-7 w-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+        <div className="w-52 h-28 rounded-2xl border-0 bg-white/40 dark:bg-zinc-900/30 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] p-3.5 flex flex-col items-center justify-center gap-1.5">
+            <div className="h-7 w-7 rounded-full bg-white/70 dark:bg-zinc-800 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] flex items-center justify-center">
                 <Sparkles className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.75} />
             </div>
             <div className="text-center">

@@ -53,11 +53,11 @@ export function DashboardTutorialBanner() {
                 initial={{ opacity: 0, y: -6, scale: 0.99 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.99 }}
-                className="relative rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-3.5 sm:p-4 shadow-xs backdrop-blur-md overflow-hidden mb-5"
+                className="relative rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-3.5 sm:p-4 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)] overflow-hidden mb-5"
             >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
                     <div className="flex items-start sm:items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-950/85 text-white dark:bg-white/90 dark:text-zinc-950 shadow-[inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.9)]">
                             <GraduationCap className="h-4 w-4" strokeWidth={1.75} />
                         </div>
 
@@ -66,7 +66,7 @@ export function DashboardTutorialBanner() {
                                 <h4 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                                     {isZh ? "Scholarly 研学者实操训练营" : "Scholarly Hands-on Training Camp"}
                                 </h4>
-                                <span className="text-[10px] py-0.2 px-1.5 rounded font-medium border border-zinc-200 dark:border-zinc-700 bg-zinc-100/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                <span className="text-[10px] py-0.2 px-2 rounded-full font-medium border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] bg-white/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                                     {isZh ? "1:1 全真沙盒" : "1:1 Interactive Sandbox"}
                                 </span>
                                 {completedCount > 0 && (
@@ -83,7 +83,7 @@ export function DashboardTutorialBanner() {
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                         <Link href="/announcements/tutorials">
-                            <Button size="sm" className="h-7 text-xs px-3 rounded-md font-medium bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs gap-1 group">
+                            <Button size="sm" className="h-7 text-xs px-3 rounded-full font-medium border-0 bg-zinc-950/85 text-white hover:bg-zinc-900/95 dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] gap-1 group">
                                 {t.dashboardComponents.tutorialBannerAction}
                                 <ArrowRight className="h-3 w-3 text-zinc-400 group-hover:translate-x-0.5 transition-transform" strokeWidth={1.75} />
                             </Button>
@@ -92,7 +92,7 @@ export function DashboardTutorialBanner() {
                         <button
                             type="button"
                             onClick={handleDismiss}
-                            className="h-7 w-7 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors"
+                            className="h-7 w-7 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors border-0"
                             title={isZh ? "稍后再说" : "Dismiss"}
                         >
                             <X className="h-3.5 w-3.5" strokeWidth={1.75} />

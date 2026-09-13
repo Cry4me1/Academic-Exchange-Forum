@@ -28,10 +28,10 @@ export function GlobalSearch({ className = "" }: { className?: string }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.search.placeholder}
-                className="w-full h-9 pl-9 pr-12 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-800/80 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:bg-background focus:border-zinc-300 dark:focus:border-zinc-700 focus:ring-2 focus:ring-zinc-200/60 dark:focus:ring-zinc-800 transition-all duration-200 font-sans shadow-xs"
+                className="w-full h-9 pl-9 pr-12 rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/60 backdrop-blur-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_8px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_2px_8px_-2px_rgba(0,0,0,0.3)] focus:outline-none focus:bg-white dark:focus:bg-zinc-800 focus:shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_4px_20px_-2px_rgba(0,0,0,0.08)] dark:focus:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_4px_20px_-2px_rgba(0,0,0,0.4)] transition-all duration-200 font-sans font-medium"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:flex items-center gap-0.5">
-                <kbd className="inline-flex h-5 items-center justify-center rounded border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-900 px-1.5 font-mono text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+                <kbd className="inline-flex h-5 items-center justify-center rounded-full border-0 bg-white/80 dark:bg-zinc-700/70 px-2 font-mono text-[10px] font-medium text-zinc-400 dark:text-zinc-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                     {t.search.shortcut}
                 </kbd>
             </div>

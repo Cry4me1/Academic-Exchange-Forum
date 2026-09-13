@@ -99,7 +99,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="relative rounded-2xl bg-background/95 backdrop-blur-xl border border-border/60 shadow-2xl overflow-hidden"
+                            className="relative rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_16px_48px_-8px_rgba(0,0,0,0.2)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_16px_48px_-8px_rgba(0,0,0,0.6)] overflow-hidden"
                         >
                             {/* Top accent gradient bar */}
                             <div className="h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
@@ -147,7 +147,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                 >
                                     <Button
                                         onClick={handleAction}
-                                        className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/20 rounded-xl font-medium group cursor-pointer"
+                                        className="w-full h-11 bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/20 rounded-full font-medium group cursor-pointer border-0"
                                     >
                                         开始探索仪表盘
                                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
@@ -190,7 +190,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="relative rounded-2xl bg-background/95 backdrop-blur-xl border border-border/60 shadow-2xl overflow-hidden"
+                            className="relative rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_16px_48px_-8px_rgba(0,0,0,0.2)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_16px_48px_-8px_rgba(0,0,0,0.6)] overflow-hidden"
                         >
                             {/* Top accent gradient bar */}
                             <div className="h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
@@ -240,7 +240,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: 0.5 + i * 0.08 }}
-                                            className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3.5 py-3 border border-border/40"
+                                            className="flex items-center gap-2.5 rounded-xl bg-white/50 dark:bg-zinc-800/40 px-3.5 py-3 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
                                         >
                                             <feature.icon className={`h-4 w-4 ${feature.color} shrink-0`} />
                                             <span className="text-xs font-medium text-foreground leading-tight">
@@ -260,7 +260,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                 >
                                     <Button
                                         onClick={handleAction}
-                                        className="w-full h-11 bg-gradient-to-r from-violet-500 to-primary hover:from-violet-500/90 hover:to-primary/90 text-white shadow-lg shadow-violet-500/20 rounded-xl font-medium group cursor-pointer"
+                                        className="w-full h-11 bg-gradient-to-r from-violet-500 to-primary hover:from-violet-500/90 hover:to-primary/90 text-white shadow-lg shadow-violet-500/20 rounded-full font-medium group cursor-pointer border-0"
                                     >
                                         查看更新详情
                                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />

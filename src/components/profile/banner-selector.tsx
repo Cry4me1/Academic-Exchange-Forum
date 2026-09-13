@@ -106,7 +106,7 @@ export function BannerSelector({ currentStyle, onStyleChange, className }: Banne
                     variant="ghost"
                     size="sm"
                     className={cn(
-                        "h-7 px-2.5 text-xs font-medium backdrop-blur-md bg-white/70 hover:bg-white/90 dark:bg-zinc-900/75 dark:hover:bg-zinc-900/95 text-zinc-800 dark:text-zinc-200 border border-white/40 dark:border-zinc-700/60 shadow-xs rounded-lg transition-all flex items-center gap-1.5",
+                        "h-7 px-3 text-xs font-medium backdrop-blur-xl bg-white/75 hover:bg-white/90 dark:bg-zinc-950/70 dark:hover:bg-zinc-950/85 text-zinc-800 dark:text-zinc-200 border-0 rounded-full shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_4px_16px_-2px_rgba(0,0,0,0.4)] transition-all flex items-center gap-1.5 cursor-pointer",
                         className
                     )}
                 >
@@ -114,13 +114,15 @@ export function BannerSelector({ currentStyle, onStyleChange, className }: Banne
                     <span>更换封面</span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-xl rounded-xl" align="end">
-                <div className="space-y-2.5">
-                    <div className="flex items-center justify-between pb-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <h4 className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">选择封面主题</h4>
+            <PopoverContent className="w-72 p-3.5 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl border-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_12px_40px_-6px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_12px_40px_-6px_rgba(0,0,0,0.5)] rounded-2xl" align="end">
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between pb-1">
+                        <h4 className="font-medium text-xs text-zinc-900 dark:text-zinc-100">选择封面主题</h4>
                         <span className="text-[10px] text-zinc-400">自适应明暗模式</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* 渐变消融微光缝 */}
+                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+                    <div className="grid grid-cols-2 gap-2 pt-1">
                         {bannerGradients.map((gradient) => {
                             const isSelected = currentStyle === gradient.id;
                             return (
@@ -130,17 +132,17 @@ export function BannerSelector({ currentStyle, onStyleChange, className }: Banne
                                     disabled={loading}
                                     onClick={() => handleSelect(gradient.id)}
                                     className={cn(
-                                        "group relative h-14 rounded-lg overflow-hidden border border-zinc-200/60 dark:border-zinc-800/80 transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 text-left",
+                                        "group relative h-14 rounded-xl overflow-hidden border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 text-left",
                                         gradient.preview,
-                                        isSelected && "ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2 dark:ring-offset-zinc-900"
+                                        isSelected && "ring-2 ring-zinc-900/90 dark:ring-white/90 shadow-[0_0_12px_rgba(0,0,0,0.15)]"
                                     )}
                                 >
                                     {isSelected && (
-                                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-zinc-900/80 dark:bg-white/90 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
+                                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-zinc-950/80 dark:bg-white/95 text-white dark:text-zinc-950 flex items-center justify-center shadow-xs backdrop-blur-sm">
                                             <Check className="h-2.5 w-2.5 stroke-[2.5]" />
                                         </div>
                                     )}
-                                    <span className="absolute bottom-0 inset-x-0 py-0.5 px-1.5 text-[10px] bg-black/30 dark:bg-black/50 backdrop-blur-[2px] text-white font-medium truncate">
+                                    <span className="absolute bottom-0 inset-x-0 py-0.5 px-1.5 text-[10px] bg-black/40 backdrop-blur-md text-white font-medium truncate">
                                         {gradient.name}
                                     </span>
                                 </button>

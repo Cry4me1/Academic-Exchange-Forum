@@ -13,9 +13,9 @@ interface TagData {
 }
 
 const heatStyles = {
-    hot: "bg-rose-500/8 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 hover:bg-rose-500/15",
-    warm: "bg-amber-500/8 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/15",
-    normal: "bg-zinc-100/80 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60",
+    hot: "bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(244,63,94,0.12)] hover:bg-rose-500/20",
+    warm: "bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(245,158,11,0.12)] hover:bg-amber-500/20",
+    normal: "bg-white/60 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] hover:bg-white/85 dark:hover:bg-zinc-800/85",
 };
 
 export function TagCloud() {
@@ -64,7 +64,7 @@ export function TagCloud() {
     }, []);
 
     return (
-        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-4 sm:p-5 shadow-xs backdrop-blur-md">
+        <div className="rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-4 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
             <div className="flex items-center gap-2 mb-3.5">
                 <TrendingUp className="h-4 w-4 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -81,7 +81,7 @@ export function TagCloud() {
                     {tags.map((tag) => (
                         <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`}>
                             <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-all duration-150 cursor-pointer ${heatStyles[tag.heat]}`}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-0 transition-all duration-150 cursor-pointer backdrop-blur-md select-none ${heatStyles[tag.heat]}`}
                             >
                                 <span>{tag.name}</span>
                                 <span className="font-mono text-[10px] opacity-60 tabular-nums">

@@ -46,7 +46,7 @@ export function MobileTabBar({ currentUserId }: MobileTabBarProps) {
     ];
 
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-t border-zinc-200/80 dark:border-zinc-800/80 pb-safe">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-0 bg-white/75 dark:bg-zinc-950/75 backdrop-blur-2xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_-8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_-8px_32px_-4px_rgba(0,0,0,0.4)] pb-safe">
             <div className="flex items-center justify-around h-14 px-2 relative">
                 {tabs.map((tab) => {
                     const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -56,7 +56,7 @@ export function MobileTabBar({ currentUserId }: MobileTabBarProps) {
                         return (
                             <div key="center-btn" className="relative -top-4 flex flex-col items-center">
                                 <Link href={tab.href}>
-                                    <div className="h-10 w-10 bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 rounded-full shadow-md flex items-center justify-center transform active:scale-95 transition-transform border border-zinc-700 dark:border-zinc-300">
+                                    <div className="h-10 w-10 bg-zinc-950/85 hover:bg-zinc-900/95 text-white dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white rounded-full border-0 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] flex items-center justify-center transform active:scale-95 transition-transform">
                                         <Icon className="h-5 w-5" strokeWidth={2} />
                                     </div>
                                 </Link>
@@ -80,7 +80,7 @@ export function MobileTabBar({ currentUserId }: MobileTabBarProps) {
                             <span
                                 className={cn(
                                     "text-[10px] font-medium transition-colors",
-                                    isActive ? "text-zinc-900 dark:text-zinc-100 font-semibold" : "text-zinc-400 dark:text-zinc-500"
+                                    isActive ? "text-zinc-900 dark:text-zinc-100 font-medium" : "text-zinc-400 dark:text-zinc-500 font-medium"
                                 )}
                             >
                                 {tab.name}

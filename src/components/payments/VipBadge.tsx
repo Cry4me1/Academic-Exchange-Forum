@@ -52,10 +52,10 @@ const levelSubtleStyles: Record<number, { bg: string; text: string; border: stri
 }
 
 const sizeConfig = {
-    xs: 'h-4 px-1 text-[9px] rounded font-mono font-semibold',
-    sm: 'h-4.5 px-1.5 text-[10px] rounded font-mono font-semibold',
-    md: 'h-5 px-2 text-[11px] rounded-md font-mono font-semibold',
-    lg: 'h-6 px-2.5 text-xs rounded-md font-mono font-semibold',
+    xs: 'h-4 px-1.5 text-[9px] rounded-full font-mono font-medium',
+    sm: 'h-4.5 px-2 text-[10px] rounded-full font-mono font-medium',
+    md: 'h-5 px-2.5 text-[11px] rounded-full font-mono font-medium',
+    lg: 'h-6 px-3 text-xs rounded-full font-mono font-medium',
 }
 
 export function VipBadge({ vipLevel = 1, size = 'sm', showTitle = false, className = '' }: VipBadgeProps) {
@@ -70,10 +70,9 @@ export function VipBadge({ vipLevel = 1, size = 'sm', showTitle = false, classNa
                 <TooltipTrigger asChild>
                     <span
                         className={cn(
-                            'inline-flex items-center justify-center shrink-0 border select-none transition-all cursor-help tracking-tight shadow-2xs',
+                            'inline-flex items-center justify-center shrink-0 border-0 rounded-full select-none transition-all cursor-help tracking-tight shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]',
                             style.bg,
                             style.text,
-                            style.border,
                             sizeClass,
                             className
                         )}
@@ -86,11 +85,15 @@ export function VipBadge({ vipLevel = 1, size = 'sm', showTitle = false, classNa
                         )}
                     </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                    <p className="font-semibold text-current">
+                <TooltipContent
+                    side="top"
+                    sideOffset={6}
+                    className="text-xs border-0 rounded-2xl bg-white/90 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_24px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-2px_rgba(0,0,0,0.4)] px-3 py-2 pointer-events-none"
+                >
+                    <p className="font-medium text-zinc-800 dark:text-zinc-100">
                         LV.{levelNumber} · {level.title}
                     </p>
-                    <p className="text-[10px] opacity-75 mt-0.5">
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
                         学术成就与贡献等级
                     </p>
                 </TooltipContent>

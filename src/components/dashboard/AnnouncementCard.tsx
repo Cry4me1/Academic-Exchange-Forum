@@ -45,14 +45,14 @@ export function AnnouncementCard() {
 
     if (loading) {
         return (
-            <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-4 sm:p-5 animate-pulse shadow-xs">
+            <div className="rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-4 sm:p-5 animate-pulse shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                    <div className="h-3 w-8 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                    <div className="h-3 w-8 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
                 </div>
                 <div className="space-y-3">
-                    <div className="h-16 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg" />
-                    <div className="h-16 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg" />
+                    <div className="h-16 bg-zinc-100/70 dark:bg-zinc-800/40 rounded-xl" />
+                    <div className="h-16 bg-zinc-100/70 dark:bg-zinc-800/40 rounded-xl" />
                 </div>
             </div>
         );
@@ -63,7 +63,7 @@ export function AnnouncementCard() {
     }
 
     return (
-        <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/60 p-4 sm:p-5 shadow-xs backdrop-blur-md">
+        <div className="rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-4 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
             <div className="flex items-center justify-between mb-3.5">
                 <div className="flex items-center gap-2">
                     <Bell className="h-4 w-4 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
@@ -93,9 +93,9 @@ export function AnnouncementCard() {
 
                     return (
                         <Link key={announcement.id} href={href} className="block group">
-                            <div className="p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-800/40 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 transition-all duration-150">
+                            <div className="p-3 rounded-xl border-0 bg-white/40 dark:bg-zinc-800/30 hover:bg-white/70 dark:hover:bg-zinc-800/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_8px_-1px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-all duration-150">
                                 <div className="flex items-start gap-2.5">
-                                    <div className={`h-7 w-7 rounded-md ${style.bg} ${style.text} flex items-center justify-center shrink-0 mt-0.5`}>
+                                    <div className={`h-7 w-7 rounded-xl ${style.bg} ${style.text} shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] flex items-center justify-center shrink-0 mt-0.5 border-0`}>
                                         <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -104,7 +104,7 @@ export function AnnouncementCard() {
                                                 {announcement.title}
                                             </h4>
                                             {isNew && (
-                                                <span className="px-1.5 py-0.2 text-[9px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded shrink-0">
+                                                <span className="px-1.5 py-0.2 text-[9px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] shrink-0">
                                                     NEW
                                                 </span>
                                             )}
@@ -112,7 +112,8 @@ export function AnnouncementCard() {
                                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-1 leading-normal font-normal">
                                             {announcement.content}
                                         </p>
-                                        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-zinc-200/40 dark:border-zinc-700/40 text-[11px] text-zinc-400 dark:text-zinc-500">
+                                        <div className="my-1.5 h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/60 dark:via-zinc-700/60 to-transparent" />
+                                        <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500">
                                             <span>{dateStr}</span>
                                             <span className="text-zinc-500 dark:text-zinc-400 group-hover:text-primary flex items-center gap-0.5 transition-colors">
                                                 {isZh ? "详情" : "Details"} <ChevronRight className="h-2.5 w-2.5" strokeWidth={1.75} />
