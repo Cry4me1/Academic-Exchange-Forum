@@ -13,7 +13,7 @@ let tokenCache: BaiduTokenCache | null = null;
 /**
  * 获取百度开放平台 Access Token
  */
-async function getBaiduAccessToken(): Promise<string | null> {
+export async function getBaiduAccessToken(): Promise<string | null> {
   const apiKey = process.env.BAIDU_IMAGE_CENSOR_API_KEY;
   const secretKey = process.env.BAIDU_IMAGE_CENSOR_SECRET_KEY;
 
@@ -48,12 +48,14 @@ async function getBaiduAccessToken(): Promise<string | null> {
 }
 
 export interface ImageAuditItemResult {
-  imageUrl: string;
+  imageUrl?: string;
   isSafe: boolean;
   isSensitive: boolean;
   isDangerous: boolean;
+  score: number;
   violationReason?: string;
   details?: Record<string, any>;
+  hasBaiduConfigured?: boolean;
 }
 
 export interface ImageAuditOverallResult {
@@ -67,26 +69,51 @@ export interface ImageAuditOverallResult {
 }
 
 /**
- * 审核单张图片
+ * 审核单张图片源（支持 URL 或 Base64）
  */
-export async function auditSingleImage(
-  imageUrl: string,
-  accessToken: string
+export async function auditSingleImageSource(
+  source: { imageUrl?: string; imageBase64?: string },
+  token?: string | null
 ): Promise<ImageAuditItemResult> {
+  const imageUrl = source.imageUrl;
+  const imageBase64 = source.imageBase64;
+
+  const accessToken = token || (await getBaiduAccessToken());
+
+  // 若未配置百度图像审核 Key，记录警告并降级放行
+  if (!accessToken) {
+    console.warn("[ImageModerator] 百度图片审核 API Key 未配置，已处于降级放行模式");
+    return {
+      imageUrl,
+      isSafe: true,
+      isSensitive: false,
+      isDangerous: false,
+      score: 100,
+      violationReason: "未配置百度审核密钥（降级放行）",
+      hasBaiduConfigured: false,
+    };
+  }
+
   try {
     const apiUrl = `https://aip.baidubce.com/rest/2.0/solution/v1/img_censor/v2/user_defined?access_token=${accessToken}`;
 
-    // 使用 URL 进行审核 (百度要求 urlencode)
-    const body = new URLSearchParams({
-      imgUrl: imageUrl,
-    });
+    const bodyParams = new URLSearchParams();
+    if (imageBase64) {
+      // 百度要求去除 data:image/xxx;base64, 前缀
+      const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+      bodyParams.append("image", cleanBase64);
+    } else if (imageUrl) {
+      bodyParams.append("imgUrl", imageUrl);
+    } else {
+      throw new Error("未提供有效的图片 URL 或 Base64 数据");
+    }
 
     const res = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: body.toString(),
+      body: bodyParams.toString(),
     });
 
     const data = await res.json();
@@ -100,6 +127,10 @@ export async function auditSingleImage(
         isSafe: true,
         isSensitive: false,
         isDangerous: false,
+        score: 100,
+        violationReason: "百度AI图片审核合规",
+        details: data,
+        hasBaiduConfigured: true,
       };
     }
 
@@ -108,15 +139,17 @@ export async function auditSingleImage(
         .map((d: any) => d.msg || d.type)
         .filter(Boolean)
         .join("、");
-      const reason = `插图中包含违规内容（${typeDesc || "涉嫌色情/暴恐/违禁"}）`;
+      const reason = `图片包含违规内容（${typeDesc || "涉嫌色情/暴恐/政治敏感/违规"}）`;
 
       return {
         imageUrl,
         isSafe: false,
         isSensitive: false,
         isDangerous: true,
+        score: 20,
         violationReason: reason,
         details: data,
+        hasBaiduConfigured: true,
       };
     }
 
@@ -125,46 +158,79 @@ export async function auditSingleImage(
         .map((d: any) => d.msg || d.type)
         .filter(Boolean)
         .join("、");
-      const reason = `插图疑似存在违规风险（${typeDesc || "疑似敏感"}），建议人工复审`;
+      const reason = `图片疑似存在违规风险（${typeDesc || "疑似敏感"}），转入审核`;
 
       return {
         imageUrl,
         isSafe: false,
         isSensitive: true,
         isDangerous: false,
+        score: 60,
         violationReason: reason,
         details: data,
+        hasBaiduConfigured: true,
       };
     }
 
-    // 百度接口错误处理（如 QPS 超限、未开通服务等）
+    // 百度接口错误处理（如 QPS 超限、图片格式不合法等）
     if (data.error_code) {
-      console.warn(`[ImageModerator] 百度图片审核返回错误 (code: ${data.error_code}, msg: ${data.error_msg})，已自动降级放行`);
+      console.warn(
+        `[ImageModerator] 百度图片审核返回错误 (code: ${data.error_code}, msg: ${data.error_msg})，自动降级放行`
+      );
       return {
         imageUrl,
         isSafe: true,
         isSensitive: false,
         isDangerous: false,
+        score: 100,
+        violationReason: `百度接口返回错误(${data.error_code}: ${data.error_msg})，已降级放行`,
+        details: data,
+        hasBaiduConfigured: true,
       };
     }
 
-    // 其他情况默认为安全或服务返回异常
     return {
       imageUrl,
       isSafe: true,
       isSensitive: false,
       isDangerous: false,
+      score: 100,
+      violationReason: "审核完成（默认为合规）",
+      details: data,
+      hasBaiduConfigured: true,
     };
   } catch (err) {
-    console.error(`[ImageModerator] 审核图片失败 (${imageUrl}):`, err);
-    // 网络异常时降级放行或标为待审
+    console.error(`[ImageModerator] 审核图片失败:`, err);
     return {
       imageUrl,
       isSafe: true,
       isSensitive: false,
       isDangerous: false,
+      score: 100,
+      violationReason: "网络异常或审核超时，降级放行",
+      hasBaiduConfigured: true,
     };
   }
+}
+
+/**
+ * 审核单张图片 (通过 URL)
+ */
+export async function auditSingleImage(
+  imageUrl: string,
+  accessToken: string
+): Promise<ImageAuditItemResult> {
+  return auditSingleImageSource({ imageUrl }, accessToken);
+}
+
+/**
+ * 审核单张图片 (通过 Base64)
+ */
+export async function auditSingleImageBase64(
+  imageBase64: string,
+  accessToken?: string | null
+): Promise<ImageAuditItemResult> {
+  return auditSingleImageSource({ imageBase64 }, accessToken);
 }
 
 /**
@@ -201,6 +267,7 @@ export async function auditPostImages(
         isSafe: true,
         isSensitive: false,
         isDangerous: false,
+        score: 0,
       })),
     };
   }

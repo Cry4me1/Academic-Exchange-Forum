@@ -187,9 +187,9 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
         if (!editor) return null;
 
         return (
-            <div className={cn("relative rounded-lg border bg-background", className)}>
+            <div className={cn("relative rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/70 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.35)] overflow-hidden", className)}>
                 {/* 工具栏 */}
-                <div className="flex items-center gap-0.5 px-2 py-1 border-b bg-muted/30">
+                <div className="relative flex items-center gap-0.5 px-2.5 py-1.5 border-0 bg-zinc-50/50 dark:bg-zinc-850/40 backdrop-blur-md">
                     <ToolbarButton
                         icon={Bold}
                         isActive={editor.isActive("bold")}
@@ -215,7 +215,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                         tooltip="行内代码"
                     />
 
-                    <div className="w-px h-4 bg-border mx-1" />
+                    <div className="w-[1px] h-3.5 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     <ToolbarButton
                         icon={List}
@@ -236,7 +236,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                         tooltip="引用"
                     />
 
-                    <div className="w-px h-4 bg-border mx-1" />
+                    <div className="w-[1px] h-3.5 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 shrink-0" />
 
                     {/* 链接按钮 */}
                     <Popover open={showLinkPopover} onOpenChange={setShowLinkPopover}>
@@ -245,19 +245,20 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                                 variant="ghost"
                                 size="icon"
                                 className={cn(
-                                    "h-7 w-7",
-                                    editor.isActive("link") && "bg-muted"
+                                    "h-7 w-7 rounded-full active:scale-95 transition-all text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
+                                    editor.isActive("link") && "bg-zinc-950/90 text-white dark:bg-white dark:text-zinc-950 shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_0.5px_rgba(255,255,255,0.3)]"
                                 )}
                             >
                                 <LinkIcon className="h-4 w-4" />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80 p-3" align="start">
+                        <PopoverContent className="w-80 p-3 rounded-2xl border-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_12px_40px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_rgba(0,0,0,0.6)]" align="start">
                             <div className="flex gap-2">
                                 <Input
                                     placeholder="输入链接地址..."
                                     value={linkUrl}
                                     onChange={(e) => setLinkUrl(e.target.value)}
+                                    className="rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/80 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] text-xs h-8 px-3"
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter") {
                                             e.preventDefault();
@@ -265,7 +266,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                                         }
                                     }}
                                 />
-                                <Button size="sm" onClick={addLink}>
+                                <Button size="sm" onClick={addLink} className="rounded-full border-0 bg-zinc-950/90 text-white hover:bg-zinc-900 dark:bg-white dark:text-zinc-950 active:scale-95 transition-all px-3">
                                     确定
                                 </Button>
                             </div>
@@ -273,7 +274,7 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="mt-2 text-destructive"
+                                    className="mt-2 text-destructive rounded-full hover:bg-red-500/10 active:scale-95 transition-all text-xs"
                                     onClick={removeLink}
                                 >
                                     移除链接
@@ -281,13 +282,17 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
                             )}
                         </PopoverContent>
                     </Popover>
+
+                    {/* 工具栏底部消融光缝 */}
+                    <div className="absolute bottom-0 left-2 right-2 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent pointer-events-none" />
                 </div>
 
                 {/* 编辑区域 */}
                 <EditorContent editor={editor} />
 
                 {/* LaTeX 提示 */}
-                <div className="px-3 py-1 text-[10px] text-muted-foreground border-t bg-muted/20">
+                <div className="relative px-3 py-1 text-[10px] text-zinc-400 dark:text-zinc-500 border-0 bg-zinc-50/40 dark:bg-zinc-900/30">
+                    <div className="absolute top-0 left-2 right-2 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/60 dark:via-zinc-800/60 to-transparent pointer-events-none" />
                     提示：使用 $公式$ 输入 LaTeX 数学公式，Shift+Enter 换行
                 </div>
             </div>
@@ -308,7 +313,10 @@ function ToolbarButton({ icon: Icon, isActive, onClick, tooltip }: ToolbarButton
         <Button
             variant="ghost"
             size="icon"
-            className={cn("h-7 w-7", isActive && "bg-muted")}
+            className={cn(
+                "h-7 w-7 rounded-full text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all",
+                isActive && "bg-zinc-950/90 text-white dark:bg-white dark:text-zinc-950 shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_0.5px_rgba(255,255,255,0.3)] hover:bg-zinc-900 dark:hover:bg-zinc-100"
+            )}
             onClick={onClick}
             title={tooltip}
         >

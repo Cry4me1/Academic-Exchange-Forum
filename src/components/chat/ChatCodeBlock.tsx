@@ -90,15 +90,15 @@ export function ChatCodeBlock({ code, language, className }: ChatCodeBlockProps)
     return (
         <div
             className={cn(
-                "my-2 rounded-xl overflow-hidden border border-zinc-800 dark:border-zinc-700",
-                "bg-zinc-950 dark:bg-zinc-950",
+                "my-2 rounded-2xl overflow-hidden border-0",
+                "bg-zinc-950/95 dark:bg-zinc-950/95 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_8px_24px_-4px_rgba(0,0,0,0.4)]",
                 className
             )}
         >
             {/* 顶部工具栏 */}
-            <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 dark:bg-zinc-900 border-b border-zinc-800">
+            <div className="relative flex items-center justify-between px-4 py-2 bg-zinc-900/80 dark:bg-zinc-900/80 backdrop-blur-md">
                 {/* 语言 Tag */}
-                <span className="text-[11px] font-medium text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-md">
+                <span className="text-[11px] font-medium text-zinc-400 bg-zinc-800/80 backdrop-blur-sm px-2.5 py-0.5 rounded-full shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                     {displayLang}
                 </span>
 
@@ -106,10 +106,10 @@ export function ChatCodeBlock({ code, language, className }: ChatCodeBlockProps)
                 <button
                     onClick={handleCopy}
                     className={cn(
-                        "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-all duration-200",
+                        "flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full transition-all active:scale-95 duration-200",
                         copied
-                            ? "text-emerald-400 bg-emerald-500/10"
-                            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                            ? "text-emerald-400 bg-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
                     )}
                 >
                     {copied ? (
@@ -124,6 +124,9 @@ export function ChatCodeBlock({ code, language, className }: ChatCodeBlockProps)
                         </>
                     )}
                 </button>
+
+                {/* 底部消融光缝 */}
+                <div className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-zinc-700/60 to-transparent pointer-events-none" />
             </div>
 
             {/* 代码内容 */}

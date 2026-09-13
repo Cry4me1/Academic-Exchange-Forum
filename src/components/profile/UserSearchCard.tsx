@@ -4,14 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VipBadge } from "@/components/payments/VipBadge";
 import { bannerGradients } from "@/components/profile/banner-selector";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import {
     ArrowRight,
-    Check,
     Clock,
     Code2,
     FileText,
     Loader2,
-    MessageCircle,
     UserCheck,
     UserPlus,
 } from "lucide-react";
@@ -126,24 +125,52 @@ export function UserSearchCard({
         }
     };
 
+    // 120fps 光随鼠动物理漫射计算
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+        e.currentTarget.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+    };
+
     return (
-        <div
+        <motion.div
+            onMouseMove={handleMouseMove}
+            whileHover={{ y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
             className={cn(
-                "group relative overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/90 shadow-2xs hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 flex flex-col justify-between text-left",
+                // 彻底无边框化 + 三层物理光学表现
+                "group relative overflow-hidden rounded-3xl border-0",
+                "bg-white/70 hover:bg-white/80 dark:bg-zinc-900/60 dark:hover:bg-zinc-900/75",
+                "backdrop-blur-xl backdrop-saturate-150",
+                "shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)]",
+                "dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.45)]",
+                "transition-all duration-300 flex flex-col justify-between text-left",
                 className
             )}
         >
+            {/* 光随鼠动物理高光反射层 (Mouse Reflex) */}
+            <div
+                className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
+                style={{
+                    background:
+                        "radial-gradient(240px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.22), transparent 80%)",
+                }}
+            />
+
             {/* 1. 顶部封面横幅 (Banner) */}
-            <div className="relative w-full h-24 sm:h-28 overflow-hidden">
+            <div className="relative w-full h-24 sm:h-28 overflow-hidden rounded-t-3xl">
                 {bannerUrl ? (
                     <div
-                        className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
                         style={{ backgroundImage: `url(${bannerUrl})` }}
-                    />
+                    >
+                        {/* 柔和暗微光层确保操作按钮与整体视觉统一 */}
+                        <div className="absolute inset-0 bg-black/15 backdrop-blur-[0.5px]" />
+                    </div>
                 ) : (
                     <div
                         className={cn(
-                            "absolute inset-0 transition-transform duration-500 group-hover:scale-105",
+                            "absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-105",
                             bannerGradientClass
                         )}
                     />
@@ -152,60 +179,62 @@ export function UserSearchCard({
                 {/* 网格微纹理装饰 */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff15_1px,transparent_1px),linear-gradient(to_bottom,#ffffff15_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-40" />
 
-                {/* 右上角半透明圆形加好友 / 关系操作按钮 */}
+                {/* 右上角水滴胶囊加好友 / 关系操作按钮 (无边框 + 菲涅尔内高光) */}
                 <div className="absolute top-2.5 right-2.5 z-20">
                     {isFriend ? (
                         <div
                             title="已是学术好友"
-                            className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs border border-white/40 dark:border-zinc-700/60 select-none"
+                            className="w-8 h-8 rounded-full border-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_rgba(0,0,0,0.3)] select-none"
                         >
                             <UserCheck className="h-3.5 w-3.5" />
                         </div>
                     ) : isFriendPending ? (
                         <div
                             title="好友申请已发送"
-                            className="w-8 h-8 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs border border-white/40 dark:border-zinc-700/60 select-none"
+                            className="w-8 h-8 rounded-full border-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_rgba(0,0,0,0.3)] select-none"
                         >
                             <Clock className="h-3.5 w-3.5" />
                         </div>
                     ) : (
-                        <button
+                        <motion.button
                             type="button"
                             onClick={handleAddFriendClick}
                             disabled={isAddingFriend}
+                            whileHover={{ scale: 1.06 }}
+                            whileTap={{ scale: 0.94 }}
                             title="申请添加好友"
-                            className="w-8 h-8 rounded-full bg-white/70 hover:bg-white/95 dark:bg-black/50 dark:hover:bg-black/75 backdrop-blur-md flex items-center justify-center text-zinc-700 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-white shadow-2xs hover:shadow-xs border border-white/30 dark:border-white/10 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                            className="w-8 h-8 rounded-full border-0 bg-white/75 hover:bg-white/95 dark:bg-black/55 dark:hover:bg-black/80 backdrop-blur-xl flex items-center justify-center text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_2px_8px_rgba(0,0,0,0.4)] transition-colors disabled:opacity-50 cursor-pointer"
                         >
                             {isAddingFriend ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                                 <UserPlus className="h-3.5 w-3.5" />
                             )}
-                        </button>
+                        </motion.button>
                     )}
                 </div>
             </div>
 
             {/* 2. 头像与卡片主体信息区 */}
-            <div className="px-4 pb-4 pt-0 flex-1 flex flex-col justify-between relative">
+            <div className="px-4.5 pb-4.5 pt-0 flex-1 flex flex-col justify-between relative z-10">
                 <div>
                     {/* 半悬浮跨越 Banner 头像与在线指示灯 */}
                     <div className="flex items-end justify-between -mt-9 sm:-mt-10 mb-2.5">
                         <div className="relative inline-block">
-                            <Avatar className="h-16 w-16 sm:h-18 sm:w-18 rounded-2xl ring-4 ring-white dark:ring-zinc-900 shadow-sm bg-zinc-100 dark:bg-zinc-800 shrink-0 select-none">
+                            <Avatar className="h-16 w-16 sm:h-18 sm:w-18 rounded-2xl ring-4 ring-white/90 dark:ring-zinc-900/90 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.15)] bg-zinc-100 dark:bg-zinc-800 shrink-0 select-none border-0">
                                 <AvatarImage src={avatarUrl || ""} alt={name} className="object-cover" />
                                 <AvatarFallback className="text-xl sm:text-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold rounded-2xl">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
 
-                            {/* 在线状态指示小圆点 (带白边描边防粘连) */}
+                            {/* 在线状态指示小水滴 */}
                             <span
                                 title={isOnline ? "当前在线" : "离线"}
                                 className={cn(
                                     "absolute -bottom-0.5 -right-0.5 z-20 rounded-full ring-2 ring-white dark:ring-zinc-900 shadow-2xs transition-colors",
                                     isOnline
-                                        ? "h-4 w-4 bg-emerald-500 flex items-center justify-center"
+                                        ? "h-4 w-4 bg-emerald-500 flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                                         : "h-3.5 w-3.5 bg-zinc-400 dark:bg-zinc-500"
                                 )}
                             >
@@ -223,14 +252,14 @@ export function UserSearchCard({
                                 {name}
                             </h3>
 
-                            {/* 开发者徽章 */}
+                            {/* 开发者徽章 (水滴胶囊 + 菲涅尔内高光) */}
                             {isDeveloper ? (
-                                <span className="inline-flex items-center gap-0.5 h-4.5 px-1.5 rounded-full text-[10px] font-mono font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 shrink-0 shadow-2xs">
+                                <span className="inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-mono font-medium border-0 bg-zinc-200/60 dark:bg-zinc-800/60 backdrop-blur-md text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] shrink-0">
                                     <Code2 className="h-2.5 w-2.5 text-zinc-500" />
                                     <span>{role || "DEVELOPER"}</span>
                                 </span>
                             ) : specialTitle ? (
-                                <span className="inline-flex items-center h-4.5 px-1.5 rounded-full text-[10px] font-medium bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-500/25 shrink-0">
+                                <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium border-0 bg-violet-500/15 dark:bg-violet-500/25 backdrop-blur-md text-violet-700 dark:text-violet-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] shrink-0">
                                     {specialTitle}
                                 </span>
                             ) : vipLevel ? (
@@ -244,11 +273,11 @@ export function UserSearchCard({
                         </p>
                     </div>
 
-                    {/* 3. 内嵌浅灰数据与近期帖子面板 (Stats & Recent Post) */}
-                    <div className="rounded-xl bg-zinc-50/90 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/80 p-2.5 sm:p-3 mt-3 space-y-2.5">
-                        {/* 社区学术数据面板 */}
-                        <div className="grid grid-cols-3 divide-x divide-zinc-200/60 dark:divide-zinc-800 text-center">
-                            <div className="px-1">
+                    {/* 3. 内嵌通透数据与近期帖子面板 (Stats & Recent Post - Liquid Glass 优化) */}
+                    <div className="rounded-2xl border-0 bg-white/45 dark:bg-zinc-800/35 backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_2px_12px_-2px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.06),0_2px_12px_-2px_rgba(0,0,0,0.2)] p-2.5 sm:p-3 mt-3 space-y-2">
+                        {/* 社区学术数据面板 (采用渐变消融微光缝替代硬 divide-x) */}
+                        <div className="flex items-center justify-between text-center">
+                            <div className="flex-1 px-1">
                                 <div className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                                     {stats.postsCount ?? 0}
                                 </div>
@@ -256,7 +285,11 @@ export function UserSearchCard({
                                     帖子
                                 </div>
                             </div>
-                            <div className="px-1">
+
+                            {/* 垂直渐变消融微光缝 */}
+                            <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent shrink-0" />
+
+                            <div className="flex-1 px-1">
                                 <div className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                                     {stats.likesCount ?? 0}
                                 </div>
@@ -264,7 +297,11 @@ export function UserSearchCard({
                                     获赞
                                 </div>
                             </div>
-                            <div className="px-1">
+
+                            {/* 垂直渐变消融微光缝 */}
+                            <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent shrink-0" />
+
+                            <div className="flex-1 px-1">
                                 <div className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                                     {stats.reputationScore ?? 100}
                                 </div>
@@ -274,8 +311,11 @@ export function UserSearchCard({
                             </div>
                         </div>
 
+                        {/* 水平渐变消融微光缝 */}
+                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-700/60 to-transparent" />
+
                         {/* 近期帖子摘要条目 */}
-                        <div className="pt-2 border-t border-zinc-200/50 dark:border-zinc-800/60 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 min-w-0">
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 min-w-0 px-0.5">
                             <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
                             {recentPost ? (
                                 <Link
@@ -295,28 +335,33 @@ export function UserSearchCard({
                     </div>
                 </div>
 
-                {/* 4. 底部行动按钮 (全宽黑色胶囊 CTA) */}
+                {/* 4. 底部行动按钮：黑曜石液态玻璃与白月光晶体 CTA (含触觉微弹) */}
                 <div className="mt-3.5">
                     {onProfileClick ? (
-                        <button
+                        <motion.button
                             type="button"
                             onClick={() => onProfileClick(id)}
-                            className="w-full rounded-full bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-medium h-9 flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99] cursor-pointer"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full rounded-full border-0 bg-zinc-950/85 hover:bg-zinc-900/95 dark:bg-white/90 dark:hover:bg-white text-white dark:text-zinc-950 text-xs font-medium h-9 flex items-center justify-center gap-1.5 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.85)] transition-all cursor-pointer"
                         >
                             <span>进入主页</span>
                             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </button>
+                        </motion.button>
                     ) : (
-                        <Link
-                            href={`/user/${id}`}
-                            className="w-full rounded-full bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-medium h-9 flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-xs transition-all active:scale-[0.99]"
-                        >
-                            <span>进入主页</span>
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                        <Link href={`/user/${id}`} className="block w-full">
+                            <motion.div
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="w-full rounded-full border-0 bg-zinc-950/85 hover:bg-zinc-900/95 dark:bg-white/90 dark:hover:bg-white text-white dark:text-zinc-950 text-xs font-medium h-9 flex items-center justify-center gap-1.5 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.85)] transition-all"
+                            >
+                                <span>进入主页</span>
+                                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                            </motion.div>
                         </Link>
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

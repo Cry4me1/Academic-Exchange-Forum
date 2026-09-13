@@ -86,7 +86,7 @@ export function ChatBubble({
                 )}
             >
                 {showAvatar && (
-                    <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5 opacity-50">
+                    <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5 opacity-50 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)]">
                         <AvatarImage src={senderAvatar || undefined} />
                         <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">
                             {initials}
@@ -95,10 +95,10 @@ export function ChatBubble({
                 )}
 
                 <div className={cn("flex flex-col gap-0.5", isOwn ? "items-end" : "items-start")}>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-muted/40 border border-dashed border-muted-foreground/20 text-xs text-muted-foreground italic">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-0 bg-zinc-100/70 dark:bg-zinc-850/50 backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_1px_3px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] text-xs text-zinc-500 dark:text-zinc-400 italic">
                         <RotateCcw className="h-3 w-3" />
                         <span>{isOwn ? "你撤回了一条消息" : "对方撤回了一条消息"}</span>
-                        <span className="text-[10px] opacity-70 ml-1">
+                        <span className="text-[10px] opacity-70 ml-1 font-normal">
                             {formatTime(message.revoked_at || message.created_at)}
                         </span>
                     </div>
@@ -113,7 +113,7 @@ export function ChatBubble({
             className={cn(
                 "inline-flex items-center gap-0.5 ml-2.5 float-right translate-y-[2px] text-[10px] leading-none select-none font-normal shrink-0",
                 isOwn
-                    ? "text-white/60 dark:text-zinc-900/60"
+                    ? "text-white/70 dark:text-zinc-900/70"
                     : "text-zinc-400 dark:text-zinc-500"
             )}
         >
@@ -138,10 +138,10 @@ export function ChatBubble({
             return (
                 <div
                     className={cn(
-                        "rounded-[18px] px-3.5 py-2 max-w-full break-words shadow-2xs",
+                        "rounded-[18px] px-3.5 py-2 max-w-full break-words border-0 backdrop-blur-xl transition-shadow",
                         isOwn
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-br-xs"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-xs"
+                            ? "bg-zinc-950/90 text-white dark:bg-white/95 dark:text-zinc-950 rounded-br-xs shadow-[0_4px_16px_-2px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.35)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.25),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                            : "bg-white/85 text-zinc-900 dark:bg-zinc-900/80 dark:text-zinc-100 rounded-bl-xs shadow-[0_4px_16px_-2px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.95)] dark:shadow-[0_4px_16px_-2px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.12)]"
                     )}
                 >
                     <div className="overflow-hidden">
@@ -187,10 +187,10 @@ export function ChatBubble({
                         <div
                             key={idx}
                             className={cn(
-                                "rounded-[18px] px-3.5 py-2 max-w-full break-words shadow-2xs",
+                                "rounded-[18px] px-3.5 py-2 max-w-full break-words border-0 backdrop-blur-xl transition-shadow",
                                 isOwn
-                                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-br-xs"
-                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-xs"
+                                    ? "bg-zinc-950/90 text-white dark:bg-white/95 dark:text-zinc-950 rounded-br-xs shadow-[0_4px_16px_-2px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.35)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.25),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                                    : "bg-white/85 text-zinc-900 dark:bg-zinc-900/80 dark:text-zinc-100 rounded-bl-xs shadow-[0_4px_16px_-2px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.95)] dark:shadow-[0_4px_16px_-2px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.12)]"
                             )}
                         >
                             <div
@@ -220,9 +220,9 @@ export function ChatBubble({
             {!isOwn && (
                 <div className="w-7 flex-shrink-0">
                     {showAvatar && (
-                        <Avatar className="h-7 w-7 mt-0.5 ring-1 ring-zinc-200 dark:ring-zinc-800">
+                        <Avatar className="h-7 w-7 mt-0.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_6px_rgba(0,0,0,0.06)]">
                             <AvatarImage src={senderAvatar || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold">
+                            <AvatarFallback className="bg-gradient-to-br from-zinc-200/90 to-zinc-100/90 dark:from-zinc-700/80 dark:to-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)]">
                                 {initials}
                             </AvatarFallback>
                         </Avatar>
@@ -237,10 +237,10 @@ export function ChatBubble({
                 ) : (
                     <div
                         className={cn(
-                            "rounded-[18px] px-3.5 py-1.5 max-w-full break-words shadow-2xs",
+                            "rounded-[18px] px-3.5 py-1.5 max-w-full break-words border-0 backdrop-blur-xl transition-shadow",
                             isOwn
-                                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-br-xs"
-                                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-xs"
+                                ? "bg-zinc-950/90 text-white dark:bg-white/95 dark:text-zinc-950 rounded-br-xs shadow-[0_4px_16px_-2px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.35)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.25),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                                : "bg-white/85 text-zinc-900 dark:bg-zinc-900/80 dark:text-zinc-100 rounded-bl-xs shadow-[0_4px_16px_-2px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.95)] dark:shadow-[0_4px_16px_-2px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.12)]"
                         )}
                     >
                         {/* 紧凑内联布局：文字与时间戳自然流式排列 */}
@@ -263,10 +263,10 @@ export function ChatBubble({
                             <Link
                                 href={`/posts/${message.referenced_post.id}`}
                                 className={cn(
-                                    "flex items-center gap-2 mt-1.5 p-1.5 rounded-lg transition-colors text-xs",
+                                    "flex items-center gap-2 mt-1.5 p-1.5 rounded-xl border-0 backdrop-blur-md transition-all text-xs active:scale-[0.98]",
                                     isOwn
-                                        ? "bg-white/10 hover:bg-white/20 dark:bg-zinc-900/10 dark:hover:bg-zinc-900/20"
-                                        : "bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-900/80"
+                                        ? "bg-white/15 hover:bg-white/25 dark:bg-zinc-900/15 dark:hover:bg-zinc-900/25 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.25)]"
+                                        : "bg-white/90 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-800 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.04)]"
                                 )}
                             >
                                 <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
@@ -405,7 +405,7 @@ export function ChatMessages({
                     <div key={group.date} className="space-y-1.5">
                         {/* 日期分隔符 - 紧凑轻量 */}
                         <div className="flex items-center justify-center my-3">
-                            <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                            <span className="px-3 py-0.5 rounded-full border-0 bg-white/70 dark:bg-zinc-850/60 backdrop-blur-md text-[10px] text-zinc-500 dark:text-zinc-400 font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_6px_-1px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_2px_6px_-1px_rgba(0,0,0,0.3)]">
                                 {group.date}
                             </span>
                         </div>

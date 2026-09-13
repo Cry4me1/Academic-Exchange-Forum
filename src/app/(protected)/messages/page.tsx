@@ -154,53 +154,63 @@ function MessagesContent() {
     }
 
     return (
-        <div className="flex h-[100dvh] bg-background">
+        <div className="flex h-[100dvh] bg-background/95 relative overflow-hidden">
             {/* 左侧对话列表 */}
             <div
                 className={cn(
-                    "w-full md:w-80 lg:w-[320px] xl:w-[360px] border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-card/30 shrink-0",
+                    "w-full md:w-80 lg:w-[320px] xl:w-[360px] border-0 flex flex-col bg-white/60 dark:bg-zinc-950/60 backdrop-blur-xl shrink-0 relative z-10",
                     selectedPartnerId && "hidden md:flex"
                 )}
             >
+                {/* 右侧垂直消融微光缝 */}
+                <div className="hidden md:block absolute top-0 right-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent pointer-events-none" />
+
                 {/* 头部 */}
-                <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="p-3.5 relative">
                     <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-2.5">
                         私信
                     </h1>
                     <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
                         <Input
                             placeholder="搜索对话..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 h-8 text-xs bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-lg"
+                            className="pl-8 h-8 text-xs border-0 bg-zinc-100/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-full shadow-[inset_0_1px_1px_rgba(0,0,0,0.04),0_1px_2px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(0,0,0,0.4),0_1px_0.5px_rgba(255,255,255,0.06)] focus-visible:ring-1 focus-visible:ring-zinc-400/50 transition-all placeholder:text-zinc-400"
                         />
                     </div>
+                    {/* 头部底部消融光缝 */}
+                    <div className="absolute bottom-0 left-3.5 right-3.5 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
                 </div>
 
                 {/* 好友快捷栏 - 横向轻量展示 */}
                 {friends.length > 0 && (
-                    <div className="px-3.5 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
+                    <div className="px-3.5 py-2 relative bg-zinc-50/40 dark:bg-zinc-900/20 backdrop-blur-md">
                         <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-400 mb-1.5">
                             <Users className="h-3 w-3" />
                             <span>好友 ({friends.length})</span>
                         </div>
                         <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                            {friends.map((f) => (
-                                <button
-                                    key={f.friendshipId}
-                                    onClick={() => setSelectedPartnerId(f.friend.id)}
-                                    className={cn(
-                                        "px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors",
-                                        selectedPartnerId === f.friend.id
-                                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs"
-                                            : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700"
-                                    )}
-                                >
-                                    {f.friend.username || (f.friend.email ? f.friend.email.split("@")[0] : "好友")}
-                                </button>
-                            ))}
+                            {friends.map((f) => {
+                                const isSelected = selectedPartnerId === f.friend.id;
+                                return (
+                                    <button
+                                        key={f.friendshipId}
+                                        onClick={() => setSelectedPartnerId(f.friend.id)}
+                                        className={cn(
+                                            "px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-all active:scale-[0.97]",
+                                            isSelected
+                                                ? "bg-zinc-950/90 text-white dark:bg-white dark:text-zinc-950 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.25),inset_0_1px_0.5px_rgba(255,255,255,0.35)] dark:shadow-[0_4px_12px_-2px_rgba(255,255,255,0.2),inset_0_1px_0.5px_rgba(255,255,255,0.9)]"
+                                                : "border-0 bg-white/75 dark:bg-zinc-850/60 text-zinc-700 dark:text-zinc-300 hover:bg-white/95 dark:hover:bg-zinc-800/80 backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)]"
+                                        )}
+                                    >
+                                        {f.friend.username || (f.friend.email ? f.friend.email.split("@")[0] : "好友")}
+                                    </button>
+                                );
+                            })}
                         </div>
+                        {/* 好友栏底部消融光缝 */}
+                        <div className="absolute bottom-0 left-3.5 right-3.5 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/60 dark:via-zinc-800/60 to-transparent" />
                     </div>
                 )}
 
@@ -231,7 +241,7 @@ function MessagesContent() {
             {/* 右侧聊天窗口 */}
             <div
                 className={cn(
-                    "flex-1 min-w-0 flex flex-col h-full bg-background",
+                    "flex-1 min-w-0 flex flex-col h-full bg-background/50 relative",
                     !selectedPartnerId && "hidden md:flex md:items-center md:justify-center"
                 )}
             >

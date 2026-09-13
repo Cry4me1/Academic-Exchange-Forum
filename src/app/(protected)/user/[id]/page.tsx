@@ -4,6 +4,7 @@ import { CollectionCard } from "@/components/collections";
 import { ReputationBadge } from "@/components/duel/ReputationBadge";
 import { VipBadge } from "@/components/payments/VipBadge";
 import { BannerSelector, bannerGradients } from "@/components/profile/banner-selector";
+import { FallingEffectController } from "@/components/profile/falling-effect-controller";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,9 +35,12 @@ import {
     UserPlus,
     VolumeX
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { MathText } from "@/components/ui/math-text";
+import { extractImageUrls } from "@/lib/moderation/utils";
 
 interface UserProfile {
     id: string;
@@ -54,18 +58,21 @@ interface UserProfile {
     is_developer: boolean | null;
     developer_title: string | null;
     banner_style: string | null;
+    banner_url: string | null;
     vip_level: number | null;
     is_banned: boolean | null;
     is_muted: boolean | null;
     muted_until: string | null;
     special_title: string | null;
     badges: string[] | null;
+    falling_effect: string | null;
 }
 
 interface Post {
     id: string;
     title: string;
     content: string | object;
+    cover_image?: string | null;
     created_at: string;
     like_count: number;
     comment_count: number;
@@ -73,6 +80,13 @@ interface Post {
     reviewer_note?: string;
     ai_reason?: string;
     is_published?: boolean;
+    author?: {
+        id: string;
+        username: string | null;
+        avatar_url?: string | null;
+        is_developer?: boolean | null;
+        developer_title?: string | null;
+    };
 }
 
 interface LikedPost extends Post {
@@ -167,6 +181,67 @@ function cleanMarkdownText(content: string | object): string {
         .trim();
 }
 
+/**
+ * 智能获取帖子封面图：
+ * 1. 优先读取 cover_image 字段
+ * 2. 降级解析 content 中的第一张图片（支持 Novel/TipTap JSON 节点与 Markdown/HTML 图片）
+ */
+function getPostCover(post: Post): string | null {
+    if (post.cover_image && typeof post.cover_image === "string" && post.cover_image.trim()) {
+        return post.cover_image.trim();
+    }
+    if (!post.content) return null;
+
+    // 1. TipTap / Novel JSON 内容提取
+    if (typeof post.content === "object") {
+        try {
+            const urls = extractImageUrls(post.content);
+            if (urls.length > 0 && urls[0]) return urls[0];
+        } catch {
+            // ignore
+        }
+    }
+
+    // 2. 字符串格式提取 (Markdown 或 HTML)
+    if (typeof post.content === "string") {
+        const mdMatch = post.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)/);
+        if (mdMatch && mdMatch[1]) return mdMatch[1];
+        const htmlMatch = post.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (htmlMatch && htmlMatch[1]) return htmlMatch[1];
+    }
+
+    return null;
+}
+
+/**
+ * Apple Liquid Glass 封面图微缩视窗组件
+ * 具备菲涅尔表面微光、暗光弥散柔投影与破图优雅容错（零布局跳动）
+ */
+function PostCoverThumbnail({ src, alt }: { src: string; alt: string }) {
+    const [hasError, setHasError] = useState(false);
+
+    if (hasError) {
+        return null;
+    }
+
+    return (
+        <div className="relative shrink-0 block overflow-hidden rounded-xl border-0 bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)] group/cover w-24 h-20 sm:w-40 sm:h-26 md:w-48 md:h-30 aspect-[16/10]">
+            <Image
+                src={src}
+                alt={alt}
+                fill
+                sizes="(max-width: 640px) 96px, (max-width: 768px) 160px, 192px"
+                className="object-cover group-hover/cover:scale-105 transition-transform duration-500 ease-out"
+                unoptimized
+                referrerPolicy="no-referrer"
+                onError={() => setHasError(true)}
+            />
+            {/* Apple 表面张力菲涅尔内高光 */}
+            <div className="absolute inset-0 pointer-events-none rounded-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15)]" />
+        </div>
+    );
+}
+
 export default function UserProfilePage() {
     const params = useParams();
     const userId = params.id as string;
@@ -183,6 +258,7 @@ export default function UserProfilePage() {
     const [friendRequestSent, setFriendRequestSent] = useState(false);
     const [activeTab, setActiveTab] = useState("posts");
     const [bannerStyle, setBannerStyle] = useState("default");
+    const [bannerUrl, setBannerUrl] = useState<string | null>(null);
 
     const supabase = createClient();
     const { isOnline } = usePresenceContext();
@@ -210,6 +286,9 @@ export default function UserProfilePage() {
                 if (profileData.banner_style) {
                     setBannerStyle(profileData.banner_style);
                 }
+                if (profileData.banner_url) {
+                    setBannerUrl(profileData.banner_url);
+                }
             }
 
             // 获取该用户发布的帖子
@@ -219,6 +298,7 @@ export default function UserProfilePage() {
                     id,
                     title,
                     content,
+                    cover_image,
                     created_at,
                     like_count,
                     comment_count,
@@ -264,6 +344,7 @@ export default function UserProfilePage() {
                         id,
                         title,
                         content,
+                        cover_image,
                         created_at,
                         like_count,
                         comment_count,
@@ -304,6 +385,7 @@ export default function UserProfilePage() {
                             id,
                             title,
                             content,
+                            cover_image,
                             created_at,
                             like_count,
                             comment_count,
@@ -465,95 +547,114 @@ export default function UserProfilePage() {
         const isPending = isOwnProfile && post.review_status === "pending";
         const postLink = isRejected ? `/posts/${post.id}/edit` : `/posts/${post.id}`;
         const cleanExcerpt = cleanMarkdownText(post.content);
+        const coverUrl = getPostCover(post);
 
         return (
             <div
                 key={post.id}
                 className="group relative rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl p-4 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_12px_40px_-6px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_12px_40px_-6px_rgba(0,0,0,0.4)] transition-all duration-200 hover:-translate-y-0.5"
             >
-                <div className="flex flex-col space-y-2.5">
-                    {/* 标题与状态标识 */}
-                    <div className="flex items-start justify-between gap-3">
-                        <Link href={postLink} className="flex-1 group/title">
-                            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover/title:text-blue-600 dark:group-hover/title:text-blue-400 transition-colors line-clamp-1 text-sm sm:text-base leading-snug">
-                                {post.title}
-                            </h3>
-                        </Link>
-                        {isPending && (
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(245,158,11,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5">
-                                待审核
-                            </Badge>
-                        )}
-                        {isRejected && (
-                            <Link href={`/posts/${post.id}/edit`}>
-                                <Badge variant="destructive" className="text-[11px] shrink-0 hover:bg-destructive/90 transition-colors cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-0.5 border-0 shadow-xs font-medium">
-                                    <Pencil className="h-3 w-3" />
-                                    <span>需修改</span>
-                                </Badge>
+                <div className="flex items-start justify-between gap-3.5 sm:gap-5">
+                    {/* 左侧主体内容区 */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2.5">
+                        {/* 标题与状态标识 */}
+                        <div className="flex items-start justify-between gap-3">
+                            <Link href={postLink} className="flex-1 group/title">
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover/title:text-blue-600 dark:group-hover/title:text-blue-400 transition-colors line-clamp-1 text-sm sm:text-base leading-snug">
+                                    <MathText text={post.title} inlineOnly />
+                                </h3>
                             </Link>
-                        )}
-                    </div>
+                            {isPending && (
+                                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(245,158,11,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5">
+                                    待审核
+                                </Badge>
+                            )}
+                            {isRejected && (
+                                <Link href={`/posts/${post.id}/edit`}>
+                                    <Badge variant="destructive" className="text-[11px] shrink-0 hover:bg-destructive/90 transition-colors cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-0.5 border-0 shadow-xs font-medium">
+                                        <Pencil className="h-3 w-3" />
+                                        <span>需修改</span>
+                                    </Badge>
+                                </Link>
+                            )}
+                        </div>
 
-                    {/* 驳回原因提示条 */}
-                    {isRejected && (
-                        <div className="p-3 rounded-xl bg-red-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-red-600 dark:text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                            <div className="flex items-start gap-2 flex-1">
-                                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
-                                <div className="leading-relaxed">
-                                    <span className="font-semibold">驳回原因：</span>
-                                    <span>{post.reviewer_note || post.ai_reason || "未符合学术交流规范"}</span>
+                        {/* 驳回原因提示条 */}
+                        {isRejected && (
+                            <div className="p-3 rounded-xl bg-red-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-red-600 dark:text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div className="flex items-start gap-2 flex-1">
+                                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+                                    <div className="leading-relaxed">
+                                        <span className="font-semibold">驳回原因：</span>
+                                        <span>{post.reviewer_note || post.ai_reason || "未符合学术交流规范"}</span>
+                                    </div>
+                                </div>
+                                <Link href={`/posts/${post.id}/edit`} className="self-end sm:self-center">
+                                    <Button size="sm" variant="destructive" className="h-7 text-xs gap-1.5 shrink-0 shadow-xs font-medium rounded-full border-0 px-3 cursor-pointer">
+                                        <Pencil className="h-3 w-3" />
+                                        前往修改
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+
+                        {/* 摘要文本（Markdown 语法深度清洗） */}
+                        <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                            {cleanExcerpt || "暂无文字摘要..."}
+                        </p>
+
+                        {/* 底部元信息栏 */}
+                        <div className="pt-2">
+                            {/* 渐变消融微光缝 */}
+                            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-2" />
+                            <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {post.author && post.author.id !== userId && (
+                                        <>
+                                            <Link href={`/user/${post.author.id}`} className="font-medium text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                                {post.author.username || "学者"}
+                                            </Link>
+                                            <span>·</span>
+                                        </>
+                                    )}
+                                    <span>{new Date(post.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "short", day: "numeric" })}</span>
+                                    {extraInfo && (
+                                        <>
+                                            <span>·</span>
+                                            <span>{extraInfo.label}于 {new Date(extraInfo.time).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}</span>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-3 shrink-0">
+                                    <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                                        <Heart className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>{post.like_count || 0}</span>
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+                                        <MessageCircle className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>{post.comment_count || 0}</span>
+                                    </span>
+                                    {isOwnProfile && !isRejected && (
+                                        <Link
+                                            href={`/posts/${post.id}/edit`}
+                                            className="ml-1 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                                        >
+                                            <Pencil className="h-3 w-3" />
+                                            <span>编辑</span>
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
-                            <Link href={`/posts/${post.id}/edit`} className="self-end sm:self-center">
-                                <Button size="sm" variant="destructive" className="h-7 text-xs gap-1.5 shrink-0 shadow-xs font-medium rounded-full border-0 px-3 cursor-pointer">
-                                    <Pencil className="h-3 w-3" />
-                                    前往修改
-                                </Button>
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* 摘要文本（Markdown 语法深度清洗） */}
-                    <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                        {cleanExcerpt || "暂无文字摘要..."}
-                    </p>
-
-                    {/* 底部元信息栏 */}
-                    <div className="pt-2">
-                        {/* 渐变消融微光缝 */}
-                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-2" />
-                        <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
-                            <div className="flex items-center gap-2">
-                                <span>{new Date(post.created_at).toLocaleDateString("zh-CN", { year: "numeric", month: "short", day: "numeric" })}</span>
-                                {extraInfo && (
-                                    <>
-                                        <span>·</span>
-                                        <span>{extraInfo.label}于 {new Date(extraInfo.time).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}</span>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-                                    <Heart className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>{post.like_count || 0}</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-                                    <MessageCircle className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>{post.comment_count || 0}</span>
-                                </span>
-                                {isOwnProfile && !isRejected && (
-                                    <Link
-                                        href={`/posts/${post.id}/edit`}
-                                        className="ml-1 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                                    >
-                                        <Pencil className="h-3 w-3" />
-                                        <span>编辑</span>
-                                    </Link>
-                                )}
-                            </div>
                         </div>
                     </div>
+
+                    {/* 右侧封面图视窗 */}
+                    {coverUrl && (
+                        <Link href={postLink} className="shrink-0 group/cover">
+                            <PostCoverThumbnail src={coverUrl} alt={post.title} />
+                        </Link>
+                    )}
                 </div>
             </div>
         );
@@ -570,8 +671,8 @@ export default function UserProfilePage() {
 
             {/* 居中版心容器 (收敛至 max-w-4xl) */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
-                {/* 顶部轻量快捷返回栏 */}
-                <div className="flex items-center justify-between">
+                {/* 顶部轻量快捷返回与四季视效微光控制栏 */}
+                <div className="flex items-center justify-between gap-3">
                     <Link
                         href="/dashboard"
                         className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
@@ -579,6 +680,17 @@ export default function UserProfilePage() {
                         <ArrowLeft className="h-3.5 w-3.5" />
                         <span>返回广场</span>
                     </Link>
+
+                    {/* 四季自然飘落 (樱花/细雨/落叶/初雪) 视效控制器 */}
+                    <FallingEffectController
+                        targetUserFallingEffect={profile.falling_effect}
+                        isOwnProfile={isOwnProfile}
+                        targetUserId={profile.id}
+                        targetUserName={displayName}
+                        onEffectChange={(newEffect) => {
+                            setProfile((prev) => (prev ? { ...prev, falling_effect: newEffect } : prev));
+                        }}
+                    />
                 </div>
 
                 {/* 主档案卡片容器 */}
@@ -589,14 +701,33 @@ export default function UserProfilePage() {
                     className="rounded-3xl border-0 bg-white/80 dark:bg-zinc-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] backdrop-blur-2xl overflow-hidden"
                 >
                     {/* 1. Header 层次化：固定比例 Cover 横幅 */}
-                    <div className={cn("w-full h-44 sm:h-52 relative transition-all duration-500 overflow-hidden", currentBannerGradient)}>
+                    <div className={cn("w-full h-44 sm:h-52 relative transition-all duration-500 overflow-hidden", !bannerUrl && currentBannerGradient)}>
+                        {/* 自定义图片横幅图层 */}
+                        {bannerUrl && (
+                            <div
+                                className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+                                style={{ backgroundImage: `url(${bannerUrl})` }}
+                            >
+                                {/* 柔和暗微光渐变层保证网格与文字可读性 */}
+                                <div className="absolute inset-0 bg-black/20 backdrop-blur-[0.5px]" />
+                            </div>
+                        )}
+
                         {/* 优雅网格纹理叠加 */}
                         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff15_1px,transparent_1px),linear-gradient(to_bottom,#ffffff15_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
 
                         {/* 右下角轻量半透明「更换封面」按钮 */}
                         {isOwnProfile && (
                             <div className="absolute bottom-3 right-3 z-10">
-                                <BannerSelector currentStyle={bannerStyle} onStyleChange={setBannerStyle} />
+                                <BannerSelector
+                                    currentStyle={bannerStyle}
+                                    currentBannerUrl={bannerUrl}
+                                    onStyleChange={setBannerStyle}
+                                    onBannerUrlChange={(url) => {
+                                        setBannerUrl(url);
+                                        setProfile((prev) => (prev ? { ...prev, banner_url: url } : prev));
+                                    }}
+                                />
                             </div>
                         )}
                     </div>

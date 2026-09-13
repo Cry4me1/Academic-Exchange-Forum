@@ -230,24 +230,24 @@ export function FileUploader({
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
-                className="flex-shrink-0"
+                className="h-8 w-8 rounded-full flex-shrink-0 text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
             >
-                <Paperclip className="h-5 w-5 text-muted-foreground" />
+                <Paperclip className="h-4 w-4" />
             </Button>
 
             {/* 拖拽区域覆盖层 */}
             {isDragging && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-md"
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    <div className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-primary rounded-xl bg-card max-w-md text-center">
-                        <Upload className="h-12 w-12 text-primary" />
-                        <p className="text-lg font-medium">释放文件以上传</p>
-                        <p className="text-sm text-muted-foreground">支持图片、视频、文档等附件</p>
-                        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-md border border-amber-500/20">
+                    <div className="flex flex-col items-center gap-3 p-8 rounded-3xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_20px_50px_rgba(0,0,0,0.3)] max-w-md text-center">
+                        <Upload className="h-12 w-12 text-primary animate-bounce" />
+                        <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">释放文件以上传</p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">支持图片、视频、文档等附件</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 px-3.5 py-1.5 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] font-medium">
                             提示：上传的文件将在7天后自动删除，请及时保存重要内容
                         </p>
                     </div>
@@ -256,7 +256,7 @@ export function FileUploader({
 
             {/* 待处理文件列表 */}
             {pendingFiles.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 p-2 bg-card border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute bottom-full left-0 right-0 mb-2 p-3 border-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_16px_40px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_16px_40px_rgba(0,0,0,0.6)] rounded-2xl max-h-48 overflow-y-auto">
                     <div className="space-y-2">
                         {pendingFiles.map((pf) => {
                             const category = getFileCategory(pf.file.type);
@@ -265,30 +265,30 @@ export function FileUploader({
                             return (
                                 <div
                                     key={pf.id}
-                                    className="flex items-center gap-2 p-2 bg-muted/50 rounded"
+                                    className="flex items-center gap-2.5 p-2 rounded-xl bg-zinc-100/70 dark:bg-zinc-800/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
                                 >
                                     <IconComponent className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm truncate">{pf.file.name}</p>
+                                        <p className="text-sm font-medium truncate">{pf.file.name}</p>
                                         <p className="text-xs text-muted-foreground">
                                             {formatFileSize(pf.file.size)}
                                         </p>
                                         {pf.status === "uploading" && (
-                                            <Progress value={pf.progress} className="h-1 mt-1" />
+                                            <Progress value={pf.progress} className="h-1 mt-1 rounded-full" />
                                         )}
                                         {pf.status === "error" && (
                                             <p className="text-xs text-destructive">{pf.error}</p>
                                         )}
                                     </div>
                                     {pf.status === "uploading" ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
                                     ) : pf.status === "done" ? (
-                                        <span className="text-xs text-green-500">✓</span>
+                                        <span className="text-xs text-emerald-500 font-semibold">✓</span>
                                     ) : (
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6"
+                                            className="h-6 w-6 rounded-full hover:bg-red-500/10 hover:text-red-500 active:scale-95 transition-all"
                                             onClick={() => removeFile(pf.id)}
                                         >
                                             <X className="h-4 w-4" />

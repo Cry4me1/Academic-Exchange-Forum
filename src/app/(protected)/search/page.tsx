@@ -3,9 +3,7 @@
 import { GlobalSearch } from "@/components/dashboard";
 import { UserSearchCard, UserSearchCardStats, RecentPostPreview } from "@/components/profile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { MathText } from "@/components/ui/math-text";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePresenceContext } from "@/contexts/PresenceContext";
@@ -40,6 +38,7 @@ interface SearchResultUser {
     avatar_url?: string | null;
     bio?: string | null;
     banner_style?: string | null;
+    banner_url?: string | null;
     is_developer?: boolean | null;
     developer_title?: string | null;
     vip_level?: number | null;
@@ -131,7 +130,7 @@ function SearchResultsContent() {
             const { data: usersData, error: usersError } = await supabase
                 .from("profiles")
                 .select(`
-                    id, username, avatar_url, bio, banner_style,
+                    id, username, avatar_url, bio, banner_style, banner_url,
                     is_developer, developer_title, vip_level, special_title, reputation_score
                 `)
                 .ilike("username", `%${query}%`)
@@ -282,12 +281,12 @@ function SearchResultsContent() {
                 </p>
             </div>
 
-            {/* 标签页 */}
+            {/* 标签页 (水滴胶囊 + Liquid Glass 纯净光学) */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-6">
-                <TabsList className="bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl">
-                    <TabsTrigger value="all" className="rounded-lg text-xs sm:text-sm">综合</TabsTrigger>
-                    <TabsTrigger value="posts" className="rounded-lg text-xs sm:text-sm">帖子 ({posts.length})</TabsTrigger>
-                    <TabsTrigger value="users" className="rounded-lg text-xs sm:text-sm">学者 ({users.length})</TabsTrigger>
+                <TabsList className="border-0 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_4px_16px_-2px_rgba(0,0,0,0.3)] p-1 rounded-full h-10">
+                    <TabsTrigger value="all" className="rounded-full text-xs sm:text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-sm px-4">综合</TabsTrigger>
+                    <TabsTrigger value="posts" className="rounded-full text-xs sm:text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-sm px-4">帖子 ({posts.length})</TabsTrigger>
+                    <TabsTrigger value="users" className="rounded-full text-xs sm:text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-sm px-4">学者 ({users.length})</TabsTrigger>
                 </TabsList>
             </Tabs>
 
@@ -296,18 +295,22 @@ function SearchResultsContent() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (!query.trim()) ? (
-                <div className="text-center py-16 border border-dashed rounded-2xl bg-card/40">
-                    <Search className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-                    <h3 className="text-base font-semibold text-foreground mb-1">输入关键词进行全站探索</h3>
-                    <p className="text-xs text-muted-foreground">
+                <div className="text-center py-16 border-0 rounded-3xl backdrop-blur-xl bg-white/60 dark:bg-zinc-900/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.3)]">
+                    <div className="w-16 h-16 rounded-full mx-auto mb-4 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md flex items-center justify-center shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
+                        <Search className="h-7 w-7 text-zinc-400 dark:text-zinc-500" />
+                    </div>
+                    <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">输入关键词进行全站探索</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         你可以搜索学术论文、技术帖子、主题标签或学者昵称
                     </p>
                 </div>
             ) : (posts.length === 0 && users.length === 0) ? (
-                <div className="text-center py-16 border border-dashed rounded-2xl bg-card/40">
-                    <Search className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-                    <h3 className="text-base font-semibold text-foreground mb-1">未找到相关结果</h3>
-                    <p className="text-xs text-muted-foreground">
+                <div className="text-center py-16 border-0 rounded-3xl backdrop-blur-xl bg-white/60 dark:bg-zinc-900/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.3)]">
+                    <div className="w-16 h-16 rounded-full mx-auto mb-4 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md flex items-center justify-center shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
+                        <Search className="h-7 w-7 text-zinc-400 dark:text-zinc-500" />
+                    </div>
+                    <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">未找到相关结果</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         尝试使用不同的学术关键词或学者姓名重新搜索
                     </p>
                 </div>
@@ -322,9 +325,12 @@ function SearchResultsContent() {
                             className="space-y-4"
                         >
                             {activeTab === "all" && (
-                                <div className="flex items-center justify-between border-b pb-2">
-                                    <h2 className="text-base font-semibold text-foreground">学者与成员</h2>
-                                    <span className="text-xs text-muted-foreground">共 {users.length} 位</span>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">学者与成员</h2>
+                                        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">共 {users.length} 位</span>
+                                    </div>
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-zinc-300/80 dark:from-zinc-700/80 via-zinc-200/40 to-transparent" />
                                 </div>
                             )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -336,6 +342,7 @@ function SearchResultsContent() {
                                         avatarUrl={user.avatar_url}
                                         bio={user.bio}
                                         bannerStyle={user.banner_style}
+                                        bannerUrl={user.banner_url}
                                         isDeveloper={user.is_developer}
                                         role={user.developer_title}
                                         vipLevel={user.vip_level}
@@ -362,9 +369,12 @@ function SearchResultsContent() {
                             className="space-y-4"
                         >
                             {activeTab === "all" && (
-                                <div className="flex items-center justify-between border-b pb-2">
-                                    <h2 className="text-base font-semibold text-foreground">学术帖子</h2>
-                                    <span className="text-xs text-muted-foreground">共 {posts.length} 篇</span>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">学术帖子</h2>
+                                        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">共 {posts.length} 篇</span>
+                                    </div>
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-zinc-300/80 dark:from-zinc-700/80 via-zinc-200/40 to-transparent" />
                                 </div>
                             )}
                             {posts.map((post, index) => (
@@ -374,63 +384,63 @@ function SearchResultsContent() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.04 }}
                                 >
-                                    <Card className="hover:shadow-md transition-all rounded-xl border-zinc-200/80 dark:border-zinc-800/80">
-                                        <CardContent className="pt-4 pb-4">
-                                            <div className="flex-1 min-w-0">
-                                                {/* 标签 */}
-                                                {post.tags && post.tags.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1.5 mb-2">
-                                                        {post.tags.slice(0, 3).map((tag) => (
-                                                            <Badge
-                                                                key={tag}
-                                                                variant="outline"
-                                                                className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200/60 dark:border-zinc-700/60 font-normal"
-                                                            >
-                                                                {tag}
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                <Link href={`/posts/${post.id}`}>
-                                                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 hover:text-primary transition-colors line-clamp-1 text-sm sm:text-base">
-                                                        <MathText text={post.title} inlineOnly />
-                                                    </h3>
-                                                </Link>
-                                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
-                                                    <MathText text={extractTextFromContent(post.content).substring(0, 150) + "..."} inlineOnly />
-                                                </p>
-
-                                                <div className="flex items-center gap-4 mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-400 dark:text-zinc-500">
-                                                    <Link
-                                                        href={`/user/${post.author?.id}`}
-                                                        className="flex items-center gap-1.5 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                                                    >
-                                                        <Avatar className="h-5 w-5 rounded-full">
-                                                            <AvatarImage src={post.author?.avatar_url} />
-                                                            <AvatarFallback className="text-[10px]">
-                                                                {post.author?.username?.charAt(0).toUpperCase()}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="font-medium text-zinc-700 dark:text-zinc-300">{post.author?.username}</span>
-                                                    </Link>
-                                                    <span className="flex items-center gap-1">
-                                                        <Eye className="h-3.5 w-3.5 text-zinc-400" /> {post.view_count || 0}
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Heart className="h-3.5 w-3.5 text-zinc-400" /> {post.like_count || 0}
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <MessageCircle className="h-3.5 w-3.5 text-zinc-400" /> {post.comment_count || 0}
-                                                    </span>
-                                                    <span className="ml-auto flex items-center gap-1">
-                                                        <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                                                        {new Date(post.created_at).toLocaleDateString("zh-CN")}
-                                                    </span>
+                                    <div className="rounded-2xl border-0 bg-white/70 hover:bg-white/85 dark:bg-zinc-900/60 dark:hover:bg-zinc-900/75 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_8px_32px_-4px_rgba(0,0,0,0.4)] transition-all p-4 sm:p-5">
+                                        <div className="flex-1 min-w-0">
+                                            {/* 标签 (水滴胶囊 + 菲涅尔内高光) */}
+                                            {post.tags && post.tags.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                                    {post.tags.slice(0, 3).map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="text-[11px] px-2.5 py-0.5 rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/80 backdrop-blur-md text-zinc-600 dark:text-zinc-400 font-normal shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.05)]"
+                                                        >
+                                                            {tag}
+                                                        </span>
+                                                    ))}
                                                 </div>
+                                            )}
+
+                                            <Link href={`/posts/${post.id}`}>
+                                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 hover:text-primary transition-colors line-clamp-1 text-sm sm:text-base">
+                                                    <MathText text={post.title} inlineOnly />
+                                                </h3>
+                                            </Link>
+                                            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+                                                <MathText text={extractTextFromContent(post.content).substring(0, 150) + "..."} inlineOnly />
+                                            </p>
+
+                                            {/* 水平渐变消融微光缝 */}
+                                            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mt-3 mb-2.5" />
+
+                                            <div className="flex items-center gap-4 text-xs text-zinc-400 dark:text-zinc-500">
+                                                <Link
+                                                    href={`/user/${post.author?.id}`}
+                                                    className="flex items-center gap-1.5 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                                                >
+                                                    <Avatar className="h-5 w-5 rounded-full border-0">
+                                                        <AvatarImage src={post.author?.avatar_url} />
+                                                        <AvatarFallback className="text-[10px]">
+                                                            {post.author?.username?.charAt(0).toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-medium text-zinc-700 dark:text-zinc-300">{post.author?.username}</span>
+                                                </Link>
+                                                <span className="flex items-center gap-1">
+                                                    <Eye className="h-3.5 w-3.5 text-zinc-400" /> {post.view_count || 0}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Heart className="h-3.5 w-3.5 text-zinc-400" /> {post.like_count || 0}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <MessageCircle className="h-3.5 w-3.5 text-zinc-400" /> {post.comment_count || 0}
+                                                </span>
+                                                <span className="ml-auto flex items-center gap-1">
+                                                    <Clock className="h-3.5 w-3.5 text-zinc-400" />
+                                                    {new Date(post.created_at).toLocaleDateString("zh-CN")}
+                                                </span>
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 </motion.div>
                             ))}
                         </motion.div>

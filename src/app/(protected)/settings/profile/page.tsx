@@ -36,6 +36,7 @@ interface ProfileData {
     language: string | null;
     timezone: string | null;
     banner_style: string | null;
+    banner_url: string | null;
 }
 
 export default function ProfileSettingsPage() {

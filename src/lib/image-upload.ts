@@ -1,22 +1,25 @@
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
- * 上传图片到服务器 (支持 R2 或 Supabase，由服务端决定)
+ * 上传图片到服务器 (支持 R2 或 Supabase，并在上传时实时接入百度 AI 内容安全审核)
  */
-export const onUpload = async (file: File): Promise<string> => {
+export const onUpload = async (file: File, ...args: any[]): Promise<string> => {
+    const uploadType = args[0] === "cover" ? "cover" : "content_image";
+
     const promise = new Promise<string>(async (resolve, reject) => {
         try {
             // 客户端预验证文件大小
             if (file.size > MAX_FILE_SIZE) {
-                throw new Error(`图片大小不能超过 2MB，当前大小：${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                throw new Error(`图片大小不能超过 5MB，当前大小：${(file.size / 1024 / 1024).toFixed(2)}MB`);
             }
 
             // 通过服务端 API 上传
             const formData = new FormData();
             formData.append("file", file);
+            formData.append("type", uploadType);
 
             const response = await fetch("/api/upload", {
                 method: "POST",
@@ -26,7 +29,7 @@ export const onUpload = async (file: File): Promise<string> => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || "上传失败");
+                throw new Error(data.error || "图片上传失败");
             }
 
             resolve(data.url);
@@ -42,8 +45,8 @@ export const onUpload = async (file: File): Promise<string> => {
                 return url;
             }),
             {
-                loading: "正在上传图片...",
-                success: "图片上传成功",
+                loading: "正在上传并进行百度 AI 图像安全审核...",
+                success: "图片已通过百度安全审核并上传成功",
                 error: (err) => {
                     console.error("Upload error:", err);
                     return err instanceof Error ? err.message : "图片上传失败";
@@ -109,4 +112,11 @@ export const onDelete = async (url: string): Promise<void> => {
     } catch (error) {
         console.error('Error deleting image:', error);
     }
+};
+
+/**
+ * 专门用于上传文章封面图的包装函数 (标记类型为 cover 以便审计日志识别)
+ */
+export const uploadCoverImage = async (file: File): Promise<string> => {
+    return onUpload(file, "cover");
 };

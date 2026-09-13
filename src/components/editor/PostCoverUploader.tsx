@@ -1,6 +1,6 @@
 "use client";
 
-import { onUpload } from "@/lib/image-upload";
+import { uploadCoverImage } from "@/lib/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,14 +114,14 @@ export function PostCoverUploader({
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error(`图片大小超过限制 (2MB)，当前为 ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error(`图片大小超过限制 (5MB)，当前为 ${(file.size / 1024 / 1024).toFixed(2)}MB`);
             return;
         }
 
         setIsUploading(true);
         try {
-            const uploadedUrl = await onUpload(file);
+            const uploadedUrl = await uploadCoverImage(file);
             if (uploadedUrl) {
                 setHasImageError(false);
                 onChange(uploadedUrl);
@@ -474,7 +474,7 @@ export function PostCoverUploader({
                                 {isUploading ? "正在上传..." : "上传或拖拽封面"}
                             </p>
                             <p className="text-[10px] text-muted-foreground">
-                                16:9 比例 · ≤ 2MB
+                                16:9 比例 · ≤ 5MB · 百度AI安全审核
                             </p>
                         </div>
                     </motion.div>

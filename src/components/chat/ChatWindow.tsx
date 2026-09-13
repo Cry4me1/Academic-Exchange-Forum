@@ -216,18 +216,18 @@ export function ChatWindow({
     };
 
     return (
-        <div className={cn("flex flex-col h-full bg-background", className)}>
+        <div className={cn("flex flex-col h-full bg-background/40 relative", className)}>
             {/* ===== Header ===== */}
-            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-[0_1px_2px_rgba(0,0,0,0.03)] shrink-0">
+            <div className="relative flex items-center gap-3 px-4 py-2.5 border-0 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.1)] shrink-0 z-10">
                 {onBack && (
-                    <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden h-8 w-8">
+                    <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden h-8 w-8 rounded-full hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 active:scale-95 transition-all">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                 )}
 
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_6px_rgba(0,0,0,0.06)]">
                     <AvatarImage src={partnerAvatar || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-medium">
+                    <AvatarFallback className="bg-gradient-to-br from-zinc-200/90 to-zinc-100/90 dark:from-zinc-700/80 dark:to-zinc-800/80 text-zinc-600 dark:text-zinc-300 text-xs font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)]">
                         {partnerInitials}
                     </AvatarFallback>
                 </Avatar>
@@ -241,19 +241,22 @@ export function ChatWindow({
                             className={cn(
                                 "h-1.5 w-1.5 rounded-full",
                                 isPartnerOnline
-                                    ? "bg-emerald-500"
+                                    ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"
                                     : "bg-zinc-400"
                             )}
                         />
-                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal">
                             {isPartnerOnline ? "在线" : "离线"}
                         </span>
                     </div>
                 </div>
 
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 active:scale-95 transition-all">
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
+
+                {/* Header 底部消融光缝 */}
+                <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent pointer-events-none" />
             </div>
 
             {/* ===== Messages ===== */}
@@ -276,12 +279,12 @@ export function ChatWindow({
 
             {/* ===== 待上传文件预览 ===== */}
             {pendingFiles.length > 0 && (
-                <div className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2">
+                <div className="relative border-0 bg-zinc-50/60 dark:bg-zinc-900/40 backdrop-blur-md px-4 py-2">
                     <div className="flex flex-wrap gap-2">
                         {pendingFiles.map((file, index) => (
                             <div
                                 key={index}
-                                className="group flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                                className="group flex items-center gap-2 px-3 py-1.5 border-0 bg-white/80 dark:bg-zinc-800/70 backdrop-blur-md rounded-full shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)]"
                             >
                                 <Paperclip className="h-3.5 w-3.5 text-zinc-400" />
                                 <span className="text-xs truncate max-w-[120px] text-zinc-700 dark:text-zinc-300">
@@ -292,18 +295,23 @@ export function ChatWindow({
                                 </span>
                                 <button
                                     onClick={() => removePendingFile(index)}
-                                    className="ml-0.5 text-zinc-400 hover:text-red-500 transition-colors"
+                                    className="ml-0.5 text-zinc-400 hover:text-red-500 rounded-full transition-colors active:scale-90"
                                 >
                                     <X className="h-3 w-3" />
                                 </button>
                             </div>
                         ))}
                     </div>
+                    {/* 预览栏顶部消融光缝 */}
+                    <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/60 dark:via-zinc-800/60 to-transparent" />
                 </div>
             )}
 
             {/* ===== Input Area ===== */}
-            <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+            <div className="relative px-4 py-2.5 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-0 shrink-0 z-10">
+                {/* 输入区顶部消融光缝 */}
+                <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent pointer-events-none" />
+
                 {useRichEditor ? (
                     /* 富文本编辑器模式 */
                     <div className="space-y-2">
@@ -319,7 +327,7 @@ export function ChatWindow({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setUseRichEditor(false)}
-                                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                                    className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full px-3 h-7 active:scale-95 transition-all"
                                 >
                                     <MessageSquare className="h-4 w-4 mr-1" />
                                     简单模式
@@ -337,7 +345,7 @@ export function ChatWindow({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                                    className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full px-3 h-7 active:scale-95 transition-all"
                                 >
                                     <Paperclip className="h-4 w-4 mr-1" />
                                     附件
@@ -345,12 +353,12 @@ export function ChatWindow({
 
                                 <Dialog open={showPostSelector} onOpenChange={setShowPostSelector}>
                                     <DialogTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+                                        <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-full px-3 h-7 active:scale-95 transition-all">
                                             <LinkIcon className="h-4 w-4 mr-1" />
                                             分享帖子
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent aria-describedby={undefined}>
+                                    <DialogContent aria-describedby={undefined} className="rounded-3xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_20px_50px_-10px_rgba(0,0,0,0.2)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_20px_50px_-10px_rgba(0,0,0,0.7)] p-6">
                                         <DialogHeader>
                                             <DialogTitle>分享帖子</DialogTitle>
                                         </DialogHeader>
@@ -361,9 +369,9 @@ export function ChatWindow({
 
                             <Button
                                 onClick={handleSend}
-                                disabled={(!richContent || richContent === "<p></p>") && pendingFiles.length === 0 || sending}
+                                disabled={((!richContent || richContent === "<p></p>") && pendingFiles.length === 0) || sending}
                                 size="sm"
-                                className="rounded-lg"
+                                className="rounded-full border-0 bg-zinc-950/90 text-white hover:bg-zinc-900 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.28),inset_0_1px_0.5px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_12px_-2px_rgba(255,255,255,0.25),inset_0_1px_0.5px_rgba(255,255,255,0.9)] active:scale-95 transition-all px-4"
                             >
                                 {sending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -377,8 +385,8 @@ export function ChatWindow({
                         </div>
                     </div>
                 ) : (
-                    /* ===== 简单输入模式 — 全宽精致输入容器 ===== */
-                    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/60 p-1 shadow-2xs">
+                    /* ===== 简单输入模式 — 液态流光胶囊容器 ===== */
+                    <div className="rounded-full border-0 bg-zinc-100/75 dark:bg-zinc-900/70 backdrop-blur-xl p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_16px_-2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.3)] transition-all">
                         <div className="flex items-center gap-0.5">
                             {/* 快捷工具栏 */}
                             <TooltipProvider delayDuration={300}>
@@ -390,7 +398,7 @@ export function ChatWindow({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                                    className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                                 >
                                                     <Smile className="h-4 w-4" />
                                                 </Button>
@@ -398,7 +406,7 @@ export function ChatWindow({
                                         </TooltipTrigger>
                                         <TooltipContent side="top">表情</TooltipContent>
                                     </Tooltip>
-                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <PopoverContent className="w-auto p-2 border-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_12px_36px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_36px_rgba(0,0,0,0.6)] rounded-2xl" align="start">
                                         <EmojiPicker
                                             onSelect={(emoji) => {
                                                 setInputValue((prev) => prev + emoji);
@@ -422,7 +430,7 @@ export function ChatWindow({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                             onClick={() => fileInputRef.current?.click()}
                                         >
                                             <Paperclip className="h-4 w-4" />
@@ -437,7 +445,7 @@ export function ChatWindow({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                             onClick={insertCodeBlock}
                                         >
                                             <Code2 className="h-4 w-4" />
@@ -452,7 +460,7 @@ export function ChatWindow({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                             onClick={insertFormula}
                                         >
                                             <FunctionSquare className="h-4 w-4" />
@@ -462,8 +470,8 @@ export function ChatWindow({
                                 </Tooltip>
                             </TooltipProvider>
 
-                            {/* 分隔线 */}
-                            <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-0.5 flex-shrink-0" />
+                            {/* 垂直消融微光缝 */}
+                            <div className="w-[1px] h-4 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent mx-1 flex-shrink-0" />
 
                             {/* 输入框 */}
                             <Input
@@ -488,7 +496,7 @@ export function ChatWindow({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                             onClick={() => setUseRichEditor(true)}
                                         >
                                             <Type className="h-4 w-4" />
@@ -507,7 +515,7 @@ export function ChatWindow({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg"
+                                                    className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                                 >
                                                     <LinkIcon className="h-4 w-4" />
                                                 </Button>
@@ -516,7 +524,7 @@ export function ChatWindow({
                                         </Tooltip>
                                     </TooltipProvider>
                                 </DialogTrigger>
-                                <DialogContent aria-describedby={undefined}>
+                                <DialogContent aria-describedby={undefined} className="rounded-3xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_20px_50px_-10px_rgba(0,0,0,0.2)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_20px_50px_-10px_rgba(0,0,0,0.7)] p-6">
                                     <DialogHeader>
                                         <DialogTitle>分享帖子</DialogTitle>
                                     </DialogHeader>
@@ -524,12 +532,12 @@ export function ChatWindow({
                                 </DialogContent>
                             </Dialog>
 
-                            {/* 发送按钮 */}
+                            {/* 发送按钮（Primary CTA Obsidian 液态玻璃） */}
                             <Button
                                 onClick={handleSend}
                                 disabled={(!inputValue.trim() && pendingFiles.length === 0) || sending}
                                 size="icon"
-                                className="h-7 w-7 flex-shrink-0 rounded-lg ml-0.5"
+                                className="h-7 w-7 flex-shrink-0 rounded-full ml-0.5 border-0 bg-zinc-950/90 text-white hover:bg-zinc-900 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.28),inset_0_1px_0.5px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_12px_-2px_rgba(255,255,255,0.25),inset_0_1px_0.5px_rgba(255,255,255,0.9)] disabled:opacity-40 disabled:shadow-none active:scale-95 transition-all"
                             >
                                 {sending ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -590,15 +598,16 @@ function PostSelector({
                 placeholder="搜索帖子..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/80 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] text-xs h-8 px-3"
             />
             <ScrollArea className="max-h-[300px]">
-                <div className="space-y-2">
+                <div className="space-y-1.5 p-0.5">
                     {filteredPosts.length > 0 ? (
                         filteredPosts.map((post) => (
                             <div
                                 key={post.id}
                                 onClick={() => onSelect(post.id, post.title)}
-                                className="p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+                                className="p-3 rounded-2xl border-0 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] cursor-pointer transition-all active:scale-[0.99]"
                             >
                                 <p className="font-medium text-sm line-clamp-2">{post.title}</p>
                             </div>
@@ -629,12 +638,12 @@ function EmojiPicker({
     onSelect: (emoji: string) => void;
 }) {
     return (
-        <div className="grid grid-cols-8 gap-1 p-2">
+        <div className="grid grid-cols-8 gap-1 p-1">
             {EMOJI_LIST.map((emoji) => (
                 <button
                     key={emoji}
                     onClick={() => onSelect(emoji)}
-                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 rounded-full transition-all active:scale-90"
                 >
                     {emoji}
                 </button>

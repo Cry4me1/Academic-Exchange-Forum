@@ -171,12 +171,24 @@ export function ModerationLogsClient({
                   };
                   const ActionIcon = act.icon;
 
+                  const isBanner = log.detected_tags?.includes("banner") || log.detected_tags?.includes("profile_banner");
+                  const isCover = log.detected_tags?.includes("post_cover");
+                  const isContentImage = log.detected_tags?.includes("post_content_image");
+                  const isComment = log.detected_tags?.includes("comment") || log.detected_tags?.includes("学术评论");
+                  const displayTitle = log.post?.title || (
+                    isBanner ? "🖼️ 个人主页 Banner 审核" :
+                    isCover ? "🖼️ 帖子封面上传审核" :
+                    isContentImage ? "🖼️ 帖子正文配图审核" :
+                    isComment ? "💬 评论内容安全审核" :
+                    "未命名或已拦截提交"
+                  );
+
                   return (
                     <tr key={log.id} className="hover:bg-accent/30 transition-colors">
                       <td className="px-4 py-3 max-w-[280px]">
                         <div className="space-y-1">
-                          <p className="text-sm font-semibold truncate text-foreground">
-                            {log.post?.title || "未命名或已拦截提交"}
+                          <p className="text-sm font-semibold truncate text-foreground flex items-center gap-1.5">
+                            {displayTitle}
                           </p>
                           <p className="text-xs text-muted-foreground truncate" title={log.reason || ""}>
                             {log.reason || "无评判理由"}

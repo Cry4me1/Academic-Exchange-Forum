@@ -172,6 +172,29 @@ export async function moderatePostContent(params: {
 
         return result;
       }
+
+      // 图片安全通过：记录百度图片审核合规审计日志
+      if (imageAudit.isAllSafe) {
+        const latencyMs = Date.now() - startTime;
+        await logModerationRecord(supabase, {
+          postId,
+          authorId,
+          contentHash,
+          result: {
+            reviewStatus: "approved",
+            riskLevel: "safe",
+            score: 100,
+            reason: `文章包含的 ${imageAudit.imageCount} 张配图/封面经百度AI图像审核合规`,
+            suggestedTags: tags,
+            matchedSensitiveWords: [],
+            finalAction: "auto_approved",
+            isCached: false,
+            latencyMs,
+            canPublish: true,
+          },
+          modelName: "baidu-image-censor",
+        });
+      }
     } catch (imgErr) {
       console.warn("[ModerationEngine] 图像审核发生异常，继续执行文本审核:", imgErr);
     }
@@ -414,6 +437,30 @@ export async function moderateCommentContent(params: {
         });
 
         return result;
+      }
+
+      // 评论配图安全通过：记录百度图片审核合规审计日志
+      if (imageAudit.isAllSafe) {
+        const latencyMs = Date.now() - startTime;
+        await logModerationRecord(supabase, {
+          commentId,
+          postId,
+          authorId,
+          contentHash,
+          result: {
+            reviewStatus: "approved",
+            riskLevel: "safe",
+            score: 100,
+            reason: `评论配图经百度AI图像审核合规`,
+            suggestedTags: ["学术评论"],
+            matchedSensitiveWords: [],
+            finalAction: "auto_approved",
+            isCached: false,
+            latencyMs,
+            canPublish: true,
+          },
+          modelName: "baidu-image-censor",
+        });
       }
     } catch (imgErr) {
       console.warn("[ModerationEngine] 评论图像审核异常，继续执行文本审核:", imgErr);

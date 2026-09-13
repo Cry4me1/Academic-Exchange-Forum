@@ -1,27 +1,28 @@
+import crypto from "crypto";
+import { auditSingleImageBase64 } from "@/lib/moderation/image-moderator";
 import { deleteFromR2, isR2Configured, isR2Url, uploadToR2 } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = 'edge';
-
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export async function POST(request: NextRequest) {
     try {
-        // 验证用户身份
+        // 1. 验证用户身份
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
             return NextResponse.json(
-                { error: "未授权" },
+                { error: "未授权，请先登录" },
                 { status: 401 }
             );
         }
 
         const formData = await request.formData();
         const file = formData.get("file") as File | null;
+        const uploadType = (formData.get("type") as string) || "content_image"; // "cover" | "content_image"
 
         if (!file) {
             return NextResponse.json(
@@ -30,15 +31,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 验证文件大小
+        // 2. 验证文件大小
         if (file.size > MAX_FILE_SIZE) {
             return NextResponse.json(
-                { error: `图片大小不能超过 2MB，当前大小：${(file.size / 1024 / 1024).toFixed(2)}MB` },
+                { error: `图片大小不能超过 5MB，当前大小：${(file.size / 1024 / 1024).toFixed(2)}MB` },
                 { status: 400 }
             );
         }
 
-        // 验证文件类型
+        // 3. 验证文件类型
         if (!ALLOWED_TYPES.includes(file.type)) {
             return NextResponse.json(
                 { error: "不支持的文件类型，请上传 JPEG、PNG、GIF 或 WebP 格式的图片" },
@@ -46,23 +47,89 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 生成唯一文件名
+        // 4. 读取二进制 Buffer 并计算 SHA-256 哈希与 Base64
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
+        const base64Data = buffer.toString("base64");
+
+        // 5. 接入百度 AI 图像内容安全审核
+        const startTime = Date.now();
+        const auditResult = await auditSingleImageBase64(base64Data);
+        const latencyMs = Date.now() - startTime;
+
+        let finalAction: "auto_approved" | "auto_pending" | "auto_rejected" = "auto_approved";
+        let riskLevel: "safe" | "sensitive" | "dangerous" = "safe";
+        let score = auditResult.score ?? 100;
+        let reason = auditResult.violationReason || "百度AI图片审核合规";
+
+        if (auditResult.isDangerous) {
+            finalAction = "auto_rejected";
+            riskLevel = "dangerous";
+            score = auditResult.score || 20;
+            reason = auditResult.violationReason || "图片包含违规内容（涉嫌色情/暴力/政治敏感等）";
+        } else if (auditResult.isSensitive) {
+            finalAction = "auto_pending";
+            riskLevel = "sensitive";
+            score = auditResult.score || 60;
+            reason = auditResult.violationReason || "图片疑似存在敏感违规风险";
+        } else {
+            finalAction = "auto_approved";
+            riskLevel = "safe";
+            score = 100;
+            reason = auditResult.violationReason || "百度AI图片审核合规";
+        }
+
+        // 6. 【核心强制】所有百度图片审核结果 100% 写入 content_moderation_logs 审计日志
+        const isCover = uploadType === "cover";
+        const detectedTags = isCover
+            ? ["post_cover", "image_upload"]
+            : ["post_content_image", "image_upload"];
+        const prefix = isCover ? "[帖子封面] " : "[帖子正文配图] ";
+
+        try {
+            await supabase.from("content_moderation_logs").insert({
+                post_id: null,
+                comment_id: null,
+                author_id: user.id,
+                content_hash: contentHash,
+                model_name: "baidu-image-censor",
+                score: score,
+                risk_level: riskLevel,
+                reason: `${prefix}${reason}`,
+                detected_tags: detectedTags,
+                matched_sensitive_words: [],
+                final_action: finalAction,
+                cost_tokens: 0,
+                latency_ms: latencyMs,
+                is_cached: false,
+            });
+        } catch (logErr) {
+            console.error("[UploadRoute] 写入图片审核审计日志异常:", logErr);
+        }
+
+        // 7. 若未通过百度 AI 安全审核，坚决拦截并阻断上传存储
+        if (finalAction !== "auto_approved") {
+            return NextResponse.json(
+                { error: `图片未通过安全审核：${reason}，已被系统拦截。` },
+                { status: 400 }
+            );
+        }
+
+        // 8. 审核通过：上传到 R2 或 Supabase Storage
         const fileExt = file.name.split(".").pop() || "jpg";
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
 
-        // 检查是否配置了 R2，如果没有则降级到 Supabase
         if (isR2Configured()) {
-            // 使用 R2 上传 (使用 Uint8Array 代替 Buffer 以兼容 Edge Runtime)
-            const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
             const publicUrl = await uploadToR2(uint8Array, fileName, file.type);
-
             return NextResponse.json({ url: publicUrl });
         } else {
             // 降级：使用 Supabase Storage
             const { error: uploadError } = await supabase.storage
                 .from("post-images")
-                .upload(fileName, file, {
+                .upload(fileName, buffer, {
+                    contentType: file.type,
                     cacheControl: "3600",
                     upsert: false,
                 });
@@ -156,4 +223,3 @@ export async function DELETE(request: NextRequest) {
         );
     }
 }
-
