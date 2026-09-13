@@ -430,23 +430,23 @@ export function TableOfContents({
                 </div>
 
                 {/* 目录列表 */}
-                <ul className="space-y-0.5 relative" role="list">
-                    {/* 左侧竖线轨道 */}
-                    <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-border/30 rounded-full" aria-hidden="true" />
+                <ul className="space-y-1 relative py-1" role="list">
+                    {/* 左侧贯穿垂直细轴线 (物理导轨) */}
+                    <div className="absolute left-[3px] top-1.5 bottom-1.5 w-[1.5px] bg-zinc-200/80 dark:bg-zinc-800/80 rounded-full" aria-hidden="true" />
 
                     {headings.map((heading, index) => {
                         const isActive = activeId === heading.id;
                         return (
                             <li key={heading.id} className="relative">
-                                {/* 弹簧动画指示器 - layoutId 驱动 */}
+                                {/* 随动滑动指示条与物理微型游标 (Scrollspy Cursor) */}
                                 {isActive && (
                                     <motion.div
                                         layoutId="toc-sidebar-indicator"
-                                        className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary rounded-full"
+                                        className="absolute left-[1px] top-1/2 -translate-y-1/2 w-[5.5px] h-4 rounded-full bg-zinc-900 dark:bg-zinc-100 shadow-[0_2px_8px_rgba(0,0,0,0.25)] dark:shadow-[0_0_10px_rgba(255,255,255,0.4)] z-10"
                                         transition={{
                                             type: "spring",
-                                            stiffness: 350,
-                                            damping: 30,
+                                            stiffness: 380,
+                                            damping: 32,
                                         }}
                                     />
                                 )}
@@ -459,24 +459,24 @@ export function TableOfContents({
                                     onKeyDown={(e) => handleKeyDown(e, heading.id, index)}
                                     data-toc-index={index}
                                     className={cn(
-                                        "text-left text-sm w-full py-1.5 truncate transition-all duration-200",
-                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:rounded-sm",
+                                        "text-left w-full py-1.5 px-2 rounded-lg truncate transition-all duration-200",
+                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                                         heading.level === 1
-                                            ? "pl-3 font-medium"
+                                            ? "pl-4 text-xs sm:text-sm font-medium"
                                             : heading.level === 2
-                                                ? "pl-5"
-                                                : "pl-7",
+                                                ? "pl-6 text-xs"
+                                                : "pl-8 text-[11px]",
                                         isActive
-                                            ? "text-primary font-semibold"
-                                            : "text-muted-foreground hover:text-foreground"
+                                            ? "text-foreground font-semibold bg-zinc-100/70 dark:bg-zinc-800/50"
+                                            : "text-muted-foreground/80 hover:text-foreground hover:bg-zinc-100/40 dark:hover:bg-zinc-800/30"
                                     )}
                                     title="双击复制锚链接"
                                     aria-current={isActive ? "location" : undefined}
                                 >
-                                    <span className="flex items-center gap-1.5">
-                                        {heading.text}
+                                    <span className="flex items-center justify-between gap-1.5">
+                                        <span className="truncate">{heading.text}</span>
                                         {isActive && (
-                                            <ChevronRight className="h-3 w-3 text-primary/60 flex-shrink-0" />
+                                            <ChevronRight className="h-3 w-3 text-primary shrink-0 opacity-80" />
                                         )}
                                     </span>
                                 </button>

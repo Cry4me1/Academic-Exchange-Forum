@@ -265,6 +265,15 @@ export default function PostDetailClient({
     // 沉浸式阅读模式
     const { isImmersive, toggle: toggleImmersive, exit: exitImmersive } = useImmersiveMode();
     const readingProgress = useReadingProgress();
+    const [showStickyMiniBar, setShowStickyMiniBar] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowStickyMiniBar(window.scrollY > 240);
+        };
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     const authorInitials = post.author.username?.slice(0, 2).toUpperCase() || "?";
     const authorDisplayName = post.author.username || "未知学者";
@@ -649,15 +658,64 @@ export default function PostDetailClient({
                     )}
                 >
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16">
-                            <Link href="/dashboard">
-                                <Button variant="ghost" size="sm" className="gap-2">
+                        <div className="flex items-center justify-between h-16 gap-4">
+                            <Link href="/dashboard" className="shrink-0">
+                                <Button variant="ghost" size="sm" className="gap-2 rounded-full">
                                     <ArrowLeft className="h-4 w-4" />
                                     返回
                                 </Button>
                             </Link>
 
-                            <div className="flex items-center gap-2">
+                            {/* 顶部上下文感知 Sticky Mini-Bar */}
+                            <div className="flex-1 mx-2 flex items-center justify-center min-w-0">
+                                <AnimatePresence>
+                                    {showStickyMiniBar && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -8 }}
+                                            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                                            className="flex items-center gap-2 sm:gap-3 max-w-full"
+                                        >
+                                            <span className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[10rem] sm:max-w-[18rem] md:max-w-[24rem]">
+                                                {post.title}
+                                            </span>
+                                            <span className="hidden md:inline-flex text-[10px] tabular-nums font-mono px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                                {Math.round(readingProgress)}%
+                                            </span>
+                                            <div className="flex items-center gap-0.5 sm:gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={handleLike}
+                                                    className={cn(
+                                                        "h-7 px-2 text-xs rounded-full gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                                                        isLiked && "text-red-500"
+                                                    )}
+                                                    title="点赞"
+                                                >
+                                                    <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
+                                                    <span className="text-[11px] tabular-nums font-medium">{likeCount}</span>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={handleBookmark}
+                                                    className={cn(
+                                                        "h-7 px-2 text-xs rounded-full gap-1 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                                                        isBookmarked && "text-primary"
+                                                    )}
+                                                    title="收藏"
+                                                >
+                                                    <Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} />
+                                                </Button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
                                 {/* 沉浸式阅读模式按钮 */}
                                 <Button
                                     variant="ghost"
@@ -665,11 +723,11 @@ export default function PostDetailClient({
                                     onClick={toggleImmersive}
                                     title="专注阅读 (Ctrl+Shift+F)"
                                     aria-label="切换专注阅读模式"
-                                    className="text-muted-foreground hover:text-foreground"
+                                    className="text-muted-foreground hover:text-foreground rounded-full"
                                 >
                                     <Maximize2 className="h-5 w-5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={handleShare}>
+                                <Button variant="ghost" size="icon" onClick={handleShare} className="rounded-full">
                                     <Share2 className="h-5 w-5" />
                                 </Button>
                                 <Button
@@ -828,25 +886,22 @@ export default function PostDetailClient({
                     isImmersive ? "max-w-4xl pt-16" : "max-w-[94rem]"
                 )}>
                     <div className="flex justify-center gap-8 items-start">
-                        {/* 左侧边栏：纯 GPU 不透明度淡入淡出，不触发布局挤压 */}
+                        {/* 左侧边栏：常驻视窗吸顶（无 transform 阻断 sticky） */}
                         <aside
                             className={cn(
-                                "hidden xl:block flex-shrink-0 overflow-hidden",
-                                "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
-                                isImmersive
-                                    ? "max-w-0 opacity-0 -translate-x-4 pointer-events-none"
-                                    : "max-w-[16rem] w-64 opacity-100 translate-x-0"
+                                "hidden xl:block flex-shrink-0 sticky top-20 self-start w-64 z-20 transition-opacity duration-300",
+                                isImmersive && "hidden"
                             )}
                         >
-                            <div className="sticky top-24 space-y-6 w-64">
+                            <div className="space-y-6 w-64 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
                                 {/* 作者其他文章 */}
                                 {authorOtherPosts.length > 0 && (
                                     <motion.div
                                         variants={itemVariants}
-                                        className="bg-card border border-border/50 rounded-xl p-4 shadow-xs"
+                                        className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
                                     >
-                                        <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-1.5">
-                                            <BookOpen className="w-4 h-4 text-blue-500" />
+                                        <h3 className="font-semibold text-xs text-foreground mb-3 flex items-center gap-1.5">
+                                            <BookOpen className="w-3.5 h-3.5 text-blue-500" />
                                             作者的其他文章
                                         </h3>
                                         <ul className="space-y-2.5">
@@ -854,7 +909,7 @@ export default function PostDetailClient({
                                                 <li key={otherPost.id}>
                                                     <Link
                                                         href={`/posts/${otherPost.id}`}
-                                                        className="block text-xs text-muted-foreground hover:text-foreground transition-colors line-clamp-2 leading-relaxed"
+                                                        className="block text-xs text-muted-foreground hover:text-foreground transition-colors line-clamp-2 leading-relaxed p-1 -m-1 rounded-lg hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40"
                                                     >
                                                         {otherPost.title}
                                                     </Link>
@@ -933,17 +988,45 @@ export default function PostDetailClient({
                                     </div>
                                 )}
 
-                                {/* 标签 */}
-                                <div className="flex flex-wrap gap-2 mb-4">
+                                {/* 第一层：学科标签群与状态徽章统一首行排列（消灭多余空行跳跃） */}
+                                <div className="flex flex-wrap items-center gap-2 mb-3">
                                     {post.tags.map((tag) => (
                                         <Badge
                                             key={tag}
                                             variant="outline"
-                                            className={`${tagColors[tag] || tagColors.default} font-medium`}
+                                            className={cn(
+                                                "rounded-full px-3 py-0.5 text-xs font-medium border-0 shadow-2xs",
+                                                tagColors[tag] || tagColors.default
+                                            )}
                                         >
                                             {tag}
                                         </Badge>
                                     ))}
+
+                                    {post.is_pinned && (
+                                        <Badge variant="secondary" className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border-0 gap-1 px-2.5 py-0.5 text-xs font-medium">
+                                            <Pin className="h-3 w-3" />
+                                            置顶
+                                        </Badge>
+                                    )}
+                                    {post.is_locked && (
+                                        <Badge variant="secondary" className="rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border-0 gap-1 px-2.5 py-0.5 text-xs font-medium">
+                                            <Lock className="h-3 w-3" />
+                                            锁定
+                                        </Badge>
+                                    )}
+                                    {post.is_solved && (
+                                        <Badge variant="secondary" className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-0 gap-1 px-2.5 py-0.5 text-xs font-medium">
+                                            <CheckCircle2 className="h-3 w-3" />
+                                            已解决
+                                        </Badge>
+                                    )}
+                                    {post.is_help_wanted && !post.is_solved && (
+                                        <Badge variant="secondary" className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border-0 gap-1 px-2.5 py-0.5 text-xs font-medium">
+                                            <HelpCircle className="h-3 w-3" />
+                                            求助
+                                        </Badge>
+                                    )}
                                 </div>
 
                                 {/* 进行中的学术决斗横幅 */}
@@ -951,93 +1034,66 @@ export default function PostDetailClient({
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mb-6 p-4 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-blue-500/10 border border-amber-500/20 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm"
+                                        className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-blue-500/10 border-0 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_4px_20px_-4px_rgba(244,63,94,0.15)]"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <span className="relative flex h-3 w-3">
+                                            <span className="relative flex h-2.5 w-2.5">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                                             </span>
                                             <div className="text-left">
-                                                <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                                                    <Swords className="h-4 w-4 text-rose-500 animate-pulse" />
+                                                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                                    <Swords className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
                                                     学术决斗火热进行中！
                                                 </p>
-                                                <p className="text-xs text-muted-foreground mt-0.5">
+                                                <p className="text-[11px] text-muted-foreground mt-0.5">
                                                     辩题：{activeDuel.topic} (回合: {activeDuel.current_round}/{activeDuel.max_rounds})
                                                 </p>
                                             </div>
                                         </div>
                                         <Link href={`/duels/${activeDuel.id}`}>
-                                            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs rounded-full gap-1.5 shadow-sm">
-                                                进入决斗现场观战
+                                            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs rounded-full gap-1 h-7 px-3 shadow-xs">
+                                                观战
                                                 <ArrowRight className="h-3 w-3" />
                                             </Button>
                                         </Link>
                                     </motion.div>
                                 )}
 
-                                {/* 标题 */}
-                                <div className="flex items-start gap-3 mb-6">
-                                    <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight flex-1">
+                                {/* 第二层：大标题与共创者徽章 */}
+                                <div className="flex items-start gap-3 my-3">
+                                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-snug flex-1">
                                         {post.title}
                                     </h1>
                                     {coAuthors.length > 0 && (
-                                        <CoAuthorBadge count={coAuthors.length} className="mt-2 flex-shrink-0" />
+                                        <CoAuthorBadge count={coAuthors.length} className="mt-1 flex-shrink-0" />
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-2 mb-6">
-                                    {post.is_pinned && (
-                                        <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 pl-2">
-                                            <Pin className="h-4 w-4" />
-                                            置顶
-                                        </Badge>
-                                    )}
-                                    {post.is_locked && (
-                                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1 pl-2">
-                                            <Lock className="h-4 w-4" />
-                                            锁定
-                                        </Badge>
-                                    )}
-                                    {post.is_solved && (
-                                        <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 gap-1 pl-2">
-                                            <CheckCircle2 className="h-4 w-4" />
-                                            已解决
-                                        </Badge>
-                                    )}
-                                    {post.is_help_wanted && !post.is_solved && (
-                                        <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 pl-2">
-                                            <HelpCircle className="h-4 w-4" />
-                                            求助
-                                        </Badge>
-                                    )}
-                                </div>
-
-                                {/* 作者信息 */}
-                                <div className="flex items-center justify-between flex-wrap gap-4 pb-6 border-b border-border/50">
+                                {/* 第三层：作者头像/名字/头衔 (左) 与 发布日期/浏览量 (右) 同一水平线两端对齐 */}
+                                <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-12 w-12 ring-2 ring-primary/10">
+                                        <Avatar className="h-10 w-10 sm:h-11 sm:w-11 ring-2 ring-primary/10 rounded-full">
                                             <AvatarImage src={post.author.avatar_url} alt={authorDisplayName} />
-                                            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold">
+                                            <AvatarFallback className="bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-semibold text-sm">
                                                 {authorInitials}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
                                             <div className="flex items-center gap-1.5 flex-wrap">
-                                                <p className="font-semibold text-foreground text-sm sm:text-base">{authorDisplayName}</p>
+                                                <p className="font-semibold text-foreground text-sm">{authorDisplayName}</p>
                                                 {post.author.is_verified && (
                                                     <VerifiedBadge provider={post.author.auth_provider} />
                                                 )}
                                                 <VipBadge vipLevel={post.author.vip_level || 1} size="sm" />
                                                 {post.author.is_developer && (
-                                                    <span className="inline-flex items-center gap-1 h-4.5 px-1.5 rounded-full text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/80 font-medium">
+                                                    <span className="inline-flex items-center gap-1 h-4.5 px-2 rounded-full text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-0 font-medium">
                                                         <Code2 className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.75} />
                                                         开发者
                                                     </span>
                                                 )}
                                                 {post.author.special_title && (
-                                                    <span className="inline-flex items-center h-4.5 px-1.5 rounded-full text-[10px] font-medium bg-violet-500/8 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/20">
+                                                    <span className="inline-flex items-center h-4.5 px-2 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-700 dark:text-violet-300 border-0">
                                                         {post.author.special_title}
                                                     </span>
                                                 )}
@@ -1049,22 +1105,25 @@ export default function PostDetailClient({
                                                 )}
                                             </div>
                                             {post.author.bio && (
-                                                <p className="text-sm text-muted-foreground line-clamp-1">{post.author.bio}</p>
+                                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.author.bio}</p>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-3.5 text-xs text-muted-foreground/80 font-medium">
                                         <div className="flex items-center gap-1">
-                                            <Calendar className="h-4 w-4" />
+                                            <Calendar className="h-3.5 w-3.5" />
                                             <span suppressHydrationWarning>{formatDate(post.created_at)}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Eye className="h-4 w-4" />
+                                            <Eye className="h-3.5 w-3.5" />
                                             <span>{post.view_count} 浏览</span>
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* 渐变消融内部光缝（绝不使用粗糙灰色硬线条） */}
+                                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mt-4 mb-2" />
                                 {/* 共创者面板 */}
                                 {coAuthors.length > 0 && (
                                     <div className="mt-4">
@@ -1362,11 +1421,11 @@ export default function PostDetailClient({
                             </motion.section>
 
                             {/* 小屏幕（< xl）文末推荐与作者文章兜底展示 */}
-                            <div className="xl:hidden mt-10 space-y-6 pt-6 border-t border-border/50">
+                            <div className="xl:hidden mt-10 space-y-6 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60">
                                 {authorOtherPosts.length > 0 && (
-                                    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-xs">
-                                        <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-1.5">
-                                            <BookOpen className="w-4 h-4 text-blue-500" />
+                                    <div className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                        <h3 className="font-semibold text-xs text-foreground mb-3 flex items-center gap-1.5">
+                                            <BookOpen className="w-3.5 h-3.5 text-blue-500" />
                                             作者的其他文章
                                         </h3>
                                         <ul className="space-y-2">
@@ -1374,7 +1433,7 @@ export default function PostDetailClient({
                                                 <li key={otherPost.id}>
                                                     <Link
                                                         href={`/posts/${otherPost.id}`}
-                                                        className="block text-sm text-muted-foreground hover:text-foreground transition-colors line-clamp-2"
+                                                        className="block text-xs text-muted-foreground hover:text-foreground transition-colors line-clamp-2 p-1 -m-1 rounded-lg hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40"
                                                     >
                                                         {otherPost.title}
                                                     </Link>
@@ -1387,22 +1446,19 @@ export default function PostDetailClient({
                             </div>
                         </main>
 
-                        {/* 右侧边栏：300ms 柔和淡出与折叠 */}
+                        {/* 右侧边栏：常驻视窗右上角吸顶（无 transform 阻断 sticky） */}
                         <aside
                             className={cn(
-                                "hidden lg:block flex-shrink-0 overflow-hidden",
-                                "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
-                                isImmersive
-                                    ? "max-w-0 opacity-0 translate-x-4 pointer-events-none"
-                                    : "max-w-[18rem] w-72 opacity-100 translate-x-0"
+                                "hidden lg:block flex-shrink-0 sticky top-20 self-start w-72 z-20 transition-opacity duration-300",
+                                isImmersive && "hidden"
                             )}
                         >
-                            <div className="sticky top-24 space-y-6 w-72">
+                            <div className="space-y-6 w-72 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
                                 {/* 文章目录与学术大纲速览 */}
                                 {(headings.length > 0 || academicMeta.totalAcademicCount > 0) && (
                                     <motion.div
                                         variants={itemVariants}
-                                        className="bg-card border border-border/50 rounded-xl p-4 shadow-xs"
+                                        className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
                                     >
                                         <TableOfContents
                                             headings={headings}

@@ -7,3 +7,5 @@ export { ShareCardDialog } from "./ShareCardDialog";
 export { TableOfContents, type HeadingItem } from "./TableOfContents";
 export { AcademicPdfExportDialog } from "./AcademicPdfExportDialog";
 export { LiquidTagSelector, type LiquidTagSelectorProps } from "./LiquidTagSelector";
+export { SieveSequenceViewer, isSieveSequence, parseSieveSequence, type SieveItem } from "./SieveSequenceViewer";
+export { TableChartViewer, parseTableData, type ParsedTableData } from "./TableChartViewer";

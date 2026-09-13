@@ -102,14 +102,14 @@ export default function PublicPostPreview({ post, collections = [] }: PublicPost
                         />
                     )}
 
-                    {/* 标签 */}
+                    {/* 第一层：学科与分类标签 */}
                     {post.tags && post.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
                             {post.tags.map((tag) => (
                                 <Badge
                                     key={tag}
-                                    variant="secondary"
-                                    className="text-xs"
+                                    variant="outline"
+                                    className="rounded-full px-3 py-0.5 text-xs font-medium border-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                                 >
                                     {tag}
                                 </Badge>
@@ -117,40 +117,44 @@ export default function PublicPostPreview({ post, collections = [] }: PublicPost
                         </div>
                     )}
 
-                    {/* 标题 */}
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6 leading-tight">
+                    {/* 第二层：大标题 */}
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground my-3 leading-snug">
                         {post.title}
                     </h1>
 
-                    {/* 作者信息 */}
-                    <div className="flex items-center gap-4 mb-8 pb-6 border-b border-border/50">
-                        <Avatar className="h-10 w-10">
-                            <AvatarImage src={post.author?.avatar_url || ""} />
-                            <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-400 text-white text-sm font-bold">
-                                {authorInitial}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
+                    {/* 第三层：作者信息与日期/浏览量端对齐 */}
+                    <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 ring-2 ring-primary/10 rounded-full">
+                                <AvatarImage src={post.author?.avatar_url || ""} />
+                                <AvatarFallback className="bg-gradient-to-br from-orange-400 to-amber-400 text-white text-xs font-bold">
+                                    {authorInitial}
+                                </AvatarFallback>
+                            </Avatar>
                             <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-foreground">
+                                <span className="font-semibold text-foreground text-sm">
                                     {authorName}
                                 </span>
                                 {post.author?.is_verified && (
                                     <VerifiedBadge provider={post.author?.auth_provider} />
                                 )}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                                <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {formatDate(post.created_at)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Eye className="h-3 w-3" />
-                                    {post.view_count} 浏览
-                                </span>
-                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3.5 text-xs text-muted-foreground/80 font-medium">
+                            <span className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {formatDate(post.created_at)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Eye className="h-3.5 w-3.5" />
+                                {post.view_count} 浏览
+                            </span>
                         </div>
                     </div>
+
+                    {/* 渐变消融内部光缝 */}
+                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mt-4 mb-6" />
 
                     {/* 文章内容 */}
                     <div className="prose dark:prose-invert max-w-none mb-8">

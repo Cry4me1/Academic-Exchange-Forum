@@ -13,7 +13,7 @@ interface RecommendedPost {
     like_count: number;
     comment_count: number;
     similarity: number;
-    common_concepts?: string[]; // 新增：共同概念词条
+    common_concepts?: string[]; // 共同概念词条
 }
 
 interface SemanticRecommendationsProps {
@@ -44,16 +44,24 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
 
     if (loading) {
         return (
-            <div className={cn("bg-card border border-border/50 rounded-xl p-4", className)}>
+            <div
+                className={cn(
+                    "p-4 rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl",
+                    "shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]",
+                    className
+                )}
+            >
                 <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
-                    <span className="text-sm font-semibold text-foreground">AI 推荐</span>
+                    <div className="h-6 w-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <Sparkles className="h-3.5 w-3.5 text-zinc-500 animate-pulse" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">AI 推荐</span>
                 </div>
                 <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
                         <div key={i} className="animate-pulse space-y-1.5">
-                            <div className="h-4 bg-muted rounded w-full" />
-                            <div className="h-3 bg-muted rounded w-2/3" />
+                            <div className="h-3.5 bg-zinc-200/70 dark:bg-zinc-800/70 rounded-full w-full" />
+                            <div className="h-2.5 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-full w-2/3" />
                         </div>
                     ))}
                 </div>
@@ -69,18 +77,17 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-                "bg-card border border-border/50 rounded-xl p-4 overflow-hidden relative",
+                "p-4 rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl relative overflow-hidden",
+                "shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]",
                 className
             )}
         >
-            {/* 顶部渐变装饰 */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/50 via-orange-500/50 to-rose-500/50" />
-
+            {/* 顶栏微光标题 */}
             <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-500/10">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400">
+                    <Sparkles className="h-3.5 w-3.5" />
                 </div>
-                <h3 className="font-semibold text-sm text-foreground">AI 语义推荐</h3>
+                <h3 className="font-semibold text-xs text-foreground">AI 语义推荐</h3>
             </div>
 
             <ul className="space-y-1">
@@ -93,19 +100,19 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
                     >
                         <Link
                             href={`/posts/${rec.id}`}
-                            className="group block px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-all duration-200"
+                            className="group/item block px-2.5 py-2 rounded-xl hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 transition-all duration-200"
                         >
-                            <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors line-clamp-2 mb-1">
+                            <p className="text-xs text-muted-foreground/90 group-hover/item:text-foreground transition-colors line-clamp-2 mb-1.5 leading-relaxed">
                                 {rec.title}
                             </p>
-                            
-                            {/* 展现具体相似词条与共同探讨概念 (超高颜值微光 Badge) */}
+
+                            {/* 低饱和浅灰中性标签，仅悬停时适度高亮，让视觉重心保留在正文 */}
                             {rec.common_concepts && rec.common_concepts.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-1 mb-2">
                                     {rec.common_concepts.map((concept, cIdx) => (
                                         <span
                                             key={cIdx}
-                                            className="inline-flex items-center text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20"
+                                            className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 font-normal border-0 transition-colors group-hover/item:bg-zinc-200/80 dark:group-hover/item:bg-zinc-700/80 group-hover/item:text-foreground"
                                         >
                                             # {concept}
                                         </span>
@@ -113,21 +120,21 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground/70">
-                                <span className="inline-flex items-center gap-1">
-                                    <TrendingUp className="h-3 w-3" />
+                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60">
+                                <span className="inline-flex items-center gap-1 font-medium">
+                                    <TrendingUp className="h-3 w-3 opacity-70" />
                                     {Math.round(rec.similarity * 100)}%
                                 </span>
                                 <span className="inline-flex items-center gap-0.5">
-                                    <Eye className="h-3 w-3" />
+                                    <Eye className="h-3 w-3 opacity-70" />
                                     {rec.view_count}
                                 </span>
                                 <span className="inline-flex items-center gap-0.5">
-                                    <Heart className="h-3 w-3" />
+                                    <Heart className="h-3 w-3 opacity-70" />
                                     {rec.like_count}
                                 </span>
                                 <span className="inline-flex items-center gap-0.5">
-                                    <MessageCircle className="h-3 w-3" />
+                                    <MessageCircle className="h-3 w-3 opacity-70" />
                                     {rec.comment_count}
                                 </span>
                             </div>
@@ -138,3 +145,5 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
         </motion.div>
     );
 }
+
+export default SemanticRecommendations;

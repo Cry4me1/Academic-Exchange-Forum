@@ -32,8 +32,8 @@ export function PostCollectionSidebarWidget({
     const displayedPosts = isExpanded ? posts : posts.slice(0, 6);
 
     return (
-        <div className="bg-card/95 backdrop-blur-sm border border-border/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            {/* Header / Cover Area */}
+        <div className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl overflow-hidden shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-all">
+            {/* Header / Cover Area - 软化原深黑渐变，提升晶体通透感 */}
             <Link href={`/collections/${collection.id}`} className="group block relative">
                 <div className="relative h-20 w-full overflow-hidden">
                     <CollectionCover
@@ -44,14 +44,14 @@ export function PostCollectionSidebarWidget({
                         showWatermark={false}
                         className="group-hover:scale-105 transition-transform duration-500"
                     />
-                    {/* 防眩遮罩 */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col justify-end p-3 text-white">
+                    {/* 轻盈微光半透明遮罩（杜绝生硬纯黑） */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/65 via-zinc-950/20 to-transparent dark:from-black/75 dark:via-black/35 dark:to-transparent flex flex-col justify-end p-3 text-white backdrop-blur-[0.5px]">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-white/80 flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-white/90 flex items-center gap-1.5">
                                 <PresetIcon className="h-3 w-3" style={{ color: preset.accentColor }} />
                                 连载专栏
                             </span>
-                            <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md">
+                            <Badge variant="secondary" className="h-4 px-2 text-[10px] bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md rounded-full">
                                 共 {posts.length || collection.post_count} 篇
                             </Badge>
                         </div>
@@ -72,10 +72,10 @@ export function PostCollectionSidebarWidget({
                                 key={postItem.id}
                                 href={`/posts/${postItem.id}`}
                                 className={cn(
-                                    "flex items-start gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all group/item",
+                                    "flex items-start gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all group/item",
                                     isCurrent
-                                        ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary shadow-xs"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                                        ? "bg-zinc-100 dark:bg-zinc-800/80 text-foreground font-semibold shadow-xs"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40"
                                 )}
                             >
                                 <span className={cn(
@@ -90,8 +90,8 @@ export function PostCollectionSidebarWidget({
                                 </span>
 
                                 {isCurrent && (
-                                    <span className="shrink-0 flex items-center text-[10px] text-primary/80 font-normal">
-                                        <Sparkles className="h-3 w-3 animate-pulse mr-0.5" />
+                                    <span className="shrink-0 flex items-center text-[10px] text-primary font-medium">
+                                        <Sparkles className="h-3 w-3 mr-0.5" />
                                         阅读中
                                     </span>
                                 )}
@@ -106,7 +106,7 @@ export function PostCollectionSidebarWidget({
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="w-full mt-2 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 justify-center"
+                        className="w-full mt-2 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 justify-center rounded-full"
                     >
                         {isExpanded ? (
                             <>
@@ -124,13 +124,13 @@ export function PostCollectionSidebarWidget({
 
                 {/* 上一篇 / 下一篇 快捷跳转 */}
                 {(prevPost || nextPost) && (
-                    <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center gap-2">
+                    <div className="mt-3 pt-2.5 border-t border-zinc-200/50 dark:border-zinc-800/50 flex items-center gap-2">
                         {prevPost && (
                             <Button
                                 asChild
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/30 border-border/60 rounded-lg transition-all"
+                                className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 border-0 rounded-full transition-all shadow-xs"
                             >
                                 <Link href={`/posts/${prevPost.id}`} title={`上一篇: ${prevPost.title}`}>
                                     <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
@@ -144,7 +144,7 @@ export function PostCollectionSidebarWidget({
                                 asChild
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/30 border-border/60 rounded-lg transition-all"
+                                className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 border-0 rounded-full transition-all shadow-xs"
                             >
                                 <Link href={`/posts/${nextPost.id}`} title={`下一篇: ${nextPost.title}`}>
                                     <span className="font-medium">下一篇</span>
@@ -158,3 +158,5 @@ export function PostCollectionSidebarWidget({
         </div>
     );
 }
+
+export default PostCollectionSidebarWidget;
