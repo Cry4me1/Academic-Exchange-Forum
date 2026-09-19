@@ -73,6 +73,7 @@ export function AnnouncementCard() {
                 </div>
                 <Link 
                     href="/announcements" 
+                    prefetch={false}
                     className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors flex items-center gap-0.5"
                 >
                     {t.dashboardComponents.viewMore} <ChevronRight className="h-3 w-3" strokeWidth={1.75} />
@@ -92,7 +93,7 @@ export function AnnouncementCard() {
                     else if (announcement.title.includes("新手教程指南")) href = "/announcements/tutorials";
 
                     return (
-                        <Link key={announcement.id} href={href} className="block group">
+                        <Link key={announcement.id} href={href} prefetch={false} className="block group">
                             <div className="p-3 rounded-xl border-0 bg-white/40 dark:bg-zinc-800/30 hover:bg-white/70 dark:hover:bg-zinc-800/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_8px_-1px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-all duration-150">
                                 <div className="flex items-start gap-2.5">
                                     <div className={`h-7 w-7 rounded-xl ${style.bg} ${style.text} shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] flex items-center justify-center shrink-0 mt-0.5 border-0`}>

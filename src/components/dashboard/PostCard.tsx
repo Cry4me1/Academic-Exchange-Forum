@@ -195,7 +195,7 @@ export function PostCard({
             <div className="flex items-center justify-between gap-2.5 mb-3.5">
                 {/* 左侧：头像 + 昵称 + 身份徽章 + 日期（自然横向排列，严格抗折行） */}
                 <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                    <Link href={`/user/${author.id}`} className="shrink-0 flex items-center gap-2 min-w-0">
+                    <Link href={`/user/${author.id}`} prefetch={false} className="shrink-0 flex items-center gap-2 min-w-0">
                         <Avatar className="h-7.5 w-7.5 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] shrink-0">
                             <AvatarImage src={author.avatar} alt={author.name} />
                             <AvatarFallback className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium">
@@ -230,6 +230,7 @@ export function PostCard({
                     {finalCollections.length > 0 && (
                         <Link
                             href={`/collections/${finalCollections[0].id || ''}`}
+                            prefetch={false}
                             onClick={(e) => e.stopPropagation()}
                             className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-colors max-w-[110px]"
                         >
@@ -297,7 +298,7 @@ export function PostCard({
                             animate={justLiked}
                             particleType="heart"
                         />
-                        <Link href={`/posts/${id}#comments`}>
+                        <Link href={`/posts/${id}#comments`} prefetch={false}>
                             <ActionButton
                                 icon={<MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} />}
                                 count={comments}
@@ -337,7 +338,7 @@ export function PostCard({
                     <PostHeader />
 
                     {/* 图片视窗容器 (16:9 固定比例，微弱内描边，悬停微缩放) */}
-                    <Link href={`/posts/${id}`} className="block">
+                    <Link href={`/posts/${id}`} prefetch={false} className="block">
                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3.5 border-0 bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)]">
                             <Image
                                 src={coverImage!}
@@ -354,7 +355,7 @@ export function PostCard({
                     </Link>
 
                     {/* 标题 */}
-                    <Link href={`/posts/${id}`} className="block group/title">
+                    <Link href={`/posts/${id}`} prefetch={false} className="block group/title">
                         <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2 group-hover/title:text-primary transition-colors duration-150">
                             <MathText text={title} inlineOnly />
                         </h3>
@@ -399,7 +400,7 @@ export function PostCard({
                     <PostHeader />
 
                     {/* 标题 */}
-                    <Link href={`/posts/${id}`} className="block group/title">
+                    <Link href={`/posts/${id}`} prefetch={false} className="block group/title">
                         <h3 className="text-base sm:text-[17px] font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2 group-hover/title:text-primary transition-colors duration-150">
                             <MathText text={title} inlineOnly />
                         </h3>

@@ -82,7 +82,7 @@ export function DashboardTutorialBanner() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        <Link href="/announcements/tutorials">
+                        <Link href="/announcements/tutorials" prefetch={false}>
                             <Button size="sm" className="h-7 text-xs px-3 rounded-full font-medium border-0 bg-zinc-950/85 text-white hover:bg-zinc-900/95 dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] gap-1 group">
                                 {t.dashboardComponents.tutorialBannerAction}
                                 <ArrowRight className="h-3 w-3 text-zinc-400 group-hover:translate-x-0.5 transition-transform" strokeWidth={1.75} />

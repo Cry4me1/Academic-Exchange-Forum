@@ -61,3 +61,10 @@ export const registerLimiter = new RateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 5,
 });
+
+// 邮箱验证重发限流器：每 IP/邮箱 每 60 秒最多 1 次
+export const emailResendLimiter = new RateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 1,
+});
+

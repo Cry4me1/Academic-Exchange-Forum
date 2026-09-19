@@ -72,6 +72,16 @@ export async function POST(request: NextRequest) {
 
         if (authError) {
             console.warn("[Login API] Auth failed for:", cleanInput, "Target email:", targetEmail, "Error:", authError.message);
+            if (authError.message.toLowerCase().includes("email not confirmed")) {
+                return NextResponse.json(
+                    {
+                        error: "该账号邮箱尚未完成验证，请先查收验证邮件进行激活",
+                        needsVerification: true,
+                        email: targetEmail,
+                    },
+                    { status: 403 }
+                );
+            }
             return NextResponse.json(
                 { error: "用户名/邮箱或密码错误，请核对后重试" },
                 { status: 400 }

@@ -58,6 +58,7 @@ export function MainNav() {
                     <Link
                         key={item.href}
                         href={item.href}
+                        prefetch={false}
                         onClick={() => handleNavClick(item)}
                         className={cn(
                             "group flex items-center gap-3 px-3 py-2 rounded-full text-sm font-medium transition-all duration-150 relative select-none border-0",
@@ -107,6 +108,7 @@ export function MainNav() {
 
             <Link
                 href="/settings"
+                prefetch={false}
                 className="group flex items-center gap-3 px-3 py-2 rounded-full text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/60 dark:hover:bg-zinc-800/40 transition-all duration-150 border-0"
             >
                 <Settings

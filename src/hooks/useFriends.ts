@@ -208,7 +208,7 @@ export function useFriends(currentUserId: string | null): UseFriendsReturn {
                 .or(
                     `and(requester_id.eq.${currentUserId},addressee_id.eq.${addresseeId}),and(requester_id.eq.${addresseeId},addressee_id.eq.${currentUserId})`
                 )
-                .single();
+                .maybeSingle();
 
             if (existing) {
                 if (existing.status === "accepted") {

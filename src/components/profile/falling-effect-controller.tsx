@@ -241,6 +241,11 @@ export function FallingEffectController({
     const currentPreset = EFFECT_PRESETS.find((p) => p.id === activeType) || EFFECT_PRESETS[0];
     const CurrentIcon = currentPreset.icon;
 
+    // 关键权限控制：访问他人主页时，仅在后台静默运行主人设置的四季飘落视效，不向访客展示装扮控制按钮与弹出面板
+    if (!isOwnProfile) {
+        return null;
+    }
+
     return (
         <div className={cn("relative inline-block select-none", className)}>
             <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -250,11 +255,7 @@ export function FallingEffectController({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.97 }}
                         onMouseMove={handleMouseMove}
-                        title={
-                            isOwnProfile
-                                ? "设置我的主页四季自然飘落装扮"
-                                : `${targetUserName} 的主页四季自然视效`
-                        }
+                        title="设置我的主页四季自然飘落装扮"
                         className={cn(
                             "relative overflow-hidden group/ambient flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border-0 text-xs font-medium cursor-pointer transition-all duration-300",
                             // Apple Liquid Glass 三层物理光学设计
@@ -294,9 +295,7 @@ export function FallingEffectController({
                         {/* 状态文案：字体锁定 font-medium，严格零布局跳动 */}
                         <span className="relative font-medium tracking-tight">
                             {isEnabled
-                                ? isOwnProfile
-                                    ? `主页·${currentPreset.subName}`
-                                    : `学者空间·${currentPreset.subName}`
+                                ? `主页·${currentPreset.subName}`
                                 : "四季飘落"}
                         </span>
 
@@ -328,17 +327,15 @@ export function FallingEffectController({
                             </div>
                             <div>
                                 <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
-                                    {isOwnProfile ? "我的主页四季装扮" : `${targetUserName}的主页景致`}
+                                    我的主页四季装扮
                                 </h4>
                                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                                    {isOwnProfile
-                                        ? "设定后所有来访学者均可欣赏此景致"
-                                        : "该学者开启了空间自然飘落视效"}
+                                    设定后所有来访学者均可欣赏此景致
                                 </p>
                             </div>
                         </div>
 
-                        {/* 水滴胶囊物理总开关 (主人可随时开关持久化，访客可本地临时静止) */}
+                        {/* 水滴胶囊物理总开关 (主人可随时开关持久化) */}
                         <motion.button
                             type="button"
                             whileHover={{ scale: 1.05 }}
@@ -374,9 +371,9 @@ export function FallingEffectController({
                     {/* 四季特效选项网格 */}
                     <div className="space-y-1.5">
                         <div className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 px-1 mb-2 flex items-center justify-between">
-                            <span>{isOwnProfile ? "选择主页装扮效果" : "当前主页效果"}</span>
+                            <span>选择主页装扮效果</span>
                             <span className="text-[10px] text-zinc-400">
-                                {isOwnProfile ? "点击切换并自动保存" : "沉浸式自然下落"}
+                                点击切换并自动保存
                             </span>
                         </div>
 
@@ -477,7 +474,7 @@ export function FallingEffectController({
                             </span>
                         </span>
                         <span className="text-[10px] text-zinc-400 opacity-80">
-                            {isOwnProfile ? "访客来访可见" : "全屏独立图层"}
+                            访客来访可见
                         </span>
                     </div>
                 </PopoverContent>

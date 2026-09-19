@@ -265,9 +265,12 @@ export default function UserProfilePage() {
     const { sendFriendRequest } = useFriends(currentUserId);
 
     useEffect(() => {
+        let isMounted = true;
         async function loadData() {
+            setLoading(true);
             // 获取当前登录用户
             const { data: { user } } = await supabase.auth.getUser();
+            if (!isMounted) return;
             if (user) {
                 setCurrentUserId(user.id);
             }
@@ -337,7 +340,7 @@ export default function UserProfilePage() {
 
             // 获取该用户点赞的帖子
             const { data: likesData } = await supabase
-                .from("post_likes")
+                .from("likes")
                 .select(`
                     created_at,
                     post:posts!inner (
@@ -474,13 +477,13 @@ export default function UserProfilePage() {
                 }
             }
 
-            // 检查好友关系
-            if (user) {
+            // 检查好友关系（仅在查看他人主页时检查）
+            if (user && user.id !== userId) {
                 const { data: friendshipData } = await supabase
                     .from("friendships")
                     .select("status")
                     .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`)
-                    .single();
+                    .maybeSingle();
 
                 if (friendshipData) {
                     if (friendshipData.status === "accepted") {
@@ -491,12 +494,18 @@ export default function UserProfilePage() {
                 }
             }
 
-            setLoading(false);
+            if (isMounted) {
+                setLoading(false);
+            }
         }
 
         if (userId) {
             loadData();
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [userId, supabase]);
 
     const handleAddFriend = async () => {
@@ -539,7 +548,7 @@ export default function UserProfilePage() {
 
     const displayName = profile.username || profile.email?.split("@")[0] || "未知学者";
     const initials = displayName.charAt(0).toUpperCase();
-    const isOwnProfile = currentUserId === userId;
+    const isOwnProfile = Boolean(currentUserId && currentUserId === userId);
 
     // 渲染帖子 Feed 卡片
     const renderPostCard = (post: Post, extraInfo?: { label: string; time: string }) => {

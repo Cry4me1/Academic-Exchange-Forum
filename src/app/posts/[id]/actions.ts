@@ -29,7 +29,7 @@ export async function toggleLikePost(postId: string) {
         .select("id")
         .eq("user_id", user.id)
         .eq("post_id", postId)
-        .single();
+        .maybeSingle();
 
     if (existingLike) {
         // 取消点赞
@@ -79,7 +79,7 @@ export async function toggleLikeComment(commentId: string) {
         .select("id")
         .eq("user_id", user.id)
         .eq("comment_id", commentId)
-        .single();
+        .maybeSingle();
 
     if (existingLike) {
         // 取消点赞
@@ -127,7 +127,7 @@ export async function toggleBookmarkPost(postId: string) {
         .select("id")
         .eq("user_id", user.id)
         .eq("post_id", postId)
-        .single();
+        .maybeSingle();
 
     if (existingBookmark) {
         // 取消收藏

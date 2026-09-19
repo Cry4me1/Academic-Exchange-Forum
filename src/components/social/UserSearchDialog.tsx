@@ -68,7 +68,7 @@ export function UserSearchDialog({
                 .or(
                     `and(requester_id.eq.${currentUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${currentUserId})`
                 )
-                .single();
+                .maybeSingle();
 
             if (existing) {
                 if (existing.status === "accepted") {

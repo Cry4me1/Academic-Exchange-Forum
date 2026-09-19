@@ -192,6 +192,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                     alt="Scholarly Logo" 
                                     width={30} 
                                     height={30} 
+                                    unoptimized
                                     className="rounded-xl object-cover border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15)] transition-transform group-hover:scale-105" 
                                 />
                                 <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">

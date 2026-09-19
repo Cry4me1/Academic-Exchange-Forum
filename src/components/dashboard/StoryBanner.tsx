@@ -227,7 +227,7 @@ export function StoryBanner() {
 
 function TrendingSlide({ post }: { post: TrendingPost }) {
     return (
-        <Link href={`/posts/${post.id}`}>
+        <Link href={`/posts/${post.id}`} prefetch={false}>
             <div className="w-60 h-28 rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_8px_24px_-4px_rgba(0,0,0,0.35)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_12px_28px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.22),0_12px_28px_-4px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 p-3.5 flex flex-col justify-between cursor-pointer transition-all duration-150 group/slide">
                 {/* 顶栏 */}
                 <div className="flex items-center justify-between">
@@ -273,7 +273,7 @@ function TrendingSlide({ post }: { post: TrendingPost }) {
 function TopPosterSlide({ user }: { user: WeeklyTopPoster }) {
     const displayName = user.username || "学者";
     return (
-        <Link href={`/user/${user.id}`}>
+        <Link href={`/user/${user.id}`} prefetch={false}>
             <div className="w-48 h-28 rounded-2xl border-0 bg-amber-500/8 dark:bg-amber-500/10 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_8px_24px_-4px_rgba(245,158,11,0.08)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-4px_rgba(0,0,0,0.35)] hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_12px_28px_-4px_rgba(245,158,11,0.14)] hover:-translate-y-0.5 p-3.5 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all duration-150">
                 <div className="flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                     <Crown className="h-3 w-3" strokeWidth={1.75} /> 本周之星

@@ -26,7 +26,7 @@ function FriendItem({ friend, friendshipId, isOnline }: FriendItemProps) {
                 <TooltipTrigger asChild>
                     <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors duration-150 group border-0">
                         {/* 头像点击跳转到用户主页 */}
-                        <Link href={`/user/${friend.id}`} className="relative shrink-0">
+                        <Link href={`/user/${friend.id}`} prefetch={false} className="relative shrink-0">
                             <Avatar className="h-7 w-7 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
                                 <AvatarImage src={friend.avatar_url || undefined} alt={displayName} />
                                 <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
@@ -41,7 +41,7 @@ function FriendItem({ friend, friendshipId, isOnline }: FriendItemProps) {
                             />
                         </Link>
                         {/* 名字点击跳转到消息页 */}
-                        <Link href={`/messages?user=${friend.id}`} className="flex-1 truncate">
+                        <Link href={`/messages?user=${friend.id}`} prefetch={false} className="flex-1 truncate">
                             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 truncate block">
                                 {displayName}
                             </span>

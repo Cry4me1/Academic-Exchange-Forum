@@ -217,6 +217,14 @@ export function LoginForm() {
 
                 if (!res.ok || !result.success) {
                     setError(result.error || "邮箱/用户名或密码错误");
+                    if (result.needsVerification) {
+                        toast.error(result.error, {
+                            action: {
+                                label: "去验证",
+                                onClick: () => router.push("/pending-verification"),
+                            },
+                        });
+                    }
                     return;
                 }
 

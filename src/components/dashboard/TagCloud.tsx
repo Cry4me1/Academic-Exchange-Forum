@@ -79,7 +79,7 @@ export function TagCloud() {
             ) : tags.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                     {tags.map((tag) => (
-                        <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`}>
+                        <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`} prefetch={false}>
                             <span
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-0 transition-all duration-150 cursor-pointer backdrop-blur-md select-none ${heatStyles[tag.heat]}`}
                             >

@@ -23,6 +23,7 @@ import {
     Sparkles,
     Check,
     GraduationCap,
+    RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -49,10 +50,14 @@ export function RegisterForm() {
     const [renderedAt, setRenderedAt] = useState<number>(0);
     const [registrationMode, setRegistrationMode] = useState<string>("INVITE_ONLY");
     const [inviteCheck, setInviteCheck] = useState<InviteCheckState>({ status: "idle" });
+    const [submittedEmail, setSubmittedEmail] = useState<string>("");
+    const [resendCooldown, setResendCooldown] = useState<number>(0);
+    const [isResending, setIsResending] = useState<boolean>(false);
 
     const emailCaptchaRef = useRef<CaptchaInputRef>(null);
     const usernameCaptchaRef = useRef<CaptchaInputRef>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const resendTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const initialInviteCode = searchParams.get("invite") || searchParams.get("ref") || "";
 
@@ -232,6 +237,7 @@ export function RegisterForm() {
                 return;
             }
 
+            setSubmittedEmail(data.email);
             setIsSuccess(true);
             toast.success("注册成功！请检查邮箱完成验证");
         } catch {
@@ -240,6 +246,53 @@ export function RegisterForm() {
             setValueEmail("captchaCode", "");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // 重新发送注册邮箱验证邮件
+    const handleResendVerificationEmail = async () => {
+        if (!submittedEmail || resendCooldown > 0 || isResending) return;
+
+        setIsResending(true);
+        try {
+            const res = await fetch("/api/auth/email/resend", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email: submittedEmail }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "发送失败，请稍后重试");
+            }
+
+            toast.success("验证邮件已重新发送！请检查您的收件箱或垃圾邮件箱。");
+            setResendCooldown(60);
+            if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+            resendTimerRef.current = setInterval(() => {
+                setResendCooldown((prev) => {
+                    if (prev <= 1) {
+                        if (resendTimerRef.current) clearInterval(resendTimerRef.current);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } catch (err: any) {
+            toast.error(err.message || "请求失败，请稍后重试");
+        } finally {
+            setIsResending(false);
+        }
+    };
+
+    // 统一捕获表单校验错误，防止用户遇到无反馈的伪卡顿
+    const onFormValidationError = (formErrors: any) => {
+        const firstKey = Object.keys(formErrors)[0];
+        const firstErr = formErrors[firstKey];
+        if (firstErr?.message) {
+            toast.error(firstErr.message);
         }
     };
 
@@ -294,19 +347,57 @@ export function RegisterForm() {
     // 邮箱注册成功提示
     if (isSuccess && activeTab === "email") {
         return (
-            <div className="text-center space-y-4">
-                <div className="inline-flex p-4 rounded-full bg-green-500/10 text-green-500">
+            <div className="text-center space-y-5 py-4">
+                <div className="inline-flex p-4 rounded-full bg-green-500/10 text-green-500 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]">
                     <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">
-                    验证邮件已发送！
-                </h3>
-                <p className="text-muted-foreground">
-                    请检查您的邮箱，点击验证链接完成账号激活。
-                </p>
-                <div className="mt-4">
-                    <Link href="/login">
-                        <Button variant="outline">前往登录</Button>
+                <div className="space-y-1.5">
+                    <h3 className="text-xl font-bold text-foreground">
+                        验证邮件已发送！
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        系统已向您的邮箱发送激活邮件，请点击邮件中的链接完成账号激活。
+                    </p>
+                </div>
+                {submittedEmail && (
+                    <div className="w-full flex items-center justify-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-0 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-mono text-xs font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                            <Mail className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>{submittedEmail}</span>
+                        </div>
+                    </div>
+                )}
+                <div className="space-y-3 pt-2">
+                    <Button
+                        type="button"
+                        onClick={handleResendVerificationEmail}
+                        disabled={resendCooldown > 0 || isResending}
+                        className="w-full h-11 rounded-full text-xs font-medium border-0 text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 dark:from-amber-500 dark:to-orange-500 dark:text-slate-950 shadow-[0_4px_16px_-2px_rgba(245,158,11,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isResending ? (
+                            <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>正在重新发送...</span>
+                            </>
+                        ) : resendCooldown > 0 ? (
+                            <>
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                <span>{resendCooldown} 秒后可重新发送</span>
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span>重新发送验证邮件</span>
+                            </>
+                        )}
+                    </Button>
+                    <Link href="/login" className="block w-full">
+                        <Button
+                            variant="ghost"
+                            className="w-full h-11 rounded-full text-xs font-medium text-foreground hover:bg-black/5 dark:hover:bg-white/5 border-0 transition-colors"
+                        >
+                            前往登录
+                        </Button>
                     </Link>
                 </div>
             </div>
@@ -366,7 +457,7 @@ export function RegisterForm() {
 
                 {/* Tab 1: 邮箱注册 */}
                 <TabsContent value="email" className="space-y-4 mt-0">
-                    <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmitEmail(onEmailSubmit, onFormValidationError)} className="space-y-4">
                         {/* 蜜罐陷阱 (Honeypot) */}
                         <div className="hidden pointer-events-none opacity-0 select-none" aria-hidden="true">
                             <input
@@ -568,7 +659,7 @@ export function RegisterForm() {
 
                 {/* Tab 2: 用户名注册 */}
                 <TabsContent value="username" className="space-y-4 mt-0">
-                    <form onSubmit={handleSubmitUsername(onUsernameSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmitUsername(onUsernameSubmit, onFormValidationError)} className="space-y-4">
                         {/* 蜜罐陷阱 (Honeypot) */}
                         <div className="hidden pointer-events-none opacity-0 select-none" aria-hidden="true">
                             <input
