@@ -48,7 +48,7 @@ export function AiFeatureCard() {
                     size="sm" 
                     className="w-full h-8 text-xs font-medium rounded-full border-0 bg-zinc-950/85 hover:bg-zinc-900/95 text-white dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white backdrop-blur-xl shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] gap-1.5"
                 >
-                    <Link href="/posts/new">
+                    <Link href="/posts/new" prefetch={false}>
                         <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
                         {t.dashboardComponents.aiCardAction}
                         <ArrowRight className="h-3 w-3 ml-auto text-zinc-400" strokeWidth={1.75} />

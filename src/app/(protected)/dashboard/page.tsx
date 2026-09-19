@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMyCredits } from "@/app/(protected)/credits/actions";
 import DashboardClient from "./DashboardClient";
 import type { DashboardInitialData } from "./DashboardClient";
 
@@ -14,59 +13,52 @@ import type { DashboardInitialData } from "./DashboardClient";
 export default async function DashboardPage() {
     const supabase = await createClient();
 
-    // 并行获取用户数据和积分（服务端同区域，延迟极低）
-    const [userResult, credits] = await Promise.all([
-        (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return null;
+    // 仅获取一次用户会话
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return <DashboardClient initialData={{
+            user: { id: "", username: null, email: null, avatar_url: null, created_at: new Date().toISOString() },
+            creditBalance: 0
+        }} />;
+    }
 
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("username, email, avatar_url")
-                .eq("id", user.id)
-                .single();
-
-            // 如果 profile 不存在，自动创建
-            if (!profile) {
-                const newProfile = {
-                    id: user.id,
-                    email: user.email || null,
-                    username: user.email?.split("@")[0] || "User",
-                    avatar_url: "",
-                };
-
-                await supabase.from("profiles").insert([newProfile]);
-
-                return {
-                    id: user.id,
-                    username: newProfile.username,
-                    email: newProfile.email,
-                    avatar_url: newProfile.avatar_url,
-                    created_at: user.created_at,
-                };
-            }
-
-            return {
-                id: user.id,
-                username: profile.username,
-                email: profile.email,
-                avatar_url: profile.avatar_url,
-                created_at: user.created_at,
-            };
-        })(),
-        getMyCredits().catch(() => ({ balance: 0 })),
+    // 仅发起一次紧凑的并行查询，避免串行执行 4 次往返和耗时的 monthly_bonus RPC
+    const [profileRes, creditsRes] = await Promise.all([
+        supabase
+            .from("profiles")
+            .select("username, email, avatar_url")
+            .eq("id", user.id)
+            .single(),
+        supabase
+            .from("user_credits")
+            .select("balance")
+            .eq("user_id", user.id)
+            .single(),
     ]);
 
-    // 构建初始数据（用户数据已通过 protected layout 验证）
+    let profile = profileRes.data;
+
+    // 如果 profile 尚未初始化，自动补全
+    if (!profile) {
+        const newProfile = {
+            id: user.id,
+            email: user.email || null,
+            username: user.email?.split("@")[0] || "User",
+            avatar_url: "",
+        };
+        await supabase.from("profiles").insert([newProfile]);
+        profile = newProfile;
+    }
+
     const initialData: DashboardInitialData = {
-        user: userResult || {
-            id: "",
-            username: null,
-            email: null,
-            avatar_url: null,
-            created_at: new Date().toISOString(),
+        user: {
+            id: user.id,
+            username: profile.username,
+            email: profile.email,
+            avatar_url: profile.avatar_url,
+            created_at: user.created_at,
         },
-        creditBalance: credits.balance,
+        creditBalance: creditsRes.data?.balance ?? 0,
     };
 
     return <DashboardClient initialData={initialData} />;

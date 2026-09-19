@@ -9,7 +9,7 @@ export function QuickPostButton() {
     const { t } = useI18n();
 
     return (
-        <Link href="/posts/new" className="block">
+        <Link href="/posts/new" prefetch={false} className="block">
             <motion.div
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
