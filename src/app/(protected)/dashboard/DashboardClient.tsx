@@ -46,7 +46,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/context";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
@@ -318,7 +318,9 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                 <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2.5 px-1 tracking-tight">
                                     好友动态
                                 </h3>
-                                <FriendsList currentUserId={currentUserId} />
+                                <Suspense fallback={<div className="h-28 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/40 animate-pulse border-0" />}>
+                                    <FriendsList currentUserId={currentUserId} />
+                                </Suspense>
                             </div>
                         </motion.div>
                     </aside>
@@ -377,7 +379,9 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
                             {/* 公告卡片 */}
                             <motion.div variants={itemVariants}>
-                                <AnnouncementCard />
+                                <Suspense fallback={<div className="h-40 rounded-2xl bg-white/40 dark:bg-zinc-900/30 animate-pulse border-0" />}>
+                                    <AnnouncementCard />
+                                </Suspense>
                             </motion.div>
 
                             {/* AI Feature Announcement */}
@@ -387,7 +391,9 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
                             {/* 热门话题 */}
                             <motion.div variants={itemVariants}>
-                                <TagCloud />
+                                <Suspense fallback={<div className="h-32 rounded-2xl bg-white/40 dark:bg-zinc-900/30 animate-pulse border-0" />}>
+                                    <TagCloud />
+                                </Suspense>
                             </motion.div>
                         </motion.div>
                     </aside>
