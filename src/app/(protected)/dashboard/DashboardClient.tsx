@@ -300,13 +300,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
             {/* 主内容区域 - 间距留白更加宽大舒适 */}
             <main className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
                 <div className="flex gap-8 items-start">
-                    {/* 左侧栏 - 桌面端显示，宽度增至 72 (288px) */}
-                    <aside className="hidden lg:block w-72 shrink-0">
+                    {/* 左侧栏 - 桌面端固定吸顶，随滚动常驻 */}
+                    <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start">
                         <motion.div
                             variants={slideInLeft}
                             initial="hidden"
                             animate="visible"
-                            className="sticky top-24 space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
+                            className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
                         >
                             {/* 主导航 */}
                             <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
@@ -364,13 +364,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         </motion.div>
                     </motion.div>
 
-                    {/* 右侧栏 - 桌面端显示，宽度 340px */}
-                    <aside className="hidden xl:block w-[340px] shrink-0">
+                    {/* 右侧栏 - 桌面端固定吸顶，随滚动常驻 */}
+                    <aside className="hidden xl:block w-[340px] shrink-0 sticky top-24 self-start">
                         <motion.div
                             variants={slideInRight}
                             initial="hidden"
                             animate="visible"
-                            className="sticky top-24 space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
+                            className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
                         >
                             {/* 快速发帖 */}
                             <motion.div variants={itemVariants}>
