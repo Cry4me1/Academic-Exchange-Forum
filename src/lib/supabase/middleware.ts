@@ -23,8 +23,14 @@ const PUBLIC_PREFIXES = [
 ];
 
 export async function updateSession(request: NextRequest) {
+    const pathname = request.nextUrl.pathname;
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", pathname);
+
     let supabaseResponse = NextResponse.next({
-        request,
+        request: {
+            headers: requestHeaders,
+        },
     });
 
     const supabase = createServerClient(
@@ -40,7 +46,9 @@ export async function updateSession(request: NextRequest) {
                         request.cookies.set(name, value)
                     );
                     supabaseResponse = NextResponse.next({
-                        request,
+                        request: {
+                            headers: requestHeaders,
+                        },
                     });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
@@ -56,17 +64,6 @@ export async function updateSession(request: NextRequest) {
 
     // refreshing the auth token
     const { data: { user } } = await supabase.auth.getUser();
-
-    const pathname = request.nextUrl.pathname;
-
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-pathname", pathname);
-
-    supabaseResponse = NextResponse.next({
-        request: {
-            headers: requestHeaders,
-        },
-    });
 
     // 已登录用户访问登录/注册页面时，重定向到 dashboard
     if (user && (pathname === "/login" || pathname === "/register")) {

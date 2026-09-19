@@ -41,11 +41,17 @@ import {
     Type,
     X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChatMessages } from "./ChatBubble";
-import { ChatEditor, type ChatEditorRef } from "./ChatEditor";
+import { type ChatEditorRef } from "./ChatEditor";
 import { uploadMessageFile } from "./FileUploader";
+
+const ChatEditor = dynamic(
+    () => import("./ChatEditor").then((mod) => mod.ChatEditor),
+    { ssr: false }
+);
 
 interface ChatWindowProps {
     currentUserId: string;

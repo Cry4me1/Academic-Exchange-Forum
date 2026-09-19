@@ -1,7 +1,6 @@
 "use client";
 
 import { ChatList } from "@/components/chat/ChatList";
-import { ChatWindow } from "@/components/chat/ChatWindow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFriends } from "@/hooks/useFriends";
@@ -9,8 +8,22 @@ import { useMessages } from "@/hooks/useMessages";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Loader2, MessageSquare, Search, Users } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+
+const ChatWindow = dynamic(
+    () => import("@/components/chat/ChatWindow").then((mod) => mod.ChatWindow),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-zinc-400 dark:text-zinc-500">
+                <Loader2 className="h-7 w-7 animate-spin text-zinc-400" />
+                <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500">加载对话中...</p>
+            </div>
+        ),
+    }
+);
 
 function MessagesLoading() {
     return (

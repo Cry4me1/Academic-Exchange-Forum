@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import DOMPurify from "isomorphic-dompurify";
-import renderMathInElement from "katex/dist/contrib/auto-render";
 import {
     Bold,
     Code,
@@ -29,56 +28,6 @@ import { Mathematics } from "@tiptap/extension-mathematics";
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-
-// 聊天编辑器扩展配置
-const chatExtensions = [
-    StarterKit.configure({
-        heading: false,
-        horizontalRule: false,
-        blockquote: {
-            HTMLAttributes: {
-                class: "border-l-2 border-primary pl-3 my-1",
-            },
-        },
-        bulletList: {
-            HTMLAttributes: {
-                class: "list-disc list-inside my-1",
-            },
-        },
-        orderedList: {
-            HTMLAttributes: {
-                class: "list-decimal list-inside my-1",
-            },
-        },
-        code: {
-            HTMLAttributes: {
-                class: "rounded bg-muted px-1.5 py-0.5 font-mono text-sm",
-            },
-        },
-        codeBlock: {
-            HTMLAttributes: {
-                class: "rounded-lg bg-muted p-3 font-mono text-sm my-1",
-            },
-        },
-    }),
-    Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-            class: "text-primary underline cursor-pointer",
-        },
-    }),
-    Placeholder.configure({
-        placeholder: "输入消息... 支持 Markdown 格式",
-    }),
-    // LaTeX 公式支持
-    Mathematics.configure({
-        regex: /\$([^\$]+)\$/gi,
-        katexOptions: {
-            strict: "ignore",
-            throwOnError: false,
-        },
-    }),
-];
 
 interface ChatEditorProps {
     value?: string;
@@ -114,15 +63,60 @@ export const ChatEditor = forwardRef<ChatEditorRef, ChatEditorProps>(
         const [linkUrl, setLinkUrl] = useState("");
         const [showLinkPopover, setShowLinkPopover] = useState(false);
 
+        const extensions = useMemo(() => [
+            StarterKit.configure({
+                heading: false,
+                horizontalRule: false,
+                blockquote: {
+                    HTMLAttributes: {
+                        class: "border-l-2 border-primary pl-3 my-1",
+                    },
+                },
+                bulletList: {
+                    HTMLAttributes: {
+                        class: "list-disc list-inside my-1",
+                    },
+                },
+                orderedList: {
+                    HTMLAttributes: {
+                        class: "list-decimal list-inside my-1",
+                    },
+                },
+                code: {
+                    HTMLAttributes: {
+                        class: "rounded bg-muted px-1.5 py-0.5 font-mono text-sm",
+                    },
+                },
+                codeBlock: {
+                    HTMLAttributes: {
+                        class: "rounded-lg bg-muted p-3 font-mono text-sm my-1",
+                    },
+                },
+            }),
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    class: "text-primary underline cursor-pointer",
+                },
+            }),
+            Placeholder.configure({
+                placeholder: placeholder || "输入消息... 支持 Markdown 格式",
+            }),
+            // LaTeX 公式支持
+            Mathematics.configure({
+                regex: /\$([^\$]+)\$/gi,
+                katexOptions: {
+                    strict: "ignore",
+                    throwOnError: false,
+                },
+            }),
+        ], [placeholder]);
+
         const editor = useEditor({
-            extensions: placeholder
-                ? [
-                    ...chatExtensions.filter(ext => ext.name !== "placeholder"),
-                    Placeholder.configure({ placeholder }),
-                ]
-                : chatExtensions,
+            extensions,
             content: value || "",
             editable: !disabled,
+            immediatelyRender: false,
             editorProps: {
                 attributes: {
                     class: cn(
@@ -363,26 +357,36 @@ export function ChatContentViewer({ content, className }: ChatContentViewerProps
 
     useEffect(() => {
         if (typeof window === "undefined") return;
+        let isMounted = true;
+
         if (containerRef.current && sanitizedContent) {
-            // 使用 KaTeX 自动渲染容器内的 LaTeX 公式
-            try {
-                if (typeof renderMathInElement === "function") {
-                    renderMathInElement(containerRef.current, {
-                        delimiters: [
-                            { left: "$$", right: "$$", display: true },
-                            { left: "$", right: "$", display: false },
-                            { left: "\\(", right: "\\)", display: false },
-                            { left: "\\[", right: "\\]", display: true },
-                        ],
-                        throwOnError: false,
-                        strict: "ignore",
-                        output: "html",
-                    });
-                }
-            } catch (e) {
-                console.error("KaTeX rendering error:", e);
-            }
+            // 客户端按需异步加载 KaTeX auto-render，彻底避免 SSR 模块解析异常
+            import("katex/contrib/auto-render")
+                .then((mod) => {
+                    if (!isMounted || !containerRef.current) return;
+                    const renderMath = mod.default || mod;
+                    if (typeof renderMath === "function") {
+                        renderMath(containerRef.current, {
+                            delimiters: [
+                                { left: "$$", right: "$$", display: true },
+                                { left: "$", right: "$", display: false },
+                                { left: "\\(", right: "\\)", display: false },
+                                { left: "\\[", right: "\\]", display: true },
+                            ],
+                            throwOnError: false,
+                            strict: "ignore",
+                            output: "html",
+                        });
+                    }
+                })
+                .catch((e) => {
+                    console.warn("KaTeX auto-render failed to load:", e);
+                });
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [sanitizedContent]);
 
     if (!sanitizedContent) return null;

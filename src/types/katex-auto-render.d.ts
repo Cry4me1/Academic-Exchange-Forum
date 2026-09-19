@@ -1,4 +1,4 @@
-declare module "katex/dist/contrib/auto-render" {
+declare module "katex/contrib/auto-render" {
     export interface RenderMathInElementOptions {
         delimiters?: Array<{
             left: string;
