@@ -13,6 +13,7 @@ interface PresenceContextType {
     onlineUsers: Set<string>;
     isOnline: (userId: string) => boolean;
     isConnected: boolean;
+    currentUserId: string | null;
 }
 
 const PresenceContext = createContext<PresenceContextType | null>(null);
@@ -131,7 +132,7 @@ export function PresenceProvider({
     );
 
     return (
-        <PresenceContext.Provider value={{ onlineUsers, isOnline, isConnected }}>
+        <PresenceContext.Provider value={{ onlineUsers, isOnline, isConnected, currentUserId }}>
             {children}
         </PresenceContext.Provider>
     );
@@ -145,6 +146,7 @@ export function usePresenceContext(): PresenceContextType {
             onlineUsers: new Set([SCHOLARLY_AI_ID]),
             isOnline: (userId: string) => userId === SCHOLARLY_AI_ID,
             isConnected: false,
+            currentUserId: null,
         };
     }
     return context;

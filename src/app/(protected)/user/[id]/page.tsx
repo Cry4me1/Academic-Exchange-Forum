@@ -253,7 +253,8 @@ export default function UserProfilePage() {
     const [collections, setCollections] = useState<UserCollection[]>([]);
     const [followedCollections, setFollowedCollections] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const { isOnline, currentUserId: contextUserId } = usePresenceContext();
+    const [currentUserId, setCurrentUserId] = useState<string | null>(contextUserId || null);
     const [isFriend, setIsFriend] = useState(false);
     const [friendRequestSent, setFriendRequestSent] = useState(false);
     const [activeTab, setActiveTab] = useState("posts");
@@ -261,19 +262,32 @@ export default function UserProfilePage() {
     const [bannerUrl, setBannerUrl] = useState<string | null>(null);
 
     const supabase = createClient();
-    const { isOnline } = usePresenceContext();
     const { sendFriendRequest } = useFriends(currentUserId);
+
+    useEffect(() => {
+        if (contextUserId) {
+            setCurrentUserId(contextUserId);
+        }
+    }, [contextUserId]);
 
     useEffect(() => {
         let isMounted = true;
         async function loadData() {
             setLoading(true);
+            let activeUserId = contextUserId;
             // 获取当前登录用户
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!isMounted) return;
-            if (user) {
-                setCurrentUserId(user.id);
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    activeUserId = user.id;
+                    if (isMounted) {
+                        setCurrentUserId(user.id);
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to load user in profile:", err);
             }
+            if (!isMounted) return;
 
             // 获取目标用户的 Profile
             const { data: profileData, error: profileError } = await supabase
@@ -293,6 +307,10 @@ export default function UserProfilePage() {
                     setBannerUrl(profileData.banner_url);
                 }
             }
+
+            const isOwner = Boolean(
+                activeUserId && (activeUserId === userId || (profileData && activeUserId === profileData.id))
+            );
 
             // 获取该用户发布的帖子
             let postsQuery = supabase
@@ -315,7 +333,7 @@ export default function UserProfilePage() {
                 .eq("author_id", userId);
 
             // 如果不是本人查看，仅展示已发布且审核通过的帖子
-            if (!user || user.id !== userId) {
+            if (!isOwner) {
                 postsQuery = postsQuery.eq("is_published", true).eq("review_status", "approved");
             }
 
@@ -379,7 +397,7 @@ export default function UserProfilePage() {
             }
 
             // 如果是自己的主页，获取收藏的帖子与关注的专栏
-            if (user && user.id === userId) {
+            if (isOwner) {
                 const { data: bookmarksData } = await supabase
                     .from("bookmarks")
                     .select(`
@@ -464,7 +482,7 @@ export default function UserProfilePage() {
             }
 
             // 如果是本人，同时加载私有专栏
-            if (user && user.id === userId) {
+            if (isOwner) {
                 const { data: privateCollections } = await supabase
                     .from("collections")
                     .select("id, name, description, cover_url, cover_style, is_public, post_count, updated_at")
@@ -478,11 +496,11 @@ export default function UserProfilePage() {
             }
 
             // 检查好友关系（仅在查看他人主页时检查）
-            if (user && user.id !== userId) {
+            if (activeUserId && !isOwner) {
                 const { data: friendshipData } = await supabase
                     .from("friendships")
                     .select("status")
-                    .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`)
+                    .or(`and(requester_id.eq.${activeUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${activeUserId})`)
                     .maybeSingle();
 
                 if (friendshipData) {
@@ -506,7 +524,7 @@ export default function UserProfilePage() {
         return () => {
             isMounted = false;
         };
-    }, [userId, supabase]);
+    }, [userId, supabase, contextUserId]);
 
     const handleAddFriend = async () => {
         if (!currentUserId || !userId) return;
@@ -548,7 +566,9 @@ export default function UserProfilePage() {
 
     const displayName = profile.username || profile.email?.split("@")[0] || "未知学者";
     const initials = displayName.charAt(0).toUpperCase();
-    const isOwnProfile = Boolean(currentUserId && currentUserId === userId);
+    const isOwnProfile = Boolean(
+        currentUserId && (currentUserId === userId || (profile && currentUserId === profile.id))
+    );
 
     // 渲染帖子 Feed 卡片
     const renderPostCard = (post: Post, extraInfo?: { label: string; time: string }) => {
