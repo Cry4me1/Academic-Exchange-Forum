@@ -53,6 +53,7 @@ interface PostData {
 
 interface PostFeedProps {
     filter: FeedFilter;
+    initialPosts?: PostData[];
 }
 
 const PAGE_SIZE = 12;
@@ -76,14 +77,16 @@ const cardVariants = {
 // ====================
 // 主组件
 // ====================
-export function PostFeed({ filter }: PostFeedProps) {
+export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
     const { t, isZh } = useI18n();
-    const [posts, setPosts] = useState<PostData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [posts, setPosts] = useState<PostData[]>(initialPosts);
+    const [isLoading, setIsLoading] = useState(initialPosts.length === 0);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
+    const [hasMore, setHasMore] = useState(initialPosts.length >= PAGE_SIZE || initialPosts.length === 0);
     const [page, setPage] = useState(1);
     const [isPending, startTransition] = useTransition();
+    const isFirstMount = useRef(true);
+
     // 使用 ref 持有最新的可变状态，避免 IntersectionObserver 闭包陷阱
     const pageRef = useRef(page);
     const hasMoreRef = useRef(hasMore);
@@ -97,6 +100,14 @@ export function PostFeed({ filter }: PostFeedProps) {
 
     // 初始加载 & filter 变化时重新加载
     useEffect(() => {
+        // 关键性能优化：首次挂载且有服务端预取数据时，直接跳过客户端发起的 2.6s POST 请求！
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            if (initialPosts.length > 0 && filter === "latest") {
+                return;
+            }
+        }
+
         setIsLoading(true);
         setPage(1);
         setHasMore(true);

@@ -1,15 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { getPosts } from "@/app/(protected)/posts/actions";
 import DashboardClient from "./DashboardClient";
 import type { DashboardInitialData } from "./DashboardClient";
 
-/**
- * Dashboard 服务端页面
- * 在 Vercel Edge (东京) 上预获取用户数据，避免客户端跨海请求
- * 
- * 性能提升:
- *   之前: 用户浏览器(中国) → Supabase(东京) × 3次 = 300-900ms
- *   现在: Vercel Edge(东京) → Supabase(东京) × 2次 = 10-30ms (同区域)
- */
 export default async function DashboardPage() {
     const supabase = await createClient();
 
@@ -18,12 +11,14 @@ export default async function DashboardPage() {
     if (!user) {
         return <DashboardClient initialData={{
             user: { id: "", username: null, email: null, avatar_url: null, created_at: new Date().toISOString() },
-            creditBalance: 0
+            creditBalance: 0,
+            initialPosts: [],
         }} />;
     }
 
-    // 仅发起一次紧凑的并行查询，避免串行执行 4 次往返和耗时的 monthly_bonus RPC
-    const [profileRes, creditsRes] = await Promise.all([
+    // 服务端同域极速并行获取：个人资料 + 积分 + 首屏首批帖子！
+    // 客户端直接直出帖子，彻底消灭客户端发起耗时 2.6 秒的 POST /dashboard 请求！
+    const [profileRes, creditsRes, postsRes] = await Promise.all([
         supabase
             .from("profiles")
             .select("username, email, avatar_url")
@@ -34,6 +29,7 @@ export default async function DashboardPage() {
             .select("balance")
             .eq("user_id", user.id)
             .single(),
+        getPosts({ filter: "latest", limit: 12, page: 1 }).catch(() => ({ posts: [] })),
     ]);
 
     let profile = profileRes.data;
@@ -59,6 +55,7 @@ export default async function DashboardPage() {
             created_at: user.created_at,
         },
         creditBalance: creditsRes.data?.balance ?? 0,
+        initialPosts: (postsRes.posts || []) as any[],
     };
 
     return <DashboardClient initialData={initialData} />;

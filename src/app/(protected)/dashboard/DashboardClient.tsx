@@ -60,6 +60,7 @@ export interface DashboardInitialData {
         created_at: string;
     };
     creditBalance: number;
+    initialPosts?: any[];
 }
 
 // 积分紧凑格式化辅助函数
@@ -357,7 +358,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
                         {/* 帖子列表 */}
                         <motion.div variants={fadeInUp}>
-                            <PostFeed filter={activeTab} />
+                            <PostFeed filter={activeTab} initialPosts={initialData.initialPosts} />
                         </motion.div>
                     </motion.div>
 
