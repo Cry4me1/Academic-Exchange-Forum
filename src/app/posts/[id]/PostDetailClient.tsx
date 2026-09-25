@@ -7,7 +7,7 @@ import NovelViewer from "@/components/editor/NovelViewer";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { CoAuthorBadge } from "@/components/lab/co-author/CoAuthorBadge";
 import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAuthorPanel";
-import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, AcademicPdfExportDialog, type HeadingItem } from "@/components/posts";
+import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, AcademicPdfExportDialog, type HeadingItem, MobileArticleBottomBar, MobileTocSheet } from "@/components/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
@@ -211,6 +211,7 @@ export default function PostDetailClient({
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
     const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+    const [mobileTocOpen, setMobileTocOpen] = useState(false);
     const [collectionsList, setCollectionsList] = useState<CollectionSummary[]>(collections);
 
     // 解析当前帖子的学术定理、定义与边注元数据
@@ -280,6 +281,8 @@ export default function PostDetailClient({
 
     // 从 DOM 中提取 heading 并注入 id 属性
     useEffect(() => {
+        let debounceTimer: NodeJS.Timeout | null = null;
+
         const extractHeadingsFromDOM = () => {
             const articleEl = document.querySelector('.novel-viewer-container');
             if (!articleEl) return;
@@ -305,13 +308,23 @@ export default function PostDetailClient({
                 }
                 usedIds.add(id);
 
-                // 注入 id 到 DOM 元素
-                el.setAttribute("id", id);
+                // 仅在 id 改变时才注入，避免无意义的 DOM 操作
+                if (el.getAttribute("id") !== id) {
+                    el.setAttribute("id", id);
+                }
 
                 extractedHeadings.push({ level, text, id });
             });
 
-            setHeadings(extractedHeadings);
+            setHeadings((prev) => {
+                if (
+                    prev.length === extractedHeadings.length &&
+                    prev.every((h, idx) => h.id === extractedHeadings[idx]?.id && h.text === extractedHeadings[idx]?.text && h.level === extractedHeadings[idx]?.level)
+                ) {
+                    return prev;
+                }
+                return extractedHeadings;
+            });
         };
 
         // 等待 Novel 编辑器渲染完成（延迟 + MutationObserver）
@@ -321,13 +334,15 @@ export default function PostDetailClient({
         let observer: MutationObserver | null = null;
         if (container) {
             observer = new MutationObserver(() => {
-                extractHeadingsFromDOM();
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(extractHeadingsFromDOM, 150);
             });
             observer.observe(container, { childList: true, subtree: true });
         }
 
         return () => {
             clearTimeout(timer);
+            if (debounceTimer) clearTimeout(debounceTimer);
             observer?.disconnect();
         };
     }, [post.content]);
@@ -863,7 +878,7 @@ export default function PostDetailClient({
                     </div>
                 </header>
 
-                {/* 沉浸模式: 浮动目录 (桌面端) - 始终就绪，纯 GPU 显隐 */}
+                {/* 沉浸模式: 浮动目录 (桌面端) - 纯 GPU 弹性缓动滑入显隐 */}
                 {(headings.length > 0 || academicMeta.totalAcademicCount > 0) && (
                     <div className="hidden lg:block">
                         <TableOfContents
@@ -871,27 +886,32 @@ export default function PostDetailClient({
                             academicMeta={academicMeta}
                             mode="floating"
                             className={cn(
-                                "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]",
+                                "transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[opacity,transform]",
                                 isImmersive
                                     ? "opacity-100 translate-x-0 pointer-events-auto"
-                                    : "opacity-0 -translate-x-4 pointer-events-none"
+                                    : "opacity-0 -translate-x-6 pointer-events-none"
                             )}
                         />
                     </div>
                 )}
 
-                {/* 文章主容器：排版宽度恒定，文字与 LaTeX 公式绝对不折行不形变 */}
+                {/* 文章主容器：排版宽度恒定，文字与 LaTeX 公式绝对不折行不形变，流体居中缓动 */}
                 <div className={cn(
-                    "mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                    isImmersive ? "max-w-4xl pt-16" : "max-w-[94rem]"
+                    "mx-auto px-3.5 sm:px-6 lg:px-8 pb-24 sm:pb-8 relative z-10",
+                    "transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    isImmersive ? "max-w-4xl pt-16" : "max-w-[94rem] pt-6"
                 )}>
                     <div className="flex justify-center gap-8 items-start">
-                        {/* 左侧边栏：常驻视窗吸顶（无 transform 阻断 sticky） */}
+                        {/* 左侧边栏：丝滑流体折叠与纯 GPU 物理淡出 */}
                         <aside
                             className={cn(
-                                "hidden xl:block flex-shrink-0 sticky top-20 self-start w-64 z-20 transition-opacity duration-300",
-                                isImmersive && "hidden"
+                                "hidden xl:block flex-shrink-0 overflow-hidden sticky top-20 self-start z-20",
+                                "transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
+                                isImmersive
+                                    ? "max-w-0 opacity-0 -translate-x-6 pointer-events-none"
+                                    : "max-w-[16rem] w-64 opacity-100 translate-x-0"
                             )}
+                            aria-hidden={isImmersive}
                         >
                             <div className="space-y-6 w-64 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
                                 {/* 作者其他文章 */}
@@ -1420,8 +1440,16 @@ export default function PostDetailClient({
                                 ) : null}
                             </motion.section>
 
-                            {/* 小屏幕（< xl）文末推荐与作者文章兜底展示 */}
-                            <div className="xl:hidden mt-10 space-y-6 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                            {/* 小屏幕（< xl）文末推荐与作者文章兜底展示（专注模式下流体折叠淡出） */}
+                            <div
+                                className={cn(
+                                    "xl:hidden space-y-6 overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                                    isImmersive
+                                        ? "max-h-0 opacity-0 pointer-events-none mt-0 pt-0 border-transparent"
+                                        : "max-h-[1200px] opacity-100 mt-10 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60"
+                                )}
+                                aria-hidden={isImmersive}
+                            >
                                 {authorOtherPosts.length > 0 && (
                                     <div className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                         <h3 className="font-semibold text-xs text-foreground mb-3 flex items-center gap-1.5">
@@ -1446,12 +1474,16 @@ export default function PostDetailClient({
                             </div>
                         </main>
 
-                        {/* 右侧边栏：常驻视窗右上角吸顶（无 transform 阻断 sticky） */}
+                        {/* 右侧边栏：丝滑流体折叠与纯 GPU 物理淡出 */}
                         <aside
                             className={cn(
-                                "hidden lg:block flex-shrink-0 sticky top-20 self-start w-72 z-20 transition-opacity duration-300",
-                                isImmersive && "hidden"
+                                "hidden lg:block flex-shrink-0 overflow-hidden sticky top-20 self-start z-20",
+                                "transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
+                                isImmersive
+                                    ? "max-w-0 opacity-0 translate-x-6 pointer-events-none"
+                                    : "max-w-[18rem] w-72 opacity-100 translate-x-0"
                             )}
+                            aria-hidden={isImmersive}
                         >
                             <div className="space-y-6 w-72 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
                                 {/* 文章目录与学术大纲速览 */}
@@ -1527,6 +1559,34 @@ export default function PostDetailClient({
                 open={pdfDialogOpen}
                 onOpenChange={setPdfDialogOpen}
                 post={post}
+                academicMeta={academicMeta}
+            />
+
+            {/* 移动端专属吸底流光操作条（沉浸模式与打印时不显示） */}
+            {!isImmersive && (
+                <MobileArticleBottomBar
+                    isLiked={isLiked}
+                    likeCount={likeCount}
+                    isBookmarked={isBookmarked}
+                    commentCount={comments.length}
+                    onLike={handleLike}
+                    onBookmark={handleBookmark}
+                    onOpenToc={() => setMobileTocOpen(true)}
+                    onShare={handleShare}
+                    onCommentClick={() => {
+                        const el = document.getElementById("comments");
+                        if (el) {
+                            el.scrollIntoView({ behavior: "smooth" });
+                        }
+                    }}
+                />
+            )}
+
+            {/* 移动端学术大纲目录抽屉 */}
+            <MobileTocSheet
+                isOpen={mobileTocOpen}
+                onClose={() => setMobileTocOpen(false)}
+                headings={headings}
                 academicMeta={academicMeta}
             />
         </>

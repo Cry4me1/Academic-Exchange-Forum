@@ -285,7 +285,7 @@ export function TableOfContents({
                                 duration: 0.3,
                                 ease: [0.22, 1, 0.36, 1],
                             }}
-                            className="bg-background/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-lg p-4 max-h-[60vh] overflow-y-auto scrollbar-hidden toc-scroll-container"
+                            className="bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl border-0 rounded-3xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.08)] p-4 max-h-[60vh] overflow-y-auto scrollbar-hidden toc-scroll-container"
                         >
                             {/* 顶部标题 + 进度 */}
                             <div className="flex items-center justify-between mb-3">
@@ -394,7 +394,8 @@ export function TableOfContents({
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ duration: 0.2 }}
-                            className="w-10 h-10 rounded-xl bg-background/80 backdrop-blur-xl border border-border/50 shadow-lg flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            onClick={() => setIsFloatingExpanded(true)}
+                            className="w-10 h-10 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-0 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.08)] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
                             title="展开目录"
                             aria-label="展开文章目录"
                         >

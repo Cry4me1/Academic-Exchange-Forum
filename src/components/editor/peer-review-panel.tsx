@@ -80,11 +80,12 @@ export default function PeerReviewPanel({
         }
     }, [isExpanded, isAuthor, refreshCredits]);
 
-    // 初始化时从 localStorage 恢复数据 (仅作者防丢失备用)
+    // 初始化时从 localStorage 恢复数据 (仅作者防丢失备用，且忽略通用占位符标题)
     const [initialMessages] = useState(() => {
-        if (typeof window !== "undefined" && title && isAuthor) {
+        if (typeof window !== "undefined" && title && title !== "输入研讨标题..." && isAuthor) {
             try {
-                const saved = localStorage.getItem(`peer-review-${title}`);
+                const cacheKey = postId ? `peer-review-post-${postId}` : `peer-review-title-${title}`;
+                const saved = localStorage.getItem(cacheKey);
                 if (saved) return JSON.parse(saved);
             } catch (e) {
                 console.error("Failed to parse cached peer review", e);
@@ -191,16 +192,17 @@ export default function PeerReviewPanel({
         loadDbReview();
     }, [postId, setMessages]);
 
-    // 每次 messages 更新时同步到 localStorage (仅作者有权操作)
+    // 每次 messages 更新时同步到 localStorage (仅作者有权操作，跳过占位符)
     useEffect(() => {
-        if (typeof window !== "undefined" && title && isAuthor) {
+        if (typeof window !== "undefined" && title && title !== "输入研讨标题..." && isAuthor) {
+            const cacheKey = postId ? `peer-review-post-${postId}` : `peer-review-title-${title}`;
             if (messages.length > 0) {
-                localStorage.setItem(`peer-review-${title}`, JSON.stringify(messages));
+                localStorage.setItem(cacheKey, JSON.stringify(messages));
             } else if (messages.length === 0) {
-                localStorage.removeItem(`peer-review-${title}`);
+                localStorage.removeItem(cacheKey);
             }
         }
-    }, [messages, title, isAuthor]);
+    }, [messages, title, postId, isAuthor]);
 
     // 从 assistant 消息的 parts 中提取推理和正文
     const assistantMsg = messages.find((m) => m.role === "assistant");

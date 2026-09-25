@@ -48,6 +48,7 @@ import {
     Sigma,
     ExternalLink,
     ChevronDown,
+    SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -55,6 +56,7 @@ import { type JSONContent } from "novel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { updatePost } from "../../actions";
+import { MobilePublishSettingsSheet } from "@/components/editor/MobilePublishSettingsSheet";
 
 const AVAILABLE_TAGS = [
     "Computer Science",
@@ -83,6 +85,7 @@ export default function EditPostPage() {
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [isHelpWanted, setIsHelpWanted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
     const [myCollections, setMyCollections] = useState<Array<{ id: string; name: string; post_count?: number }>>([]);
     const [selectedCollectionId, setSelectedCollectionId] = useState<string>("none");
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
@@ -399,10 +402,27 @@ export default function EditPostPage() {
                             </div>
                         </div>
 
-                        {/* 右侧：设为求助微型 Toggle + 高阶 Apple Liquid Glass 全局核心 CTA 保存按钮 */}
-                        <div className="flex items-center gap-3">
+                        {/* 右侧：移动端配置胶囊 + 设为求助微型 Toggle + 高阶 Apple Liquid Glass 全局核心 CTA 保存按钮 */}
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            {/* 移动端专属发布配置水滴胶囊 */}
+                            <button
+                                type="button"
+                                onClick={() => setIsMobileSettingsOpen(true)}
+                                className="lg:hidden flex items-center gap-1.5 h-8.5 px-3 rounded-full border-0 bg-zinc-200/50 hover:bg-zinc-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-xs font-medium text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] active:scale-95 transition-all cursor-pointer"
+                            >
+                                <SlidersHorizontal className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+                                <span>配置</span>
+                                {selectedTags.length > 0 ? (
+                                    <span className="text-[10px] font-mono bg-blue-500 text-white rounded-full px-1.5 py-0.2">
+                                        {selectedTags.length}
+                                    </span>
+                                ) : (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                )}
+                            </button>
+
                             <div
-                                className={`flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-full backdrop-blur-xl transition-all duration-300 select-none ${
+                                className={`hidden lg:flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-full backdrop-blur-xl transition-all duration-300 select-none ${
                                     isHelpWanted
                                         ? "bg-amber-500/[0.14] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_12px_rgba(245,158,11,0.22)] dark:bg-amber-500/[0.18] dark:shadow-[inset_0_1px_0.5px_rgba(251,191,36,0.35),0_2px_16px_rgba(245,158,11,0.25)]"
                                         : "bg-zinc-200/40 hover:bg-zinc-200/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.03)] dark:bg-white/[0.06] dark:hover:bg-white/[0.09] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_2px_8px_-2px_rgba(0,0,0,0.3)]"
@@ -598,8 +618,8 @@ export default function EditPostPage() {
                         </div>
                     </div>
 
-                    {/* 右侧 25%~30% 发布配置侧边栏 */}
-                    <div className="lg:col-span-4 xl:col-span-3 space-y-5 lg:sticky lg:top-20">
+                    {/* 右侧 25%~30% 发布配置侧边栏 (仅在桌面端展示，移动端由右上角配置抽屉承载) */}
+                    <div className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-5 lg:sticky lg:top-20">
                         {/* 发布元数据配置卡片 (Apple 无边框液态毛玻璃材质) */}
                         <div className="rounded-3xl p-6 space-y-6 bg-white/75 hover:bg-white/85 dark:bg-zinc-900/45 dark:hover:bg-zinc-900/55 backdrop-blur-2xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.08)] transition-all duration-300">
                             {/* 1. 学科标签选择器 (Apple Liquid Glass 拟态微光悬浮交互) */}
@@ -735,6 +755,23 @@ export default function EditPostPage() {
                         setSelectedCollectionId(newCol.id);
                     }
                 }}
+            />
+
+            {/* 移动端发布配置抽屉 */}
+            <MobilePublishSettingsSheet
+                isOpen={isMobileSettingsOpen}
+                onClose={() => setIsMobileSettingsOpen(false)}
+                availableTags={AVAILABLE_TAGS}
+                selectedTags={selectedTags}
+                onTagToggle={handleTagToggle}
+                myCollections={myCollections}
+                selectedCollectionId={selectedCollectionId}
+                onSelectCollection={setSelectedCollectionId}
+                onCreateCollection={() => setIsCreateCollectionOpen(true)}
+                coverImage={coverImage}
+                onCoverChange={setCoverImage}
+                isHelpWanted={isHelpWanted}
+                onHelpWantedChange={setIsHelpWanted}
             />
         </div>
     );

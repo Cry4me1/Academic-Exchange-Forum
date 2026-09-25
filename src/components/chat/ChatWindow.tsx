@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import { ChatMessages } from "./ChatBubble";
 import { type ChatEditorRef } from "./ChatEditor";
 import { uploadMessageFile } from "./FileUploader";
+import { MessageSoundToggle } from "./MessageSoundToggle";
 
 const ChatEditor = dynamic(
     () => import("./ChatEditor").then((mod) => mod.ChatEditor),
@@ -257,9 +258,12 @@ export function ChatWindow({
                     </div>
                 </div>
 
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 active:scale-95 transition-all">
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                    <MessageSoundToggle />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 active:scale-95 transition-all">
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </div>
 
                 {/* Header 底部消融光缝 */}
                 <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent pointer-events-none" />
@@ -314,7 +318,7 @@ export function ChatWindow({
             )}
 
             {/* ===== Input Area ===== */}
-            <div className="relative px-4 py-2.5 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-0 shrink-0 z-10">
+            <div className="relative px-3 sm:px-4 py-2 sm:py-2.5 pb-safe bg-white/85 dark:bg-zinc-950/85 backdrop-blur-2xl border-0 shrink-0 z-20">
                 {/* 输入区顶部消融光缝 */}
                 <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent pointer-events-none" />
 
@@ -445,13 +449,13 @@ export function ChatWindow({
                                     <TooltipContent side="top">附件</TooltipContent>
                                 </Tooltip>
 
-                                {/* 插入代码 */}
+                                {/* 插入代码 (小屏隐藏，保留给富文本模式) */}
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
+                                            className="hidden sm:inline-flex h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                             onClick={insertCodeBlock}
                                         >
                                             <Code2 className="h-4 w-4" />
@@ -460,13 +464,13 @@ export function ChatWindow({
                                     <TooltipContent side="top">代码块</TooltipContent>
                                 </Tooltip>
 
-                                {/* 公式 */}
+                                {/* 公式 (小屏隐藏，保留给富文本模式) */}
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
+                                            className="hidden sm:inline-flex h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800/60 active:scale-95 transition-all"
                                             onClick={insertFormula}
                                         >
                                             <FunctionSquare className="h-4 w-4" />

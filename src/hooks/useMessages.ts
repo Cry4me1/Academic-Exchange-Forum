@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { playMessageSound } from "@/lib/sound";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -343,6 +344,11 @@ export function useMessages(
                 },
                 async (payload: any) => {
                     const newMessage = payload.new as Message;
+
+                    // 收到来自他人的新私信时播放提示音
+                    if (newMessage.receiver_id === currentUserId && newMessage.sender_id !== currentUserId) {
+                        playMessageSound({ messageId: newMessage.id });
+                    }
 
                     // 如果在对话页面，添加新消息
                     if (conversationPartnerId && newMessage.sender_id === conversationPartnerId) {

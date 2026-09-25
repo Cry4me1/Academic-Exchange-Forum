@@ -1,8 +1,9 @@
 
 import { Toaster } from "@/components/ui/sonner";
+import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
 import { I18nProvider } from "@/i18n/context";
 import "katex/dist/katex.min.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -20,6 +21,18 @@ const geistMono = localFont({
   display: "swap",
   preload: true,
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
+};
 
 export const metadata: Metadata = {
   title: "Scholarly - 学术论坛",
@@ -40,6 +53,7 @@ export default function RootLayout({
         <I18nProvider>
           {children}
         </I18nProvider>
+        <AuthRedirectHandler />
         <Toaster />
       </body>
     </html>

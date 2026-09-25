@@ -64,24 +64,27 @@ export function TagCloud() {
     }, []);
 
     return (
-        <div className="rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-4 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
-            <div className="flex items-center gap-2 mb-3.5">
-                <TrendingUp className="h-4 w-4 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
-                    {t.dashboardComponents.trendingTags}
-                </h3>
+        <div className="rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-3.5 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-zinc-700 dark:text-zinc-300" strokeWidth={1.75} />
+                    <h3 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        {t.dashboardComponents.trendingTags}
+                    </h3>
+                </div>
+                <span className="sm:hidden text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">滑动浏览</span>
             </div>
             
             {loading ? (
-                <div className="flex items-center justify-center py-6">
+                <div className="flex items-center justify-center py-4 sm:py-6">
                     <Loader2 className="h-4 w-4 animate-spin text-zinc-400" strokeWidth={1.75} />
                 </div>
             ) : tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-nowrap sm:flex-wrap items-center gap-1.5 overflow-x-auto sm:overflow-visible no-scrollbar touch-pan-x pb-0.5 sm:pb-0">
                     {tags.map((tag) => (
-                        <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`} prefetch={false}>
+                        <Link key={tag.name} href={`/trending?tag=${encodeURIComponent(tag.name)}`} prefetch={false} className="shrink-0 sm:shrink">
                             <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-0 transition-all duration-150 cursor-pointer backdrop-blur-md select-none ${heatStyles[tag.heat]}`}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-0 transition-all duration-150 cursor-pointer backdrop-blur-md select-none shrink-0 active:scale-95 ${heatStyles[tag.heat]}`}
                             >
                                 <span>{tag.name}</span>
                                 <span className="font-mono text-[10px] opacity-60 tabular-nums">

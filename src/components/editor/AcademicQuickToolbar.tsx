@@ -223,7 +223,7 @@ export default function AcademicQuickToolbar({
         <TooltipProvider delayDuration={200}>
             <div
                 className={cn(
-                    "w-full sticky top-14 z-30 py-2 transition-all duration-300 select-none",
+                    "hidden md:block w-full sticky top-14 z-30 py-2 transition-all duration-300 select-none",
                     isScrolled
                         ? "bg-background/60 backdrop-blur-md pb-2.5"
                         : "bg-transparent",

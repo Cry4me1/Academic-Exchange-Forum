@@ -1,6 +1,7 @@
 "use client";
 
 import { ChatList } from "@/components/chat/ChatList";
+import { MessageSoundToggle } from "@/components/chat/MessageSoundToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFriends } from "@/hooks/useFriends";
@@ -45,6 +46,18 @@ function MessagesContent() {
     const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(
         initialPartnerId
     );
+
+    // 监听聊天会话激活状态，在移动端自动通知全局底栏退避，让出输入框
+    useEffect(() => {
+        if (selectedPartnerId) {
+            window.dispatchEvent(new CustomEvent("chat-active-change", { detail: { active: true } }));
+        } else {
+            window.dispatchEvent(new CustomEvent("chat-active-change", { detail: { active: false } }));
+        }
+        return () => {
+            window.dispatchEvent(new CustomEvent("chat-active-change", { detail: { active: false } }));
+        };
+    }, [selectedPartnerId]);
     const [selectedPartner, setSelectedPartner] = useState<{
         name: string;
         email: string;
@@ -180,9 +193,12 @@ function MessagesContent() {
 
                 {/* 头部 */}
                 <div className="p-3.5 relative">
-                    <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-2.5">
-                        私信
-                    </h1>
+                    <div className="flex items-center justify-between mb-2.5">
+                        <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                            私信
+                        </h1>
+                        <MessageSoundToggle />
+                    </div>
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
                         <Input
@@ -228,7 +244,7 @@ function MessagesContent() {
                 )}
 
                 {/* 对话列表 */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
                     {conversationsLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />

@@ -9,3 +9,5 @@ export { AcademicPdfExportDialog } from "./AcademicPdfExportDialog";
 export { LiquidTagSelector, type LiquidTagSelectorProps } from "./LiquidTagSelector";
 export { SieveSequenceViewer, isSieveSequence, parseSieveSequence, type SieveItem } from "./SieveSequenceViewer";
 export { TableChartViewer, parseTableData, type ParsedTableData } from "./TableChartViewer";
+export { MobileArticleBottomBar } from "./MobileArticleBottomBar";
+export { MobileTocSheet } from "./MobileTocSheet";

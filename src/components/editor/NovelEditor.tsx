@@ -24,6 +24,7 @@ import {
 import BubbleMenu from "./BubbleMenu";
 import TableBubbleMenu from "./TableBubbleMenu";
 import AcademicQuickToolbar from "./AcademicQuickToolbar";
+import { MobileEditorAccessoryBar } from "./MobileEditorAccessoryBar";
 // Apple Liquid Glass Toolbar integration synced
 import { defaultExtensions } from "./extensions";
 import { SlashAISelector } from "./generative/slash-ai-selector";
@@ -79,6 +80,18 @@ export default function NovelEditor({
 
     // AI 生成状态监听，用于驱动全域高端静雅边框微晕
     const [isAiGenerating, setIsAiGenerating] = useState(false);
+    // 响应式端形态感知：PC 端使用顶部悬浮工具栏，移动端使用底部输入法吸附工具栏，绝不同时存在
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    useEffect(() => {
+        const mql = window.matchMedia("(min-width: 768px)");
+        const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
+            setIsDesktop(e.matches);
+        };
+        onChange(mql);
+        mql.addEventListener("change", onChange);
+        return () => mql.removeEventListener("change", onChange);
+    }, []);
 
     useEffect(() => {
         const handleStatus = (e: any) => {
@@ -133,7 +146,7 @@ export default function NovelEditor({
                     extensions={extensions}
                     immediatelyRender={false}
                     slotBefore={
-                        showToolbar ? (
+                        showToolbar && isDesktop ? (
                             <AcademicQuickToolbar
                                 hintRight={
                                     isAiGenerating ? (
@@ -251,7 +264,7 @@ export default function NovelEditor({
                         },
                         attributes: {
                             class: cn(
-                                "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full pl-8 pr-4 py-4 flex-1 min-h-[420px] h-full",
+                                "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full pl-4 pr-3 sm:pl-8 sm:pr-4 py-4 pb-24 md:pb-6 flex-1 min-h-[420px] h-full",
                                 contentClassName
                             ),
                         },
@@ -289,6 +302,8 @@ export default function NovelEditor({
                     <BubbleMenu />
                     <TableBubbleMenu />
                     <SlashAISelector />
+                    {/* 移动端专属键盘附件快捷工具栏：仅在移动端挂载 */}
+                    {!isDesktop && <MobileEditorAccessoryBar />}
                 </EditorContent>
             </EditorRoot>
         </div>

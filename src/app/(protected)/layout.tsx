@@ -1,5 +1,7 @@
 import { CreditRechargeProvider } from "@/components/payments/CreditRechargeProvider";
 import { PresenceProvider } from "@/contexts/PresenceContext";
+import { MobileNavigationShell } from "@/components/navigation/MobileNavigationShell";
+import { GlobalMessageListener } from "@/components/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -9,10 +11,18 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+  let supabase;
 
-  if (!user) {
+  try {
+    supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
+  } catch (err) {
+    console.warn("[ProtectedLayout] 获取用户会话失败:", err);
+  }
+
+  if (!user || !supabase) {
     redirect("/login");
   }
 
@@ -31,7 +41,7 @@ export default async function ProtectedLayout({
       .from("profiles")
       .select("onboarding_completed")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!error && profile && typeof profile.onboarding_completed === "boolean") {
       isOnboardingCompleted = profile.onboarding_completed;
@@ -55,6 +65,8 @@ export default async function ProtectedLayout({
       <PresenceProvider currentUserId={user.id}>
         {children}
         <CreditRechargeProvider />
+        <MobileNavigationShell currentUserId={user.id} />
+        <GlobalMessageListener currentUserId={user.id} />
       </PresenceProvider>
     </div>
   );

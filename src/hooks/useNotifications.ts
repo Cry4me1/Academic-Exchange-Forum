@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { playMessageSound } from "@/lib/sound";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -195,6 +196,11 @@ export function useNotifications(currentUserId: string | null): UseNotifications
 
                     // 添加到列表
                     setNotifications((prev) => [newNotification, ...prev]);
+
+                    // 如果是私信类型通知，播放私信提示音（内置去重与节流）
+                    if (newNotification.type === "message") {
+                        playMessageSound({ messageId: newNotification.related_id || newNotification.id });
+                    }
 
                     // 显示 Toast 通知
                     const toastIcon = getNotificationIcon(newNotification.type);

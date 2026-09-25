@@ -3,38 +3,73 @@ import { getPosts } from "@/app/(protected)/posts/actions";
 import DashboardClient from "./DashboardClient";
 import type { DashboardInitialData } from "./DashboardClient";
 
-export default async function DashboardPage() {
-    const supabase = await createClient();
+// 服务端帖子拉取超时上限（毫秒）：
+// 若跨海连接或冷启动超过此时间，立即安全熔断降级为空数组，避免拖慢 SSR 甚至引发网关 502 报错
+const POSTS_SSR_TIMEOUT_MS = 1200;
 
-    // 仅获取一次用户会话
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        return <DashboardClient initialData={{
-            user: { id: "", username: null, email: null, avatar_url: null, created_at: new Date().toISOString() },
-            creditBalance: 0,
-            initialPosts: [],
-        }} />;
+export default async function DashboardPage() {
+    let supabase;
+    let user = null;
+
+    try {
+        supabase = await createClient();
+        const { data } = await supabase.auth.getUser();
+        user = data?.user || null;
+    } catch (authError) {
+        console.warn("[DashboardPage] 获取用户会话异常:", authError);
     }
 
-    // 服务端同域极速并行获取：个人资料 + 积分 + 首屏首批帖子！
-    // 客户端直接直出帖子，彻底消灭客户端发起耗时 2.6 秒的 POST /dashboard 请求！
-    const [profileRes, creditsRes, postsRes] = await Promise.all([
-        supabase
-            .from("profiles")
-            .select("username, email, avatar_url")
-            .eq("id", user.id)
-            .single(),
-        supabase
-            .from("user_credits")
-            .select("balance")
-            .eq("user_id", user.id)
-            .single(),
-        getPosts({ filter: "latest", limit: 12, page: 1 }).catch(() => ({ posts: [] })),
-    ]);
+    // 若未获取到有效用户会话，返回安全初始状态（保护中间件已做重定向拦截，此为双重保险）
+    if (!user || !supabase) {
+        return (
+            <DashboardClient
+                initialData={{
+                    user: { id: "", username: null, email: null, avatar_url: null, created_at: new Date().toISOString() },
+                    creditBalance: 0,
+                    initialPosts: [],
+                }}
+            />
+        );
+    }
 
-    let profile = profileRes.data;
+    let profile: any = null;
+    let creditBalance = 0;
+    let initialPosts: any[] = [];
 
-    // 如果 profile 尚未初始化，自动补全
+    try {
+        // 安全超时熔断：若 1.2 秒内未完成，直接降级为空，由客户端异步骨架屏继续平滑加载
+        const fetchPostsWithTimeout = Promise.race([
+            getPosts({ filter: "latest", limit: 12, page: 1 }),
+            new Promise<{ posts: any[] }>((resolve) =>
+                setTimeout(() => resolve({ posts: [] }), POSTS_SSR_TIMEOUT_MS)
+            ),
+        ]).catch((err) => {
+            console.warn("[DashboardPage] getPosts SSR 降级:", err);
+            return { posts: [] };
+        });
+
+        const [profileRes, creditsRes, postsRes] = await Promise.all([
+            supabase
+                .from("profiles")
+                .select("username, email, avatar_url")
+                .eq("id", user.id)
+                .maybeSingle(),
+            supabase
+                .from("user_credits")
+                .select("balance")
+                .eq("user_id", user.id)
+                .maybeSingle(),
+            fetchPostsWithTimeout,
+        ]);
+
+        profile = profileRes?.data || null;
+        creditBalance = creditsRes?.data?.balance ?? 0;
+        initialPosts = (postsRes?.posts || []) as any[];
+    } catch (queryError) {
+        console.warn("[DashboardPage] 服务端预取数据异常，降级回退:", queryError);
+    }
+
+    // 如果 profile 尚未初始化，自动安全补全
     if (!profile) {
         const newProfile = {
             id: user.id,
@@ -42,7 +77,11 @@ export default async function DashboardPage() {
             username: user.email?.split("@")[0] || "User",
             avatar_url: "",
         };
-        await supabase.from("profiles").insert([newProfile]);
+        try {
+            await supabase.from("profiles").insert([newProfile]).maybeSingle();
+        } catch {
+            // 忽略并发插入可能带来的冲突
+        }
         profile = newProfile;
     }
 
@@ -54,8 +93,8 @@ export default async function DashboardPage() {
             avatar_url: profile.avatar_url,
             created_at: user.created_at,
         },
-        creditBalance: creditsRes.data?.balance ?? 0,
-        initialPosts: (postsRes.posts || []) as any[],
+        creditBalance,
+        initialPosts,
     };
 
     return <DashboardClient initialData={initialData} />;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, type ErrorInfo, type ReactNode, useRef, useState, useEffect } from "react";
+import { Component, type ErrorInfo, type ReactNode, useRef, useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { EditorContent, EditorRoot, type JSONContent } from "novel";
 import katex from "katex";
@@ -95,7 +95,13 @@ export default function NovelViewer({
         tableElement: HTMLElement;
     }[]>([]);
 
-    const serializedValue = JSON.stringify(valueToRender);
+    const serializedValue = useMemo(() => {
+        try {
+            return JSON.stringify(valueToRender);
+        } catch {
+            return "";
+        }
+    }, [valueToRender]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -312,9 +318,13 @@ export default function NovelViewer({
         const t2 = setTimeout(scanAndMount, 300);
         const t3 = setTimeout(scanAndMount, 700);
 
-        // 监听 Tiptap / ProseMirror DOM 异步更新
+        // 监听 Tiptap / ProseMirror DOM 异步更新（增加防抖，避免连续 DOM 插入引发密集重扫描）
+        let observerDebounceTimer: NodeJS.Timeout | null = null;
         const observer = new MutationObserver(() => {
-            scanAndMount();
+            if (observerDebounceTimer) clearTimeout(observerDebounceTimer);
+            observerDebounceTimer = setTimeout(() => {
+                scanAndMount();
+            }, 120);
         });
 
         observer.observe(container, {
@@ -328,6 +338,7 @@ export default function NovelViewer({
             clearTimeout(t1);
             clearTimeout(t2);
             clearTimeout(t3);
+            if (observerDebounceTimer) clearTimeout(observerDebounceTimer);
             observer.disconnect();
 
             setMathPortals([]);

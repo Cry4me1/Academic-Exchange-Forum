@@ -36,7 +36,15 @@ export function PresenceProvider({
 
         const supabase = createClient();
 
-        // 创建 Presence 频道
+        // 1. 若客户端中已存在该话题的旧频道（如 Fast Refresh、快速重挂载），先同步彻底移除，防止复用已 subscribe 的频道
+        const existingChannel = supabase.getChannels().find(
+            (c: any) => c.topic === "realtime:online-users" || c.topic === "online-users"
+        );
+        if (existingChannel) {
+            supabase.removeChannel(existingChannel).catch(() => {});
+        }
+
+        // 2. 创建全新的 Presence 频道
         const channel = supabase.channel("online-users", {
             config: {
                 presence: {
@@ -79,23 +87,28 @@ export function PresenceProvider({
 
         let isSubscribed = false;
 
-        channel
-            .on("presence", { event: "sync" }, handleSync)
-            .on("presence", { event: "join" }, handleJoin)
-            .on("presence", { event: "leave" }, handleLeave)
-            .subscribe(async (status: any) => {
-                if (status === "SUBSCRIBED") {
-                    isSubscribed = true;
-                    setIsConnected(true);
-                    // 追踪当前用户上线
-                    await channel.track({
-                        id: currentUserId,
-                        online_at: new Date().toISOString(),
-                    });
-                } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
-                    setIsConnected(false);
-                }
-            });
+        try {
+            channel
+                .on("presence", { event: "sync" }, handleSync)
+                .on("presence", { event: "join" }, handleJoin)
+                .on("presence", { event: "leave" }, handleLeave);
+        } catch (err) {
+            console.warn("[PresenceProvider] 绑定 presence 监听警告:", err);
+        }
+
+        channel.subscribe(async (status: any) => {
+            if (status === "SUBSCRIBED") {
+                isSubscribed = true;
+                setIsConnected(true);
+                // 追踪当前用户上线
+                await channel.track({
+                    id: currentUserId,
+                    online_at: new Date().toISOString(),
+                });
+            } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
+                setIsConnected(false);
+            }
+        });
 
         // 页面可见性变化时更新状态
         const handleVisibilityChange = async () => {
@@ -112,17 +125,8 @@ export function PresenceProvider({
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             channelRef.current = null;
-
-            // 安全清理：避免在 WebSocket 处于 CONNECTING 阶段时强行中断触发浏览器控制台报错
-            const cleanup = () => {
-                supabase.removeChannel(channel);
-            };
-
-            if (channel.state === "joined") {
-                cleanup();
-            } else {
-                setTimeout(cleanup, 500);
-            }
+            // 立即同步从客户端频道池中移除，禁止 setTimeout 延迟，确保下一次挂载拿到全新频道
+            supabase.removeChannel(channel).catch(() => {});
         };
     }, [currentUserId]);
 

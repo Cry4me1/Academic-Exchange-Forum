@@ -24,6 +24,9 @@ import { LinkedAccountsCard } from "@/components/settings/linked-accounts-card";
 import { useI18n } from "@/i18n/context";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { Locale } from "@/i18n/types";
+import { Switch } from "@/components/ui/switch";
+import { useMessageSound } from "@/hooks/useMessageSound";
+import { Volume2, Play } from "lucide-react";
 
 interface ProfileData {
     id: string;
@@ -45,6 +48,7 @@ export default function ProfileSettingsPage() {
 
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
+    const { soundEnabled, setSoundEnabled, testSound } = useMessageSound();
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -374,6 +378,61 @@ export default function ProfileSettingsPage() {
                                     <p className="text-sm font-medium">{profile?.email}</p>
                                     <p className="text-xs text-muted-foreground">{tSettings.primaryEmail}</p>
                                 </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 消息与提示音偏好 Card */}
+                <Card className="shadow-lg border-0 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-2xl md:rounded-3xl overflow-hidden mt-6">
+                    <CardHeader className="pb-3 border-0">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                <Volume2 className="h-4.5 w-4.5" />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                                    消息与提示音偏好
+                                </h2>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    管理即时聊天与站内消息的声音反馈
+                                </p>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-2 pb-6 space-y-4">
+                        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50/70 dark:bg-zinc-900/40 backdrop-blur-md">
+                            <div className="space-y-0.5 pr-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                        私信提示音
+                                    </span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+                                        液态晶体音效
+                                    </span>
+                                </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    收到新私信时播放通透纯净的双音晶体水滴音效
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        testSound();
+                                        toast.success("正在试听私信提示音");
+                                    }}
+                                    className="h-8 px-3 rounded-full text-xs font-medium border-0 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_6px_rgba(0,0,0,0.04)]"
+                                >
+                                    <Play className="h-3 w-3 mr-1 text-emerald-500 fill-emerald-500" />
+                                    试听
+                                </Button>
+                                <Switch
+                                    checked={soundEnabled}
+                                    onCheckedChange={setSoundEnabled}
+                                />
                             </div>
                         </div>
                     </CardContent>

@@ -297,8 +297,8 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                 <CreditRechargeDialog isOpen={isRechargeOpen} onOpenChange={handleRechargeOpenChange} />
             </header>
 
-            {/* 主内容区域 - 间距留白更加宽大舒适 */}
-            <main className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
+            {/* 主内容区域 - 移动端黄金首屏排版 */}
+            <main className="max-w-[1560px] mx-auto px-3 sm:px-8 lg:px-10 py-3.5 sm:py-8">
                 <div className="flex gap-8 items-start">
                     {/* 左侧栏 - 桌面端固定吸顶，随滚动常驻 */}
                     <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start">
@@ -306,7 +306,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             variants={slideInLeft}
                             initial="hidden"
                             animate="visible"
-                            className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
+                            className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto px-1.5 py-1 scrollbar-hidden"
                         >
                             {/* 主导航 */}
                             <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
@@ -332,16 +332,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         animate="visible"
                         className="flex-1 min-w-0"
                     >
-                        {/* 移动端搜索栏 */}
-                        <div className="md:hidden mb-5">
+                        {/* 移动端极简搜索栏 */}
+                        <div className="md:hidden mb-3">
                             <GlobalSearch />
                         </div>
 
-                        {/* Mobile/Tablet only: 右侧卡片下移展示 */}
-                        <div className="xl:hidden space-y-5 mb-6">
-                            <QuickPostButton />
-                            <AnnouncementCard />
-                            <AiFeatureCard />
+                        {/* Mobile/Tablet only: 轻量学科胶囊横滑条（不再堆积巨幅发帖卡片） */}
+                        <div className="xl:hidden mb-3.5">
                             <TagCloud />
                         </div>
 
@@ -349,12 +346,12 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         <DashboardTutorialBanner />
 
                         {/* 动态横幅 StoryBanner */}
-                        <motion.div variants={fadeInUp} className="mb-6">
+                        <motion.div variants={fadeInUp} className="mb-4 sm:mb-6">
                             <StoryBanner />
                         </motion.div>
 
                         {/* Tabs 筛选器 */}
-                        <motion.div variants={fadeInUp} className="mb-6 sticky top-20 z-30 bg-zinc-50/70 dark:bg-zinc-950/70 backdrop-blur-xl py-1.5">
+                        <motion.div variants={fadeInUp} className="mb-4 sm:mb-6 sticky top-16 z-30 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl py-1.5 -mx-1 px-1">
                             <FeedTabs activeTab={activeTab} onTabChange={setActiveTab} />
                         </motion.div>
 
@@ -370,7 +367,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             variants={slideInRight}
                             initial="hidden"
                             animate="visible"
-                            className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1.5 scrollbar-hidden"
+                            className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto px-1.5 py-1 scrollbar-hidden"
                         >
                             {/* 快速发帖 */}
                             <motion.div variants={itemVariants}>
@@ -399,9 +396,6 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                     </aside>
                 </div>
             </main>
-
-            {/* 移动端底部 Tab Bar */}
-            <MobileTabBar currentUserId={currentUserId} />
 
             {/* 欢迎弹窗 / 正式版通知 */}
             <WelcomeModal userCreatedAt={userCreatedAt} />
