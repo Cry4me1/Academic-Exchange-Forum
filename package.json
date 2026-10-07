@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "embed:sync": "node scripts/sync_embeddings.mjs"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.2",
@@ -66,6 +67,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.26",
     "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.13",
     "isomorphic-dompurify": "^3.22.0",
     "jsondiffpatch": "^0.7.3",
     "katex": "^0.16.27",
@@ -89,6 +91,7 @@
     "resend": "^6.6.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
+    "three": "^0.186.1",
     "tippy.js": "^6.3.7",
     "tiptap-extension-auto-joiner": "^0.1.3",
     "tiptap-extension-global-drag-handle": "^0.1.18",
@@ -105,6 +108,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "^15.5.12",
     "geist": "^1.7.1",

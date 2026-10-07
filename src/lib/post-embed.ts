@@ -44,7 +44,10 @@ export function extractPlainText(content: unknown): string {
  * 为帖子生成 1024 维度的 Embedding 并保存到数据库
  * 自动兼容：火山引擎豆包模型 与 Cohere 国际模型
  */
-export async function generatePostEmbedding(postId: string, supabaseClient?: any) {
+export async function generatePostEmbedding(
+    postId: string,
+    supabaseClient?: any
+): Promise<{ success: true; embedding: number[] } | { error: string }> {
     // 默认使用 AdminClient，避免因 cookies() 丢失 Request Scope 抛出异常，同时确保具备最高读写权限
     const supabase = supabaseClient || createAdminClient();
 
@@ -107,7 +110,7 @@ export async function generatePostEmbedding(postId: string, supabaseClient?: any
                         Authorization: `Bearer ${apiKey}`,
                     },
                     body: JSON.stringify(requestBody),
-                    signal: AbortSignal.timeout(8000), // 8秒超时
+                    signal: AbortSignal.timeout(12000), // 12秒充足超时保护，避免网络抖动导致早退
                 });
 
                 if (embeddingRes.ok) {
@@ -119,12 +122,12 @@ export async function generatePostEmbedding(postId: string, supabaseClient?: any
                 console.warn(`[generatePostEmbedding] 向量服务请求失败 (尝试 ${attempt}/3): ${lastError}`);
 
                 // 若遇到 429 Rate Limit，稍作延迟以待恢复
-                const delay = embeddingRes.status === 429 ? 1200 * attempt : 500 * attempt;
+                const delay = embeddingRes.status === 429 ? 1500 * attempt : 600 * attempt;
                 await new Promise((resolve) => setTimeout(resolve, delay));
             } catch (err: any) {
                 lastError = err.message || String(err);
                 console.warn(`[generatePostEmbedding] 向量服务请求异常 (尝试 ${attempt}/3): ${lastError}`);
-                await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+                await new Promise((resolve) => setTimeout(resolve, 600 * attempt));
             }
         }
 
@@ -166,7 +169,7 @@ export async function generatePostEmbedding(postId: string, supabaseClient?: any
         }
 
         console.log(`[generatePostEmbedding] 帖子 ${postId} 成功生成并更新了 1024 维 Embedding (来源: ${isCohere ? 'Cohere' : '豆包/OpenAI兼容'})`);
-        return { success: true };
+        return { success: true, embedding };
     } catch (err) {
         console.error("[generatePostEmbedding] 捕获到内部错误:", err);
         return { error: "内部错误" };

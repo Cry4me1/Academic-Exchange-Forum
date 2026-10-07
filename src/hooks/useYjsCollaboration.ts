@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Y from "yjs";
 import { Awareness } from "y-protocols/awareness";
+import * as awarenessProtocol from "y-protocols/awareness";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -36,10 +37,11 @@ const CURSOR_COLORS = [
     "#65a30d", "#c026d3", "#e11d48", "#0d9488",
 ];
 
-function getUserColor(userId: string): string {
+function getUserColor(userId: string, clientId?: number): string {
     let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    const seed = clientId ? `${userId}-${clientId}` : userId;
+    for (let i = 0; i < seed.length; i++) {
+        hash = seed.charCodeAt(i) + ((hash << 5) - hash);
     }
     return CURSOR_COLORS[Math.abs(hash) % CURSOR_COLORS.length];
 }
@@ -112,6 +114,7 @@ async function saveYjsState(
                 snapshotLabel: options?.snapshotLabel,
                 snapshotType: options?.snapshotType || "auto",
             }),
+            keepalive: true,
         });
         return res.ok;
     } catch (e) {
@@ -141,6 +144,7 @@ export function useYjsCollaboration({
     const hasLocalChanges = useRef(false);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const snapshotTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isRollingBack = useRef(false);
     const [reinitKey, setReinitKey] = useState(0);
 
     // 手动保存（带版本快照）
@@ -162,43 +166,80 @@ export function useYjsCollaboration({
 
     // 回滚到指定快照
     // 策略：调用 API 将数据库中的 lab_notes 替换为快照内容，
-    // 然后通过 reinitKey 触发 hook 完全重建，从数据库重新加载文档
+    // 通过 Realtime 广播通知所有开着此研讨室的客户端重置，
+    // 并通过 reinitKey 触发 hook 完全重建，从数据库重新加载文档
     const rollbackToSnapshot = useCallback(async (snapshotId: string): Promise<boolean> => {
         try {
             setIsRestoring(true);
+            isRollingBack.current = true;
+            // 立即掐断未保存标记与定时器，严禁旧内容在卸载时写回数据库覆盖快照
+            hasLocalChanges.current = false;
+            if (saveTimerRef.current) {
+                clearTimeout(saveTimerRef.current);
+                saveTimerRef.current = null;
+            }
+
             const res = await fetch("/api/lab-notes/snapshots", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ roomId, snapshotId }),
             });
 
-            if (!res.ok) return false;
+            if (!res.ok) {
+                isRollingBack.current = false;
+                return false;
+            }
             const data = await res.json();
-            if (!data.success) return false;
+            if (!data.success) {
+                isRollingBack.current = false;
+                return false;
+            }
 
-            // 强制重建 Yjs doc：cleanup 会销毁旧 doc，
-            // 新的 useEffect 会从数据库加载回滚后的状态
+            // 广播回滚事件，通知所有协同在席端（包括同用户多开的窗口）同步重载
+            if (channelRef.current) {
+                channelRef.current.send({
+                    type: "broadcast",
+                    event: "lab-note-rollback",
+                    payload: { roomId, snapshotId, userId: user.id },
+                });
+            }
+
+            // 强制重建 Yjs doc：cleanup 销毁旧 doc，新 useEffect 从数据库加载回滚快照
             setReinitKey((k) => k + 1);
             setLastSavedAt(new Date());
+            setTimeout(() => {
+                isRollingBack.current = false;
+            }, 800);
             return true;
         } catch (e) {
             console.error("回滚失败:", e);
+            isRollingBack.current = false;
             return false;
         } finally {
             setIsRestoring(false);
         }
-    }, [roomId]);
+    }, [roomId, user.id]);
 
     useEffect(() => {
         if (!enabled || !roomId || !user.id) return;
 
         const supabase = createClient();
+        const channelName = `yjs-collab:${roomId}`;
+
+        // 清理可能由于 React Remount / Fast Refresh 残留的已订阅频道实例
+        const existingChannel = supabase.getChannels().find(
+            (c: any) => c.topic === `realtime:${channelName}` || c.topic === channelName
+        );
+        if (existingChannel) {
+            supabase.removeChannel(existingChannel);
+        }
+
         const doc = new Y.Doc();
         const awareness = new Awareness(doc);
         docRef.current = doc;
 
-        // 设置本地 awareness 状态
-        const color = user.color || getUserColor(user.id);
+        // 设置本地 awareness 状态（同账号多开窗口时按 clientID 区分光标色彩，确保清晰可辨）
+        const color = user.color || getUserColor(user.id, doc.clientID);
         awareness.setLocalStateField("user", {
             name: user.name,
             color,
@@ -208,10 +249,12 @@ export function useYjsCollaboration({
 
         const provider = new SupabaseAwarenessProvider(awareness);
 
-        const channelName = `yjs-collab:${roomId}`;
         const channel = supabase.channel(channelName, {
             config: {
                 broadcast: { self: false },
+                presence: {
+                    key: user.id,
+                },
             },
         });
         channelRef.current = channel;
@@ -239,10 +282,10 @@ export function useYjsCollaboration({
 
         restoreState();
 
-        // --- Yjs 文档同步 ---
+        // --- Yjs 文档协同同步（基于 clientID 过滤，同学者多窗口可自测试协同） ---
 
         channel.on("broadcast", { event: "yjs-update" }, ({ payload }: any) => {
-            if (payload?.update && payload.userId !== user.id) {
+            if (payload?.update && payload.clientId !== doc.clientID) {
                 isApplyingRemote.current = true;
                 try {
                     Y.applyUpdate(doc, Uint8Array.from(payload.update));
@@ -254,30 +297,33 @@ export function useYjsCollaboration({
         });
 
         channel.on("broadcast", { event: "yjs-sync-request" }, ({ payload }: any) => {
-            if (payload.userId !== user.id) {
+            if (payload?.clientId !== doc.clientID) {
                 const state = Y.encodeStateAsUpdate(doc);
                 channel.send({
                     type: "broadcast",
                     event: "yjs-sync-response",
-                    payload: { userId: user.id, update: Array.from(state) },
+                    payload: {
+                        clientId: doc.clientID,
+                        targetClientId: payload.clientId,
+                        update: Array.from(state),
+                    },
                 });
-                // 也发送 awareness 状态
-                const localState = awareness.getLocalState();
-                if (localState) {
-                    channel.send({
-                        type: "broadcast",
-                        event: "awareness-update",
-                        payload: {
-                            clientId: awareness.clientID,
-                            state: localState,
-                        },
-                    });
-                }
+                // 也发送当前的 awareness 状态，确保新接入窗口立刻看到光标
+                const awUpdate = awarenessProtocol.encodeAwarenessUpdate(awareness, [awareness.clientID]);
+                channel.send({
+                    type: "broadcast",
+                    event: "awareness-update",
+                    payload: {
+                        clientId: doc.clientID,
+                        update: Array.from(awUpdate),
+                    },
+                });
             }
         });
 
         channel.on("broadcast", { event: "yjs-sync-response" }, ({ payload }: any) => {
-            if (payload?.update && payload.userId !== user.id) {
+            if (payload?.update && payload.clientId !== doc.clientID) {
+                if (payload.targetClientId && payload.targetClientId !== doc.clientID) return;
                 isApplyingRemote.current = true;
                 try {
                     Y.applyUpdate(doc, Uint8Array.from(payload.update));
@@ -288,37 +334,32 @@ export function useYjsCollaboration({
             }
         });
 
-        // --- Awareness 同步 ---
+        // --- Awareness 官方二进制协议协同同步（光标 + 选区 + 学者名牌） ---
 
         channel.on("broadcast", { event: "awareness-update" }, ({ payload }: any) => {
-            if (payload?.clientId && payload.clientId !== awareness.clientID) {
-                isApplyingRemoteAwareness.current = true;
+            if (payload?.update && payload.clientId !== doc.clientID) {
                 try {
-                    const states = awareness.getStates();
-                    const isNew = !states.has(payload.clientId);
-                    states.set(payload.clientId, payload.state);
-
-                    const changeDesc = isNew
-                        ? { added: [payload.clientId], updated: [], removed: [] }
-                        : { added: [], updated: [payload.clientId], removed: [] };
-
-                    awareness.emit("change", [changeDesc, "remote"]);
-                    awareness.emit("update", [changeDesc, "remote"]);
+                    awarenessProtocol.applyAwarenessUpdate(
+                        awareness,
+                        Uint8Array.from(payload.update),
+                        "remote"
+                    );
                 } catch (e) {
                     console.error("Failed to apply awareness update:", e);
                 }
-                isApplyingRemoteAwareness.current = false;
             }
         });
 
         channel.on("broadcast", { event: "awareness-remove" }, ({ payload }: any) => {
-            if (payload?.clientId && payload.clientId !== awareness.clientID) {
-                const states = awareness.getStates();
-                if (states.has(payload.clientId)) {
-                    states.delete(payload.clientId);
-                    const changeDesc = { added: [], updated: [], removed: [payload.clientId] };
-                    awareness.emit("change", [changeDesc, "remote"]);
-                    awareness.emit("update", [changeDesc, "remote"]);
+            if (payload?.removedClientId && payload.clientId !== doc.clientID) {
+                try {
+                    awarenessProtocol.removeAwarenessStates(
+                        awareness,
+                        [payload.removedClientId],
+                        "remote"
+                    );
+                } catch (e) {
+                    console.error("Failed to remove awareness client:", e);
                 }
             }
         });
@@ -329,7 +370,11 @@ export function useYjsCollaboration({
             channel.send({
                 type: "broadcast",
                 event: "yjs-update",
-                payload: { userId: user.id, update: Array.from(update) },
+                payload: {
+                    clientId: doc.clientID,
+                    userId: user.id,
+                    update: Array.from(update),
+                },
             });
 
             // 标记有本地变更，触发防抖保存
@@ -341,38 +386,55 @@ export function useYjsCollaboration({
                 }
                 saveTimerRef.current = setTimeout(async () => {
                     if (hasLocalChanges.current && docRef.current) {
+                        setIsSaving(true);
                         const ok = await saveYjsState(roomId, docRef.current);
                         if (ok) {
                             setLastSavedAt(new Date());
                             hasLocalChanges.current = false;
                         }
+                        setIsSaving(false);
                     }
                 }, autoSaveInterval);
             }
         };
         doc.on("update", handleLocalUpdate);
 
-        // 本地 awareness 变化 → 广播
-        const handleAwarenessUpdate = () => {
-            if (isApplyingRemoteAwareness.current) return;
-            const localState = awareness.getLocalState();
-            if (localState) {
-                channel.send({
-                    type: "broadcast",
-                    event: "awareness-update",
-                    payload: {
-                        clientId: awareness.clientID,
-                        state: localState,
-                    },
-                });
-            }
+        // 本地 awareness 变化（选区移动、输入光标偏移、学者标签变化）→ 编码并广播
+        const handleAwarenessUpdate = ({ added, updated, removed }: any, origin: any) => {
+            if (origin === "remote") return;
+            const changedClients = added.concat(updated).concat(removed);
+            if (changedClients.length === 0) return;
+            const update = awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients);
+            channel.send({
+                type: "broadcast",
+                event: "awareness-update",
+                payload: {
+                    clientId: doc.clientID,
+                    update: Array.from(update),
+                },
+            });
         };
         awareness.on("update", handleAwarenessUpdate);
 
-        // Presence 追踪在线人数
+        // Presence 追踪在线人数（严格按学者用户 ID 去重，单人多开窗口不重复计入）
         channel.on("presence", { event: "sync" }, () => {
             const presenceState = channel.presenceState();
-            setConnectedPeers(Math.max(0, Object.keys(presenceState).length - 1));
+            const uniqueUserIds = new Set<string>();
+
+            Object.entries(presenceState).forEach(([key, presences]: [string, any]) => {
+                if (key && key !== "undefined") {
+                    uniqueUserIds.add(key);
+                }
+                if (Array.isArray(presences)) {
+                    presences.forEach((p: any) => {
+                        if (p?.userId) uniqueUserIds.add(p.userId);
+                    });
+                }
+            });
+
+            // 计算除当前用户外的其他独立在席协作者数
+            const otherPeersCount = Array.from(uniqueUserIds).filter((uid) => uid !== user.id).length;
+            setConnectedPeers(otherPeersCount);
         });
 
         channel.subscribe(async (status: any) => {
@@ -384,16 +446,42 @@ export function useYjsCollaboration({
                     color,
                 });
 
-                // 请求同步
+                // 请求同步并广播一次本地 awareness，让所有在席窗口即刻看到光标
                 setTimeout(() => {
                     channel.send({
                         type: "broadcast",
                         event: "yjs-sync-request",
-                        payload: { userId: user.id },
+                        payload: { clientId: doc.clientID, userId: user.id },
                     });
-                }, 500);
+                    const initialAwUpdate = awarenessProtocol.encodeAwarenessUpdate(awareness, [awareness.clientID]);
+                    channel.send({
+                        type: "broadcast",
+                        event: "awareness-update",
+                        payload: {
+                            clientId: doc.clientID,
+                            update: Array.from(initialAwUpdate),
+                        },
+                    });
+                }, 300);
             } else {
                 setIsConnected(false);
+            }
+        });
+
+        // 监听研讨室回滚广播（通知同房间其他窗口和协作者同步重置）
+        channel.on("broadcast", { event: "lab-note-rollback" }, ({ payload }: any) => {
+            if (payload?.roomId === roomId && payload?.userId !== user.id) {
+                console.log("[Yjs] 收到研讨室笔记回滚广播，立即同步重载文档...");
+                isRollingBack.current = true;
+                hasLocalChanges.current = false;
+                if (saveTimerRef.current) {
+                    clearTimeout(saveTimerRef.current);
+                    saveTimerRef.current = null;
+                }
+                setReinitKey((k) => k + 1);
+                setTimeout(() => {
+                    isRollingBack.current = false;
+                }, 800);
             }
         });
 
@@ -401,7 +489,7 @@ export function useYjsCollaboration({
         // 定时自动快照（每 autoSnapshotInterval）
         // ============================================
         snapshotTimerRef.current = setInterval(async () => {
-            if (docRef.current) {
+            if (docRef.current && !isRollingBack.current) {
                 await saveYjsState(roomId, docRef.current, {
                     createSnapshot: true,
                     snapshotType: "auto",
@@ -413,8 +501,8 @@ export function useYjsCollaboration({
         setAwarenessProvider(provider);
 
         return () => {
-            // 离开前做最后一次保存
-            if (hasLocalChanges.current && docRef.current) {
+            // 离开前做最后一次保存（回滚期间严禁写回本地旧状态，防止冲掉刚回滚的快照！）
+            if (hasLocalChanges.current && docRef.current && !isRollingBack.current) {
                 saveYjsState(roomId, docRef.current);
             }
 
@@ -426,20 +514,15 @@ export function useYjsCollaboration({
             channel.send({
                 type: "broadcast",
                 event: "awareness-remove",
-                payload: { clientId: awareness.clientID },
+                payload: {
+                    clientId: doc.clientID,
+                    removedClientId: awareness.clientID,
+                },
             });
-            doc.off("update", handleLocalUpdate);
-            awareness.off("update", handleAwarenessUpdate);
+            awarenessProtocol.removeAwarenessStates(awareness, [awareness.clientID], "local");
             awareness.destroy();
-            
-            const cleanup = () => {
-                supabase.removeChannel(channel);
-            };
-            if (channel.state === "joined") {
-                cleanup();
-            } else {
-                setTimeout(cleanup, 500);
-            }
+            // 同步解除频道订阅与注销
+            supabase.removeChannel(channel);
 
             doc.destroy();
             channelRef.current = null;
@@ -461,5 +544,6 @@ export function useYjsCollaboration({
         isRestoring,
         manualSave,
         rollbackToSnapshot,
+        reinitKey,
     };
 }

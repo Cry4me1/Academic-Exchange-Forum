@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ChevronLeft,
@@ -20,14 +29,23 @@ import {
   ShieldCheck,
   AlertTriangle,
   XCircle,
+  Eye,
+  BookOpen,
+  ImageIcon,
 } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/utils";
+import NovelViewer from "@/components/editor/NovelViewer";
+import { extractPlainTextFromContent, extractImageUrls } from "@/lib/moderation/utils";
 
 interface ModerationLogItem {
   id: string;
   post_id: string | null;
   author_id: string;
   content_hash: string;
+  title?: string | null;
+  content_snapshot?: any;
+  cover_image?: string | null;
+  tags?: string[] | null;
   model_name: string;
   score: number;
   risk_level: string;
@@ -72,6 +90,7 @@ export function ModerationLogsClient({
   actionFilter: initialActionFilter,
 }: ModerationLogsClientProps) {
   const router = useRouter();
+  const [previewSnapshot, setPreviewSnapshot] = useState<ModerationLogItem | null>(null);
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const handleFilter = (key: string, val: string) => {
@@ -175,7 +194,7 @@ export function ModerationLogsClient({
                   const isCover = log.detected_tags?.includes("post_cover");
                   const isContentImage = log.detected_tags?.includes("post_content_image");
                   const isComment = log.detected_tags?.includes("comment") || log.detected_tags?.includes("学术评论");
-                  const displayTitle = log.post?.title || (
+                  const displayTitle = log.title || log.post?.title || (
                     isBanner ? "🖼️ 个人主页 Banner 审核" :
                     isCover ? "🖼️ 帖子封面上传审核" :
                     isContentImage ? "🖼️ 帖子正文配图审核" :
@@ -239,10 +258,23 @@ export function ModerationLogsClient({
                       </td>
 
                       <td className="px-4 py-3">
-                        <Badge variant="outline" className={`gap-1 text-xs ${act.color}`}>
-                          <ActionIcon className="h-3 w-3" />
-                          {act.label}
-                        </Badge>
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <Badge variant="outline" className={`gap-1 text-xs ${act.color}`}>
+                            <ActionIcon className="h-3 w-3" />
+                            {act.label}
+                          </Badge>
+                          {log.content_snapshot && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setPreviewSnapshot(log)}
+                              className="h-6 px-2 text-[11px] rounded-full bg-primary/10 hover:bg-primary/20 text-primary border-0 gap-1"
+                            >
+                              <Eye className="h-3 w-3" />
+                              查看快照
+                            </Button>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3 hidden md:table-cell">
@@ -307,6 +339,144 @@ export function ModerationLogsClient({
           </div>
         )}
       </div>
+
+      {/* 审核快照详情预览弹窗 */}
+      <Dialog open={!!previewSnapshot} onOpenChange={(open) => !open && setPreviewSnapshot(null)}>
+        <DialogContent className="max-w-3xl max-h-[88vh] flex flex-col border-0 rounded-3xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-[0_16px_64px_-12px_rgba(0,0,0,0.25)]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2 font-bold text-foreground">
+              <BookOpen className="h-5 w-5 text-primary" />
+              {previewSnapshot?.title || previewSnapshot?.post?.title || "内容审核快照详情"}
+            </DialogTitle>
+            <DialogDescription>
+              作者：{previewSnapshot?.profile?.username || "学者"} |
+              记录时间：{previewSnapshot?.created_at ? new Date(previewSnapshot.created_at).toLocaleString("zh-CN") : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-3 pr-1">
+            {/* 审核诊断 */}
+            <div className="p-4 rounded-2xl border-0 bg-muted/40 text-sm space-y-2 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                <span className="font-semibold text-foreground">初审诊断分析：</span>
+                <Badge
+                  className={`rounded-full border-0 text-xs px-2.5 py-0.5 ${
+                    (previewSnapshot?.score ?? 0) >= 80
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : (previewSnapshot?.score ?? 0) >= 60
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  健康分 {previewSnapshot?.score}
+                </Badge>
+                <Badge variant="outline" className="rounded-full border-0 text-xs capitalize">
+                  {previewSnapshot?.risk_level}
+                </Badge>
+                <Badge variant="secondary" className="rounded-full border-0 text-xs">
+                  {previewSnapshot?.final_action}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">
+                {previewSnapshot?.reason || "无评判理由"}
+              </p>
+              {previewSnapshot?.matched_sensitive_words && previewSnapshot.matched_sensitive_words.length > 0 && (
+                <p className="text-xs text-red-500 font-semibold">
+                  ⚠️ 命中的敏感词库：{previewSnapshot.matched_sensitive_words.join("、")}
+                </p>
+              )}
+              <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-3 flex-wrap">
+                <span>审核模型: {previewSnapshot?.model_name}</span>
+                <span>•</span>
+                <span>耗时: {previewSnapshot?.latency_ms}ms</span>
+                {(previewSnapshot?.cost_tokens ?? 0) > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>消耗 Token: {previewSnapshot?.cost_tokens}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 封面图预览 */}
+            {previewSnapshot?.cover_image && (
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">封面图片：</span>
+                <div className="relative aspect-[21/9] w-full max-h-48 rounded-2xl overflow-hidden border-0 bg-muted shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewSnapshot.cover_image}
+                    alt="封面图"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 正文快照渲染 */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">正文快照数据：</span>
+              {previewSnapshot?.content_snapshot ? (
+                <div className="p-4 rounded-2xl border-0 bg-card/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                  {typeof previewSnapshot.content_snapshot === "object" && previewSnapshot.content_snapshot?.type === "doc" ? (
+                    <NovelViewer initialValue={previewSnapshot.content_snapshot} />
+                  ) : (
+                    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                      {extractPlainTextFromContent(previewSnapshot.content_snapshot)}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl text-center text-xs text-muted-foreground bg-muted/20">
+                  暂无正文快照数据
+                </div>
+              )}
+            </div>
+
+            {/* 提取配图图表 */}
+            {(() => {
+              const images = extractImageUrls(previewSnapshot?.content_snapshot);
+              if (images.length === 0) return null;
+              return (
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span>正文配图 ({images.length} 张)：</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {images.map((src, i) => (
+                      <a
+                        key={i}
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group relative block aspect-video rounded-2xl overflow-hidden border-0 bg-muted/40 hover:opacity-90 transition-opacity shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]"
+                      >
+                        <img
+                          src={src}
+                          alt={`配图 ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full bg-black/60 text-[10px] text-white">
+                          点击放大
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
+            <Button variant="outline" className="rounded-full border-0" onClick={() => setPreviewSnapshot(null)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

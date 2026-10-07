@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { extractAcademicMeta } from "@/lib/academic-meta";
 import NovelViewer from "@/components/editor/NovelViewer";
 import { Badge } from "@/components/ui/badge";
+import { MathText } from "@/components/ui/math-text";
 import {
     Sparkles,
     Printer,
@@ -106,7 +107,7 @@ export default async function AcademicPrintPage({
                 {/* 论文大标题 */}
                 <div className="text-center my-6">
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight mb-4 font-serif">
-                        {post.title}
+                        <MathText text={post.title} inlineOnly />
                     </h1>
 
                     {/* 作者与机构信息 */}

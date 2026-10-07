@@ -327,17 +327,77 @@
   animation-delay: 1000ms;
 }
 
-/* 隐藏滚动条 */
+/* ============================================================
+ * 滚动条美化与无边框隐藏规范 (Apple Liquid Glass)
+ * 根治 Windows 原生 17px 灰色死板滚动槽与尖箭头
+ * ============================================================ */
+.no-scrollbar,
+.scrollbar-none,
 .scrollbar-hidden {
-  -ms-overflow-style: none;
+  -ms-overflow-style: none !important;
   /* IE and Edge */
-  scrollbar-width: none;
+  scrollbar-width: none !important;
   /* Firefox */
 }
 
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar,
 .scrollbar-hidden::-webkit-scrollbar {
-  display: none;
-  /* Chrome, Safari and Opera */
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* 彻底抹除 Windows 浏览器原生上下/左右三角箭头与边角 */
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Apple Pro 极细 4px 悬浮半透明胶囊滚动条（平时极淡隐形，触控时才微显） */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+  transition: background 0.25s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Firefox 滚动条极细与半透明着色 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 /* ============================================
@@ -1056,7 +1116,7 @@
 }
 
 /* Selected node highlight */
-.ProseMirror:not(.dragging) .ProseMirror-selectednode {
+.ProseMirror:not(.dragging) .ProseMirror-selectednode:not(.scholarly-algorithm-stepper-wrapper):not(.scholarly-algorithm-stepper-node-container):not(.node-algorithmStepper):not([data-type="algorithm-stepper"]):not(:has(.scholarly-algorithm-stepper-wrapper)):not(:has([data-type="algorithm-stepper"])):not(.scholarly-solid-geometry-wrapper):not(.scholarly-solid-geometry-node-container):not(.node-solidGeometry):not([data-type="solid-geometry"]):not(:has(.scholarly-solid-geometry-wrapper)):not(:has([data-type="solid-geometry"])) {
   outline: none !important;
   background-color: oklch(0.7 0.15 220 / 30%);
   transition: background-color 0.2s;
@@ -1488,15 +1548,7 @@
   }
 }
 
-/* 浮动 TOC 滚动条隐藏（覆盖） */
-.scrollbar-hidden {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.scrollbar-hidden::-webkit-scrollbar {
-  display: none;
-}
+/* 浮动 TOC 滚动条隐藏已由上方全局 .no-scrollbar / .scrollbar-hidden 接管 */
 
 /* ============================================
    Leaderboard Page Animations
@@ -1611,19 +1663,20 @@
 
 .collaboration-cursor__label {
   position: absolute;
-  top: -1.5em;
+  top: -1.65em;
   left: -1px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 1;
-  padding: 2px 6px;
-  border-radius: 4px 4px 4px 0;
+  padding: 2.5px 7px;
+  border-radius: 9999px;
   color: #fff;
   white-space: nowrap;
   pointer-events: none;
   user-select: none;
-  opacity: 0.9;
-  transition: opacity 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), inset 0 1px 0.5px rgba(255, 255, 255, 0.4);
+  opacity: 0.95;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .ProseMirror .collaboration-cursor__caret:hover .collaboration-cursor__label {
@@ -1888,12 +1941,76 @@ table.scholarly-liquid-table tbody tr:hover {
   pointer-events: none;
 }
 
-/* 算法时序推演步进器打印适配 */
+/* 算法时序推演步进器打印适配与无边框选中样式 */
 @media print {
   .scholarly-algorithm-stepper-wrapper {
     break-inside: avoid;
     box-shadow: none !important;
   }
 }
+
+.scholarly-algorithm-stepper-wrapper,
+.scholarly-algorithm-stepper-wrapper:focus,
+.scholarly-algorithm-stepper-wrapper:focus-visible,
+.scholarly-algorithm-stepper-wrapper.ProseMirror-selectednode,
+.ProseMirror .scholarly-algorithm-stepper-wrapper.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) .scholarly-algorithm-stepper-wrapper.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) div.scholarly-algorithm-stepper-wrapper.ProseMirror-selectednode,
+.scholarly-algorithm-stepper-node-container,
+.scholarly-algorithm-stepper-node-container.ProseMirror-selectednode,
+.ProseMirror .scholarly-algorithm-stepper-node-container.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) .scholarly-algorithm-stepper-node-container.ProseMirror-selectednode,
+.node-algorithmStepper,
+.node-algorithmStepper.ProseMirror-selectednode,
+.ProseMirror .node-algorithmStepper.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) .node-algorithmStepper.ProseMirror-selectednode,
+div[data-type="algorithm-stepper"].ProseMirror-selectednode,
+.ProseMirror div[data-type="algorithm-stepper"].ProseMirror-selectednode,
+.ProseMirror-selectednode:has(.scholarly-algorithm-stepper-wrapper),
+.ProseMirror-selectednode:has([data-type="algorithm-stepper"]),
+.scholarly-solid-geometry-wrapper,
+.scholarly-solid-geometry-wrapper:focus,
+.scholarly-solid-geometry-wrapper:focus-visible,
+.scholarly-solid-geometry-wrapper.ProseMirror-selectednode,
+.ProseMirror .scholarly-solid-geometry-wrapper.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) .scholarly-solid-geometry-wrapper.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) div.scholarly-solid-geometry-wrapper.ProseMirror-selectednode,
+.scholarly-solid-geometry-node-container,
+.scholarly-solid-geometry-node-container.ProseMirror-selectednode,
+.ProseMirror .scholarly-solid-geometry-node-container.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) .scholarly-solid-geometry-node-container.ProseMirror-selectednode,
+.node-solidGeometry,
+.node-solidGeometry.ProseMirror-selectednode,
+.ProseMirror .node-solidGeometry.ProseMirror-selectednode,
+.ProseMirror:not(.dragging) .node-solidGeometry.ProseMirror-selectednode,
+div[data-type="solid-geometry"].ProseMirror-selectednode,
+.ProseMirror div[data-type="solid-geometry"].ProseMirror-selectednode,
+.ProseMirror-selectednode:has(.scholarly-solid-geometry-wrapper),
+.ProseMirror-selectednode:has([data-type="solid-geometry"]) {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scholarly-algorithm-stepper-wrapper *:focus,
+.scholarly-algorithm-stepper-wrapper *:focus-visible,
+.scholarly-solid-geometry-wrapper *:focus,
+.scholarly-solid-geometry-wrapper *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 帖子阅读详情页 (NovelViewer) 只读模式：彻底杜绝任何块级节点选中时的蓝色底色泄露 */
+.novel-viewer-container .ProseMirror .ProseMirror-selectednode {
+  background-color: transparent !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+
 
 

@@ -45,7 +45,16 @@ export function useLabPresence({
         if (!enabled || !roomId || !userId) return;
 
         const supabase = createClient();
-        const channel = supabase.channel(`lab-room:${roomId}`, {
+        const channelName = `lab-room:${roomId}`;
+
+        const existingChannel = supabase.getChannels().find(
+            (c: any) => c.topic === `realtime:${channelName}` || c.topic === channelName
+        );
+        if (existingChannel) {
+            supabase.removeChannel(existingChannel);
+        }
+
+        const channel = supabase.channel(channelName, {
             config: {
                 presence: {
                     key: userId,
@@ -93,16 +102,7 @@ export function useLabPresence({
             channelRef.current = null;
             setIsConnected(false);
             setOnlineMembers([]);
-
-            const cleanup = () => {
-                supabase.removeChannel(channel);
-            };
-
-            if (channel.state === "joined") {
-                cleanup();
-            } else {
-                setTimeout(cleanup, 500);
-            }
+            supabase.removeChannel(channel);
         };
     }, [roomId, userId, username, avatarUrl, enabled]);
 

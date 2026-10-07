@@ -30,6 +30,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { TrailingNode } from "./extensions/trailing-node";
 import { AlgorithmStepperNode } from "./extensions/algorithm-stepper/algorithm-stepper-node";
+import { SolidGeometryNode } from "./extensions/solid-geometry/solid-geometry-node";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(all);
@@ -137,7 +138,7 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         GlobalDragHandle.configure({
             dragHandleWidth: 20,
             scrollTreshold: 100,
-            customNodes: ["academicBlock", "codeBlock", "mermaidBlock", "algorithmStepper"],
+            customNodes: ["academicBlock", "codeBlock", "mermaidBlock", "algorithmStepper", "solidGeometry"],
         }),
         // Auto joiner - fixes list joining when dragging
         AutoJoiner.configure({
@@ -158,6 +159,7 @@ export function createExtensions(options: ExtensionOptions = {}): any[] {
         CrossRefNode,
         SidenoteNode,
         AlgorithmStepperNode,
+        SolidGeometryNode,
         // Table extensions
         Table.configure({
             resizable: true,

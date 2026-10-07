@@ -7,9 +7,37 @@ import NovelViewer from "@/components/editor/NovelViewer";
 import PeerReviewPanel from "@/components/editor/peer-review-panel";
 import { CoAuthorBadge } from "@/components/lab/co-author/CoAuthorBadge";
 import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAuthorPanel";
-import { Backlinks, type BacklinkItem, ImmersiveToolbar, SemanticRecommendations, ShareCardDialog, TableOfContents, AcademicPdfExportDialog, type HeadingItem, MobileArticleBottomBar, MobileTocSheet } from "@/components/posts";
+import {
+    Backlinks,
+    type BacklinkItem,
+    ImmersiveToolbar,
+    SemanticRecommendations,
+    ShareCardDialog,
+    TableOfContents,
+    AcademicPdfExportDialog,
+    type HeadingItem,
+    MobileArticleBottomBar,
+    MobileTocSheet,
+    AnnotationSelectionBubble,
+    AnnotationComposerModal,
+    MarginNotesPanel,
+    MobileAnnotationSheet,
+    useAnnotationHighlighter,
+    findElementContainingText,
+    type PostAnnotation,
+    type AnnotationColor,
+    type AnnotationSelectionState,
+} from "@/components/posts";
+import {
+    createAnnotation,
+    createAnnotationReply,
+    toggleResolveAnnotation,
+    deleteAnnotation,
+    getPostAnnotations,
+} from "./annotation-actions";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MathText } from "@/components/ui/math-text";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { VipBadge } from "@/components/payments/VipBadge";
 import { Badge } from "@/components/ui/badge";
@@ -61,12 +89,14 @@ import {
     Download,
     FileCode,
     Printer,
+    List,
+    MessageSquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { extractAcademicMeta } from "@/lib/academic-meta";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
     createComment,
@@ -75,7 +105,16 @@ import {
     getCommentsSorted,
     toggleBookmarkPost,
     toggleLikePost,
+    submitPostAppeal,
 } from "./actions";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 interface PostDetailClientProps {
     post: {
@@ -105,6 +144,8 @@ interface PostDetailClientProps {
         is_help_wanted?: boolean;
         is_pinned?: boolean;
         is_locked?: boolean;
+        is_hidden?: boolean;
+        hidden_reason?: string | null;
         review_status?: string;
         ai_score?: number | null;
         ai_risk_level?: string | null;
@@ -131,8 +172,10 @@ interface PostDetailClientProps {
     initialIsBookmarked?: boolean;
     commentLikeStatus?: Record<string, boolean>;
     coAuthors?: CoAuthor[];
+    originLabRoom?: { id: string; name: string; room_type?: string } | null;
     backlinks?: BacklinkItem[];
     collections?: CollectionSummary[];
+    initialAnnotations?: PostAnnotation[];
 }
 
 // 标签颜色映射
@@ -195,8 +238,10 @@ export default function PostDetailClient({
     initialIsBookmarked = false,
     commentLikeStatus = {},
     coAuthors = [],
+    originLabRoom = null,
     backlinks = [],
     collections = [],
+    initialAnnotations = [],
 }: PostDetailClientProps) {
     const router = useRouter();
     const [headings, setHeadings] = useState<HeadingItem[]>([]);
@@ -213,6 +258,19 @@ export default function PostDetailClient({
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
     const [mobileTocOpen, setMobileTocOpen] = useState(false);
     const [collectionsList, setCollectionsList] = useState<CollectionSummary[]>(collections);
+    const [appealDialogOpen, setAppealDialogOpen] = useState(false);
+    const [appealReason, setAppealReason] = useState("");
+    const [isAppealing, setIsAppealing] = useState(false);
+
+    // 行间批注与边注系统核心状态
+    const [annotations, setAnnotations] = useState<PostAnnotation[]>(initialAnnotations || []);
+    const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
+    const [activeRightTab, setActiveRightTab] = useState<"toc" | "notes">("toc");
+    const [selectionForModal, setSelectionForModal] = useState<AnnotationSelectionState | null>(null);
+    const [composerOpen, setComposerOpen] = useState(false);
+    const [isSubmittingAnnotation, setIsSubmittingAnnotation] = useState(false);
+    const [mobileNotesOpen, setMobileNotesOpen] = useState(false);
+    const articleContainerRef = useRef<HTMLDivElement>(null);
 
     // 解析当前帖子的学术定理、定义与边注元数据
     const academicMeta = useMemo(() => {
@@ -346,6 +404,174 @@ export default function PostDetailClient({
             observer?.disconnect();
         };
     }, [post.content]);
+
+    // 行间批注：点击选中文本高亮或卡片
+    const handleSelectAnnotation = useCallback((id: string) => {
+        setActiveAnnotationId(id);
+        setActiveRightTab("notes");
+        if (typeof window !== "undefined" && window.innerWidth < 1024) {
+            setMobileNotesOpen(true);
+        }
+    }, []);
+
+    // 行间批注：点击卡片引文平滑滚动回到正文对应段落
+    const handleScrollToAnchor = useCallback((annotation: PostAnnotation) => {
+        const container =
+            articleContainerRef.current ||
+            document.querySelector<HTMLElement>('[data-scholarly-article-body="true"]') ||
+            document.querySelector<HTMLElement>('.novel-viewer-container') ||
+            document.querySelector<HTMLElement>('main article');
+        if (!container) return;
+
+        // 1. 优先寻找已经渲染的高亮 mark 标签
+        let targetEl = container.querySelector<HTMLElement>(
+            `mark[data-annotation-id="${annotation.id}"]`
+        );
+
+        // 2. 如果未找到 mark，尝试智能定位正文段落（Fallback 寻址）
+        if (!targetEl) {
+            targetEl = findElementContainingText(container, annotation.anchor_text);
+        }
+
+        if (targetEl) {
+            targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            targetEl.classList.add(
+                "ring-4",
+                "ring-amber-500/60",
+                "bg-amber-500/20",
+                "rounded-2xl",
+                "transition-all",
+                "duration-500",
+                "shadow-[0_0_24px_rgba(245,158,11,0.25)]"
+            );
+            setTimeout(() => {
+                targetEl?.classList.remove(
+                    "ring-4",
+                    "ring-amber-500/60",
+                    "bg-amber-500/20",
+                    "rounded-2xl",
+                    "shadow-[0_0_24px_rgba(245,158,11,0.25)]"
+                );
+            }, 1800);
+        } else {
+            toast.info("未能定位到段落（可能位于未展开折叠块中）");
+        }
+    }, []);
+
+    // 挂载行间高亮引擎
+    useAnnotationHighlighter({
+        containerRef: articleContainerRef,
+        annotations,
+        activeAnnotationId,
+        onSelectAnnotation: handleSelectAnnotation,
+    });
+
+    // 监听 Supabase Realtime 行间批注变更
+    useEffect(() => {
+        const supabase = createClient();
+        const channel = supabase
+            .channel(`post-annotations-realtime-${post.id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "post_annotations",
+                    filter: `post_id=eq.${post.id}`,
+                },
+                async () => {
+                    const latest = await getPostAnnotations(post.id);
+                    if (latest) {
+                        setAnnotations(latest);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [post.id]);
+
+    // 创建新批注
+    const handleCreateAnnotation = async (content: string, color: AnnotationColor) => {
+        if (!selectionForModal) return;
+        setIsSubmittingAnnotation(true);
+        try {
+            const res = await createAnnotation({
+                postId: post.id,
+                anchorText: selectionForModal.anchorText,
+                anchorPrefix: selectionForModal.anchorPrefix,
+                anchorSuffix: selectionForModal.anchorSuffix,
+                content,
+                color,
+            });
+
+            if (res.error) {
+                toast.error(res.error);
+            } else if (res.data) {
+                setAnnotations((prev) => [...prev, res.data!]);
+                setActiveAnnotationId(res.data.id);
+                setActiveRightTab("notes");
+                toast.success("已成功添加行间学术批注");
+            }
+        } catch {
+            toast.error("发表批注时出现异常");
+        } finally {
+            setIsSubmittingAnnotation(false);
+        }
+    };
+
+    // 回复微线程
+    const handleReplyAnnotation = async (annotationId: string, content: string) => {
+        const res = await createAnnotationReply(annotationId, post.id, content);
+        if (res.error) {
+            toast.error(res.error);
+        } else if (res.data) {
+            setAnnotations((prev) =>
+                prev.map((item) => {
+                    if (item.id === annotationId) {
+                        return {
+                            ...item,
+                            replies: [...(item.replies || []), res.data!],
+                        };
+                    }
+                    return item;
+                })
+            );
+        }
+    };
+
+    // 切换批注已解决状态
+    const handleToggleResolve = async (annotationId: string) => {
+        const res = await toggleResolveAnnotation(annotationId, post.id);
+        if (res.error) {
+            toast.error(res.error);
+        } else {
+            setAnnotations((prev) =>
+                prev.map((item) =>
+                    item.id === annotationId
+                        ? { ...item, is_resolved: !!res.is_resolved }
+                        : item
+                )
+            );
+            toast.success(res.is_resolved ? "已将批注标记为已结题" : "已重新开启探讨");
+        }
+    };
+
+    // 删除批注
+    const handleDeleteAnnotation = async (annotationId: string) => {
+        const res = await deleteAnnotation(annotationId, post.id);
+        if (res.error) {
+            toast.error(res.error);
+        } else {
+            setAnnotations((prev) => prev.filter((item) => item.id !== annotationId));
+            if (activeAnnotationId === annotationId) {
+                setActiveAnnotationId(null);
+            }
+            toast.success("批注已删除");
+        }
+    };
 
     // 评论锚点跳转: URL 中 hash 指向 #comment-xxx 时自动滚动
     useEffect(() => {
@@ -693,7 +919,7 @@ export default function PostDetailClient({
                                             className="flex items-center gap-2 sm:gap-3 max-w-full"
                                         >
                                             <span className="font-semibold text-xs sm:text-sm text-foreground truncate max-w-[10rem] sm:max-w-[18rem] md:max-w-[24rem]">
-                                                {post.title}
+                                                <MathText text={post.title} inlineOnly />
                                             </span>
                                             <span className="hidden md:inline-flex text-[10px] tabular-nums font-mono px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                                                 {Math.round(readingProgress)}%
@@ -765,22 +991,38 @@ export default function PostDetailClient({
                                     发起挑战
                                 </Button>
                                 <DropdownMenu>
-                                    <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground h-9 w-9 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                                        <MoreHorizontal className="h-5 w-5" />
+                                    <DropdownMenuTrigger
+                                        asChild
+                                        id={`post-detail-actions-trigger-${post.id}`}
+                                    >
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="rounded-full h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 transition-colors border-0"
+                                            aria-label="更多操作"
+                                            suppressHydrationWarning
+                                        >
+                                            <MoreHorizontal className="h-5 w-5" />
+                                        </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuContent
+                                        align="end"
+                                        className="w-56 border-0 rounded-2xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_12px_40px_-4px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-4px_rgba(0,0,0,0.5)] p-1.5"
+                                    >
                                         {currentUser?.id === post.author.id && (
                                             <>
                                                 <DropdownMenuItem
                                                     onClick={() => {
                                                         router.push(`/posts/${post.id}/edit`);
                                                     }}
+                                                    className="rounded-xl cursor-pointer"
                                                 >
                                                     <Pencil className="mr-2 h-4 w-4" />
                                                     编辑帖子
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() => setAddToCollectionOpen(true)}
+                                                    className="rounded-xl cursor-pointer"
                                                 >
                                                     <BookOpen className="mr-2 h-4 w-4 text-primary" />
                                                     收入/调整专栏
@@ -797,7 +1039,7 @@ export default function PostDetailClient({
                                                             }
                                                         }
                                                     }}
-                                                    className="text-destructive focus:text-destructive"
+                                                    className="text-destructive focus:text-destructive rounded-xl cursor-pointer"
                                                 >
                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                     删除帖子
@@ -816,7 +1058,7 @@ export default function PostDetailClient({
                                                         }
                                                         setDuelDialogOpen(true);
                                                     }}
-                                                    className="sm:hidden text-primary focus:text-primary"
+                                                    className="sm:hidden text-primary focus:text-primary rounded-xl cursor-pointer"
                                                 >
                                                     <Swords className="mr-2 h-4 w-4" />
                                                     发起挑战
@@ -824,7 +1066,7 @@ export default function PostDetailClient({
                                                 <DropdownMenuSeparator className="sm:hidden" />
                                             </>
                                         )}
-                                        <DropdownMenuItem asChild>
+                                        <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
                                             <Link href={`/posts/${post.id}/history`}>
                                                 <History className="mr-2 h-4 w-4" />
                                                 查看历史
@@ -839,6 +1081,7 @@ export default function PostDetailClient({
                                                 window.open(`/api/posts/${post.id}/export?format=latex`, "_blank");
                                                 toast.success("正在生成并导出 LaTeX 源码包...");
                                             }}
+                                            className="rounded-xl cursor-pointer"
                                         >
                                             <FileCode className="mr-2 h-4 w-4 text-blue-500" />
                                             导出 LaTeX (.tex)
@@ -846,7 +1089,7 @@ export default function PostDetailClient({
 
                                         <DropdownMenuItem
                                             onClick={() => setPdfDialogOpen(true)}
-                                            className="font-medium text-foreground"
+                                            className="font-medium text-foreground rounded-xl cursor-pointer"
                                         >
                                             <Printer className="mr-2 h-4 w-4 text-purple-600 dark:text-purple-400" />
                                             导出学术 PDF (单/双栏)
@@ -857,6 +1100,7 @@ export default function PostDetailClient({
                                                 window.open(`/api/posts/${post.id}/export?format=markdown`, "_blank");
                                                 toast.success("正在生成并导出 Markdown 文档...");
                                             }}
+                                            className="rounded-xl cursor-pointer"
                                         >
                                             <Download className="mr-2 h-4 w-4 text-emerald-500" />
                                             导出 Markdown (.md)
@@ -866,7 +1110,7 @@ export default function PostDetailClient({
 
                                         <DropdownMenuItem
                                             onClick={() => setReportDialogOpen(true)}
-                                            className="text-orange-600 focus:text-orange-600"
+                                            className="text-orange-600 focus:text-orange-600 rounded-xl cursor-pointer"
                                         >
                                             <Flag className="mr-2 h-4 w-4" />
                                             举报
@@ -957,6 +1201,48 @@ export default function PostDetailClient({
                                 />
 
                                 {/* 审核状态横幅（作者/管理员可见） */}
+                                {post.is_hidden && (
+                                    <div className="mb-6 p-4 sm:p-5 rounded-2xl border-0 bg-red-500/10 dark:bg-red-950/30 text-red-900 dark:text-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_8px_32px_-4px_rgba(239,68,68,0.12)] backdrop-blur-xl">
+                                        <div className="flex items-start gap-3 flex-1">
+                                            <div className="p-2 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                                                <ShieldAlert className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-1.5 flex-1">
+                                                <h4 className="font-semibold text-sm sm:text-base flex items-center gap-2">
+                                                    帖子已被管理员隐藏
+                                                    <Badge variant="destructive" className="text-[10px] rounded-full border-0 px-2 py-0.5 font-medium">
+                                                        已被隐藏 · 仅您可见
+                                                    </Badge>
+                                                </h4>
+                                                <p className="text-xs text-red-800/90 dark:text-red-300/90 leading-relaxed">
+                                                    隐藏说明：{post.hidden_reason || "该帖子已被管理员隐藏。您可以进入修改器调整内容，或向管理员提交申诉。"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {currentUser?.id === post.author.id && (
+                                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="gap-1.5 shadow-xs font-medium rounded-full border-0 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 cursor-pointer text-xs"
+                                                    onClick={() => setAppealDialogOpen(true)}
+                                                >
+                                                    <Flag className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                                    提交申诉
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    className="gap-1.5 shadow-xs font-medium rounded-full border-0 bg-red-600 hover:bg-red-700 text-white cursor-pointer text-xs"
+                                                    onClick={() => router.push(`/posts/${post.id}/edit`)}
+                                                >
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                    修改帖子
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {post.review_status === "pending" && (
                                     <div className="mb-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-sm">
                                         <div className="p-1 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
@@ -1083,7 +1369,7 @@ export default function PostDetailClient({
                                 {/* 第二层：大标题与共创者徽章 */}
                                 <div className="flex items-start gap-3 my-3">
                                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-snug flex-1">
-                                        {post.title}
+                                        <MathText text={post.title} inlineOnly />
                                     </h1>
                                     {coAuthors.length > 0 && (
                                         <CoAuthorBadge count={coAuthors.length} className="mt-1 flex-shrink-0" />
@@ -1144,18 +1430,56 @@ export default function PostDetailClient({
 
                                 {/* 渐变消融内部光缝（绝不使用粗糙灰色硬线条） */}
                                 <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mt-4 mb-2" />
-                                {/* 共创者面板 */}
-                                {coAuthors.length > 0 && (
+                                
+                                {/* 实验室共创孵化来源与共创者面板 */}
+                                {coAuthors.length > 0 ? (
                                     <div className="mt-4">
-                                        <CoAuthorPanel coAuthors={coAuthors} />
+                                        <CoAuthorPanel
+                                            coAuthors={coAuthors}
+                                            labRoomName={originLabRoom?.name}
+                                            labRoomId={originLabRoom?.id}
+                                        />
                                     </div>
-                                )}
+                                ) : originLabRoom ? (
+                                    <div className="mt-3 flex items-center justify-between p-3 rounded-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] text-xs text-muted-foreground font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <span className="p-1 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">🔬</span>
+                                            <span>本篇成果孵化自学术共创实验室</span>
+                                        </div>
+                                        <Link href={`/lab/${originLabRoom.id}`}>
+                                            <button
+                                                type="button"
+                                                className="px-3 py-1 rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200/80 text-foreground text-xs font-medium cursor-pointer transition-all shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                            >
+                                                进入实验室：{originLabRoom.name} →
+                                            </button>
+                                        </Link>
+                                    </div>
+                                ) : null}
                             </motion.article>
 
-                            {/* 文章内容 */}
-                            <motion.div variants={contentVariants} className="mb-12">
+                            {/* 文章内容与划选批注挂载点 */}
+                            <motion.div
+                                ref={articleContainerRef}
+                                variants={contentVariants}
+                                className="mb-12 relative"
+                                data-scholarly-article-body="true"
+                            >
                                 <NovelViewer
                                     initialValue={post.content}
+                                />
+                                <AnnotationSelectionBubble
+                                    containerRef={articleContainerRef}
+                                    onAnnotate={(selection) => {
+                                        if (!currentUser) {
+                                            toast.error("请先登录后再发表行间批注");
+                                            router.push("/login");
+                                            return;
+                                        }
+                                        setSelectionForModal(selection);
+                                        setComposerOpen(true);
+                                    }}
+                                    disabled={!currentUser}
                                 />
                             </motion.div>
 
@@ -1481,31 +1805,82 @@ export default function PostDetailClient({
                                 "transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[max-width,opacity,transform]",
                                 isImmersive
                                     ? "max-w-0 opacity-0 translate-x-6 pointer-events-none"
-                                    : "max-w-[18rem] w-72 opacity-100 translate-x-0"
+                                    : "max-w-[20rem] w-80 opacity-100 translate-x-0"
                             )}
                             aria-hidden={isImmersive}
                         >
-                            <div className="space-y-6 w-72 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
-                                {/* 文章目录与学术大纲速览 */}
-                                {(headings.length > 0 || academicMeta.totalAcademicCount > 0) && (
+                            <div className="space-y-4 w-80 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
+                                {/* 顶部双态切换：目录大纲 vs 行间研讨 (水滴胶囊 0 布局跳动) */}
+                                <div className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-full p-1 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)] flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveRightTab("toc")}
+                                        className={cn(
+                                            "flex-1 h-7 rounded-full text-xs font-medium transition-all duration-150 flex items-center justify-center gap-1.5 select-none",
+                                            activeRightTab === "toc"
+                                                ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-xs"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <List className="w-3.5 h-3.5" />
+                                        <span>目录大纲</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveRightTab("notes")}
+                                        className={cn(
+                                            "flex-1 h-7 rounded-full text-xs font-medium transition-all duration-150 flex items-center justify-center gap-1.5 select-none",
+                                            activeRightTab === "notes"
+                                                ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-xs"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        <span>行间研讨 {annotations.length > 0 && `(${annotations.length})`}</span>
+                                    </button>
+                                </div>
+
+                                {activeRightTab === "toc" ? (
+                                    <>
+                                        {/* 文章目录与学术大纲速览 */}
+                                        {(headings.length > 0 || academicMeta.totalAcademicCount > 0) && (
+                                            <motion.div
+                                                variants={itemVariants}
+                                                className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
+                                            >
+                                                <TableOfContents
+                                                    headings={headings}
+                                                    academicMeta={academicMeta}
+                                                    mode="sidebar"
+                                                />
+                                            </motion.div>
+                                        )}
+
+                                        {/* 所属专栏连载导读与目录 */}
+                                        {collectionsList.length > 0 && (
+                                            <motion.div variants={itemVariants}>
+                                                <PostCollectionSidebarWidget
+                                                    collection={collectionsList[0]}
+                                                    currentPostId={post.id}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </>
+                                ) : (
                                     <motion.div
                                         variants={itemVariants}
-                                        className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
+                                        className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-3 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
                                     >
-                                        <TableOfContents
-                                            headings={headings}
-                                            academicMeta={academicMeta}
-                                            mode="sidebar"
-                                        />
-                                    </motion.div>
-                                )}
-
-                                {/* 所属专栏连载导读与目录 */}
-                                {collectionsList.length > 0 && (
-                                    <motion.div variants={itemVariants}>
-                                        <PostCollectionSidebarWidget
-                                            collection={collectionsList[0]}
-                                            currentPostId={post.id}
+                                        <MarginNotesPanel
+                                            annotations={annotations}
+                                            activeAnnotationId={activeAnnotationId}
+                                            onSelectAnnotation={handleSelectAnnotation}
+                                            onScrollToAnchor={handleScrollToAnchor}
+                                            onReply={handleReplyAnnotation}
+                                            onToggleResolve={handleToggleResolve}
+                                            onDelete={handleDeleteAnnotation}
+                                            currentUserId={currentUser?.id}
+                                            isPostAuthor={currentUser?.id === post.author.id}
                                         />
                                     </motion.div>
                                 )}
@@ -1524,12 +1899,101 @@ export default function PostDetailClient({
                 targetTitle={post.title}
             />
 
+            {/* 申诉解封对话框 */}
+            <Dialog open={appealDialogOpen} onOpenChange={setAppealDialogOpen}>
+                <DialogContent className="max-w-md border-0 rounded-3xl bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_16px_48px_-4px_rgba(0,0,0,0.16)] p-6">
+                    <DialogHeader className="space-y-2">
+                        <DialogTitle className="text-lg font-semibold flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+                            <Flag className="h-4 w-4 text-amber-500" />
+                            申诉解除隐藏
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                            向平台管理员陈述您的理由或修正情况。申诉提交后将自动同步至管理员后台与通知中心。
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        <div className="p-3 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/60 text-xs text-zinc-600 dark:text-zinc-300 space-y-1">
+                            <p className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                                申诉帖子：{post.title}
+                            </p>
+                            {post.hidden_reason && (
+                                <p className="text-muted-foreground text-[11px]">
+                                    隐藏原因：{post.hidden_reason}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                申诉说明与陈述理由 <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                value={appealReason}
+                                onChange={(e) => setAppealReason(e.target.value)}
+                                placeholder="请详细陈述您的申诉依据、情况解释或修改方案..."
+                                rows={4}
+                                className="w-full rounded-2xl border-0 bg-zinc-100/80 dark:bg-zinc-800/80 p-3 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)]"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-full border-0 text-xs cursor-pointer"
+                            onClick={() => setAppealDialogOpen(false)}
+                            disabled={isAppealing}
+                        >
+                            取消
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="rounded-full border-0 bg-primary text-primary-foreground text-xs shadow-sm cursor-pointer"
+                            disabled={isAppealing || !appealReason.trim()}
+                            onClick={async () => {
+                                if (!appealReason.trim()) {
+                                    toast.error("请输入申诉理由");
+                                    return;
+                                }
+                                setIsAppealing(true);
+                                try {
+                                    const res = await submitPostAppeal(post.id, appealReason.trim());
+                                    if (res.error) {
+                                        toast.error(res.error);
+                                    } else {
+                                        toast.success("申诉已提交，管理员将尽快复核！");
+                                        setAppealDialogOpen(false);
+                                        setAppealReason("");
+                                    }
+                                } catch (e: any) {
+                                    toast.error(e.message || "申诉提交失败");
+                                } finally {
+                                    setIsAppealing(false);
+                                }
+                            }}
+                        >
+                            {isAppealing ? (
+                                <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                                    提交中...
+                                </>
+                            ) : (
+                                "确认提交申诉"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* 分享卡片对话框 */}
             <ShareCardDialog
                 open={shareDialogOpen}
                 onOpenChange={setShareDialogOpen}
                 postId={post.id}
                 postTitle={post.title}
+                post={post}
             />
 
             {/* 发起决斗对话框 */}
@@ -1588,6 +2052,30 @@ export default function PostDetailClient({
                 onClose={() => setMobileTocOpen(false)}
                 headings={headings}
                 academicMeta={academicMeta}
+            />
+
+            {/* 行间批注撰写模态框 */}
+            <AnnotationComposerModal
+                open={composerOpen}
+                onOpenChange={setComposerOpen}
+                selection={selectionForModal}
+                onSubmit={handleCreateAnnotation}
+                isSubmitting={isSubmittingAnnotation}
+            />
+
+            {/* 移动端行间批注研讨抽屉 */}
+            <MobileAnnotationSheet
+                isOpen={mobileNotesOpen}
+                onClose={() => setMobileNotesOpen(false)}
+                annotations={annotations}
+                activeAnnotationId={activeAnnotationId}
+                onSelectAnnotation={handleSelectAnnotation}
+                onScrollToAnchor={handleScrollToAnchor}
+                onReply={handleReplyAnnotation}
+                onToggleResolve={handleToggleResolve}
+                onDelete={handleDeleteAnnotation}
+                currentUserId={currentUser?.id}
+                isPostAuthor={currentUser?.id === post.author.id}
             />
         </>
     );

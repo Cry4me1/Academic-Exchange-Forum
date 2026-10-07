@@ -25,6 +25,7 @@ import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { AlgorithmStepperNode } from "./extensions/algorithm-stepper/algorithm-stepper-node";
+import { SolidGeometryNode } from "./extensions/solid-geometry/solid-geometry-node";
 
 // Explicitly create lowlight instance
 const lowlight = createLowlight(all);
@@ -163,6 +164,7 @@ export const viewerExtensions: any[] = [
     CrossRefNode,
     SidenoteNode,
     AlgorithmStepperNode,
+    SolidGeometryNode,
     // Mention node
     MentionViewerNode,
     // Table extensions (Readonly in viewer)

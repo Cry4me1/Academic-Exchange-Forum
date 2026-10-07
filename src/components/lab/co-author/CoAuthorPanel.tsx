@@ -26,9 +26,9 @@ interface CoAuthorPanelProps {
 }
 
 const roleConfig: Record<string, { label: string; color: string }> = {
-    co_author: { label: "共创作者", color: "bg-violet-500/10 text-violet-600 border-violet-500/20" },
-    contributor: { label: "贡献者", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-    annotator: { label: "批注者", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+    co_author: { label: "共创作者", color: "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]" },
+    contributor: { label: "贡献者", color: "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]" },
+    annotator: { label: "批注者", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]" },
 };
 
 export function CoAuthorPanel({ coAuthors, labRoomName, labRoomId, className }: CoAuthorPanelProps) {
@@ -36,16 +36,16 @@ export function CoAuthorPanel({ coAuthors, labRoomName, labRoomId, className }: 
 
     return (
         <div className={cn(
-            "rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 p-4",
+            "rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.1)] p-4 sm:p-5",
             className
         )}>
-            <div className="flex items-center gap-2 mb-3">
-                <Users className="h-4 w-4 text-violet-500" />
-                <span className="text-sm font-semibold text-foreground">共创团队</span>
+            <div className="flex items-center gap-2 mb-3.5">
+                <Users className="h-4 w-4 text-foreground" />
+                <span className="text-sm font-semibold text-foreground tracking-tight">共创团队</span>
                 {labRoomName && labRoomId && (
                     <Link href={`/lab/${labRoomId}`} className="ml-auto">
-                        <Badge variant="outline" className="text-xs gap-1 hover:bg-muted/50 transition-colors cursor-pointer">
-                            <FlaskConical className="h-3 w-3" />
+                        <Badge variant="secondary" className="rounded-full border-0 bg-zinc-100/80 dark:bg-zinc-800/80 text-xs gap-1 hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)] transition-all cursor-pointer">
+                            <FlaskConical className="h-3 w-3 text-zinc-600 dark:text-zinc-400" />
                             {labRoomName}
                         </Badge>
                     </Link>
@@ -55,24 +55,26 @@ export function CoAuthorPanel({ coAuthors, labRoomName, labRoomId, className }: 
             <div className="space-y-2.5">
                 {coAuthors.map((ca) => {
                     const config = roleConfig[ca.role] || roleConfig.co_author;
+                    const caUser = ca.user || { id: ca.id, username: "学者", avatar_url: undefined };
+                    const userLink = `/user/${caUser.id || caUser.username}`;
                     return (
                         <div key={ca.id} className="flex items-center gap-3">
-                            <Link href={`/user/${ca.user.username || ca.user.id}`}>
-                                <Avatar className="h-8 w-8 ring-1 ring-violet-500/20 hover:ring-violet-500/50 transition-all">
-                                    <AvatarImage src={ca.user.avatar_url} />
-                                    <AvatarFallback className="text-xs bg-violet-500/10 text-violet-600">
-                                        {(ca.user.username || "?").slice(0, 2).toUpperCase()}
+                            <Link href={userLink}>
+                                <Avatar className="h-8 w-8 ring-1 ring-zinc-200 dark:ring-zinc-700 hover:ring-zinc-400 transition-all border-0">
+                                    <AvatarImage src={caUser.avatar_url} />
+                                    <AvatarFallback className="text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                                        {(caUser.username || "?").slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
                             </Link>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <Link href={`/user/${ca.user.username || ca.user.id}`}>
+                                    <Link href={userLink}>
                                         <span className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                                            {ca.user.username || "学者"}
+                                            {caUser.username || "学者"}
                                         </span>
                                     </Link>
-                                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", config.color)}>
+                                    <Badge variant="secondary" className={cn("text-[10px] px-2 py-0.5 rounded-full border-0 font-medium", config.color)}>
                                         {config.label}
                                     </Badge>
                                 </div>

@@ -26,6 +26,7 @@ function DropdownMenuTrigger({
   return (
     <DropdownMenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
+      suppressHydrationWarning
       {...props}
     />
   )
@@ -170,7 +171,7 @@ function DropdownMenuSeparator({
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn("h-px w-full my-1 bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent", className)}
       {...props}
     />
   )

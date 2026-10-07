@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/admin/permissions";
 import {
   getPendingReviewPosts,
   getPendingReviewComments,
+  getRejectedPostSnapshots,
   getReviewStats,
 } from "@/lib/admin/review-actions";
 import { ReviewClient } from "./ReviewClient";
@@ -17,9 +18,9 @@ export default async function AdminReviewPage({
   const page = parseInt(params.page ?? "1");
   const search = params.search ?? "";
   const risk = params.risk ?? "";
-  const currentTab = params.tab === "comments" ? "comments" : "posts";
+  const currentTab = params.tab === "comments" ? "comments" : params.tab === "rejected" ? "rejected" : "posts";
 
-  const [stats, postsResult, commentsResult] = await Promise.all([
+  const [stats, postsResult, commentsResult, rejectedResult] = await Promise.all([
     getReviewStats(),
     getPendingReviewPosts({
       page: currentTab === "posts" ? page : 1,
@@ -29,6 +30,11 @@ export default async function AdminReviewPage({
     getPendingReviewComments({
       page: currentTab === "comments" ? page : 1,
       search: currentTab === "comments" ? search : "",
+      riskLevel: risk,
+    }),
+    getRejectedPostSnapshots({
+      page: currentTab === "rejected" ? page : 1,
+      search: currentTab === "rejected" ? search : "",
       riskLevel: risk,
     }),
   ]);
@@ -42,6 +48,9 @@ export default async function AdminReviewPage({
       comments={commentsResult.comments}
       commentsTotalCount={commentsResult.totalCount}
       commentsCurrentPage={commentsResult.currentPage}
+      rejectedSnapshots={rejectedResult.snapshots}
+      rejectedTotalCount={rejectedResult.totalCount}
+      rejectedCurrentPage={rejectedResult.currentPage}
       pageSize={postsResult.pageSize}
       search={search}
       riskFilter={risk}

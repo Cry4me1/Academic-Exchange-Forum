@@ -29,6 +29,7 @@ export interface TranslationDictionary {
         trending: string;
         leaderboard: string;
         duels: string;
+        lab: string;
         messages: string;
         friends: string;
         favorites: string;

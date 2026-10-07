@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         const prefix = isCover ? "[帖子封面] " : "[帖子正文配图] ";
 
         try {
-            await supabase.from("content_moderation_logs").insert({
+            const uploadLogPayload: Record<string, any> = {
                 post_id: null,
                 comment_id: null,
                 author_id: user.id,
@@ -103,7 +103,13 @@ export async function POST(request: NextRequest) {
                 cost_tokens: 0,
                 latency_ms: latencyMs,
                 is_cached: false,
-            });
+                title: `${prefix}${file.name}`,
+            };
+            const { error: insErr } = await supabase.from("content_moderation_logs").insert(uploadLogPayload);
+            if (insErr && insErr.message?.includes("title")) {
+                delete uploadLogPayload.title;
+                await supabase.from("content_moderation_logs").insert(uploadLogPayload);
+            }
         } catch (logErr) {
             console.error("[UploadRoute] 写入图片审核审计日志异常:", logErr);
         }

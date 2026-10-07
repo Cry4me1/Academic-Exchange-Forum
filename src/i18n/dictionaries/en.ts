@@ -29,6 +29,7 @@ export const en: TranslationDictionary = {
         trending: "Trending",
         leaderboard: "Leaderboard",
         duels: "Duels Arena",
+        lab: "Research Lab",
         messages: "Messages",
         friends: "Colleagues",
         favorites: "Bookmarks",

@@ -5,34 +5,42 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     ArrowRight,
+    AtSign,
     BookOpen,
+    Bot,
+    Box,
+    Calculator,
     Code,
+    FlaskConical,
     Globe,
     GraduationCap,
     Image as ImageIcon,
     LayoutDashboard,
     Lock,
+    MessageSquareCode,
     Printer,
     Rocket,
     Search,
     Shield,
+    ShieldCheck,
     Sparkles,
+    Users,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-// 正式版发布日期（UTC）- 升级至 v1.1.7 节点以达成 seen 状态重置
-const V1_LAUNCH_DATE = "2026-08-28T00:00:00Z";
+// 正式版发布日期（UTC）- 升级至 v1.1.9 节点以达成 seen 状态重置
+const V1_LAUNCH_DATE = "2026-10-07T00:00:00Z";
 
-// 老用户弹窗：v1.1.7 六大核心更新
-const v1_1_7Features = [
-    { icon: Globe, label: "英汉双语全站自由切换", color: "text-blue-500" },
-    { icon: ImageIcon, label: "帖子 16:9 封面与配图提取", color: "text-purple-500" },
-    { icon: LayoutDashboard, label: "主页/编辑器/个人页UI重构", color: "text-amber-500" },
-    { icon: GraduationCap, label: "迎新向导与新手教学营", color: "text-emerald-500" },
-    { icon: Search, label: "用户搜索卡片与名片互动", color: "text-pink-500" },
-    { icon: Code, label: "聊天界面与代码语法高亮", color: "text-cyan-500" },
+// 老用户弹窗：v1.1.9 六大核心更新
+const v1_1_9Features = [
+    { icon: FlaskConical, label: "学术共创实验室 & Yjs 实时推演", color: "text-purple-500" },
+    { icon: Box, label: "3D 立体几何模型 360° 交互画布", color: "text-blue-500" },
+    { icon: MessageSquareCode, label: "正文划线学术批注与边注研讨", color: "text-amber-500" },
+    { icon: BookOpen, label: "文献同读视口同频与分屏工作台", color: "text-emerald-500" },
+    { icon: ShieldCheck, label: "AI 审稿快照回溯与合规申诉隔离", color: "text-cyan-500" },
+    { icon: Sparkles, label: "零水合报错与 Liquid Glass 质感", color: "text-pink-500" },
 ];
 
 interface WelcomeModalProps {
@@ -52,8 +60,8 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
         const newUser = createdAt >= launchDate;
 
         const storageKey = newUser
-            ? "scholarly_welcome_v1_1_7_seen"
-            : "scholarly_v1_1_7_update_seen";
+            ? "scholarly_welcome_v1_1_9_seen"
+            : "scholarly_v1_1_9_update_seen";
 
         if (localStorage.getItem(storageKey)) return;
 
@@ -85,7 +93,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                 className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none outline-none ring-0"
             >
                 <DialogTitle className="sr-only">
-                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.7 全新视觉与国际化升级上线"}
+                    {isNewUser ? "欢迎加入 Scholarly" : "v1.1.9 学术共创实验室与三维空间几何已上线"}
                 </DialogTitle>
 
                 <AnimatePresence mode="wait">
@@ -182,7 +190,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                         </motion.div>
                     ) : (
                         /* ═══════════════════════════════════════
-                         *  老用户 — v1.1.7 正式版上线通知
+                         *  老用户 — v1.1.8 正式版上线通知
                          * ═══════════════════════════════════════ */
                         <motion.div
                             key="existing-user"
@@ -214,7 +222,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.3 }}
                                     className="text-2xl font-bold tracking-tight text-foreground"
                                 >
-                                    v1.1.7 全新视觉与国际化已上线
+                                    v1.1.9 学术共创实验室已上线
                                 </motion.h2>
                                 <motion.p
                                     initial={{ opacity: 0, y: 10 }}
@@ -222,7 +230,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.4 }}
                                     className="mt-2 text-sm text-muted-foreground"
                                 >
-                                    英汉全站转换 · 16:9 封面图 · 三大 UI 重构 · 新手教学与聊天代码高亮
+                                    共创实验室 · 3D 立体几何 · 行间划线批注 · 文献同读推演
                                 </motion.p>
                             </div>
 
@@ -234,7 +242,7 @@ export function WelcomeModal({ userCreatedAt }: WelcomeModalProps) {
                                     transition={{ delay: 0.45 }}
                                     className="grid grid-cols-2 gap-2.5"
                                 >
-                                    {v1_1_7Features.map((feature, i) => (
+                                    {v1_1_9Features.map((feature, i) => (
                                         <motion.div
                                             key={feature.label}
                                             initial={{ opacity: 0, y: 10 }}

@@ -23,9 +23,11 @@ import {
     BookOpen,
     Calendar,
     Code2,
+    EyeOff,
     Globe,
     Heart,
     Loader2,
+    Lock,
     MapPin,
     MessageCircle,
     Pencil,
@@ -80,6 +82,10 @@ interface Post {
     reviewer_note?: string;
     ai_reason?: string;
     is_published?: boolean;
+    is_pinned?: boolean;
+    is_locked?: boolean;
+    is_hidden?: boolean;
+    hidden_reason?: string | null;
     author?: {
         id: string;
         username: string | null;
@@ -273,6 +279,11 @@ export default function UserProfilePage() {
     useEffect(() => {
         let isMounted = true;
         async function loadData() {
+            if (!userId) {
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             let activeUserId = contextUserId;
             // 获取当前登录用户
@@ -289,16 +300,56 @@ export default function UserProfilePage() {
             }
             if (!isMounted) return;
 
-            // 获取目标用户的 Profile
-            const { data: profileData, error: profileError } = await supabase
-                .from("profiles")
-                .select("*")
-                .eq("id", userId)
-                .single();
+            // 智能识别 userId 参数是 UUID 还是 Username
+            const cleanIdentifier = decodeURIComponent(String(userId)).trim();
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanIdentifier);
+
+            let profileData: UserProfile | null = null;
+            let profileError: any = null;
+
+            if (isUUID) {
+                const res = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .eq("id", cleanIdentifier)
+                    .maybeSingle();
+                profileData = res.data;
+                profileError = res.error;
+            } else {
+                // 按 username 查询（支持直接访问 /user/username）
+                const res = await supabase
+                    .from("profiles")
+                    .select("*")
+                    .eq("username", cleanIdentifier)
+                    .maybeSingle();
+                profileData = res.data;
+                profileError = res.error;
+
+                // 若未匹配，尝试大小写不敏感匹配
+                if (!profileData && !profileError) {
+                    const fallbackRes = await supabase
+                        .from("profiles")
+                        .select("*")
+                        .ilike("username", cleanIdentifier)
+                        .maybeSingle();
+                    profileData = fallbackRes.data;
+                    profileError = fallbackRes.error;
+                }
+            }
 
             if (profileError) {
-                console.error("Failed to load profile:", profileError);
-            } else {
+                console.warn("查询学者档案异常:", profileError?.message || profileError);
+            }
+
+            if (!profileData) {
+                if (isMounted) {
+                    setProfile(null);
+                    setLoading(false);
+                }
+                return;
+            }
+
+            if (isMounted) {
                 setProfile(profileData);
                 if (profileData.banner_style) {
                     setBannerStyle(profileData.banner_style);
@@ -308,11 +359,10 @@ export default function UserProfilePage() {
                 }
             }
 
-            const isOwner = Boolean(
-                activeUserId && (activeUserId === userId || (profileData && activeUserId === profileData.id))
-            );
+            const targetUserId = profileData.id;
+            const isOwner = Boolean(activeUserId && activeUserId === targetUserId);
 
-            // 获取该用户发布的帖子
+            // 获取该用户发布的帖子（严格基于 targetUserId UUID）
             let postsQuery = supabase
                 .from("posts")
                 .select(`
@@ -326,15 +376,21 @@ export default function UserProfilePage() {
                     author_id,
                     is_published,
                     is_pinned,
+                    is_locked,
+                    is_hidden,
+                    hidden_reason,
                     review_status,
                     reviewer_note,
                     ai_reason
                 `)
-                .eq("author_id", userId);
+                .eq("author_id", targetUserId);
 
-            // 如果不是本人查看，仅展示已发布且审核通过的帖子
+            // 如果不是本人查看，严格仅展示已发布、未隐藏且审核通过的帖子（完全隐藏）
             if (!isOwner) {
-                postsQuery = postsQuery.eq("is_published", true).eq("review_status", "approved");
+                postsQuery = postsQuery
+                    .eq("is_published", true)
+                    .eq("is_hidden", false)
+                    .eq("review_status", "approved");
             }
 
             const { data: postsData } = await postsQuery
@@ -342,15 +398,15 @@ export default function UserProfilePage() {
                 .order("created_at", { ascending: false })
                 .limit(30);
 
-            if (postsData && profileData) {
+            if (postsData && isMounted) {
                 const postsWithAuthor = postsData.map((post: any) => ({
                     ...post,
                     author: {
-                        id: profileData.id,
-                        username: profileData.username,
-                        avatar_url: profileData.avatar_url,
-                        is_developer: profileData.is_developer,
-                        developer_title: profileData.developer_title,
+                        id: profileData!.id,
+                        username: profileData!.username,
+                        avatar_url: profileData!.avatar_url,
+                        is_developer: profileData!.is_developer,
+                        developer_title: profileData!.developer_title,
                     },
                 }));
                 setPosts(postsWithAuthor);
@@ -370,6 +426,10 @@ export default function UserProfilePage() {
                         like_count,
                         comment_count,
                         author_id,
+                        is_locked,
+                        is_hidden,
+                        review_status,
+                        is_published,
                         author:profiles!author_id (
                             id,
                             username,
@@ -379,13 +439,21 @@ export default function UserProfilePage() {
                         )
                     )
                 `)
-                .eq("user_id", userId)
+                .eq("user_id", targetUserId)
                 .order("created_at", { ascending: false })
                 .limit(20);
 
-            if (likesData) {
+            if (likesData && isMounted) {
                 const likedPostsList = likesData
-                    .filter((item: any) => item.post)
+                    .filter((item: any) => {
+                        if (!item.post) return false;
+                        if (!isOwner) {
+                            if (item.post.is_hidden || item.post.review_status !== "approved" || !item.post.is_published) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
                     .map((item: any) => {
                         const postData = item.post as unknown as Post;
                         return {
@@ -420,11 +488,11 @@ export default function UserProfilePage() {
                             )
                         )
                     `)
-                    .eq("user_id", userId)
+                    .eq("user_id", targetUserId)
                     .order("created_at", { ascending: false })
                     .limit(20);
 
-                if (bookmarksData) {
+                if (bookmarksData && isMounted) {
                     const bookmarkedPostsList = bookmarksData
                         .filter((item: any) => item.post)
                         .map((item: any) => {
@@ -441,10 +509,10 @@ export default function UserProfilePage() {
                 const { data: followRows } = await supabase
                     .from("collection_follows")
                     .select("collection_id, created_at")
-                    .eq("user_id", userId)
+                    .eq("user_id", targetUserId)
                     .order("created_at", { ascending: false });
 
-                if (followRows && followRows.length > 0) {
+                if (followRows && followRows.length > 0 && isMounted) {
                     const followIds = followRows.map((f: any) => f.collection_id);
                     const { data: followCols } = await supabase
                         .from("collections")
@@ -455,7 +523,7 @@ export default function UserProfilePage() {
                         `)
                         .in("id", followIds);
 
-                    if (followCols) {
+                    if (followCols && isMounted) {
                         const timeMap = new Map<string, string>(
                             followRows.map((f: any) => [f.collection_id as string, f.created_at as string])
                         );
@@ -473,11 +541,11 @@ export default function UserProfilePage() {
             const { data: collectionsData } = await supabase
                 .from("collections")
                 .select("id, name, description, cover_url, cover_style, is_public, post_count, updated_at")
-                .eq("author_id", userId)
+                .eq("author_id", targetUserId)
                 .eq("is_public", true)
                 .order("updated_at", { ascending: false });
 
-            if (collectionsData) {
+            if (collectionsData && isMounted) {
                 setCollections(collectionsData);
             }
 
@@ -486,24 +554,24 @@ export default function UserProfilePage() {
                 const { data: privateCollections } = await supabase
                     .from("collections")
                     .select("id, name, description, cover_url, cover_style, is_public, post_count, updated_at")
-                    .eq("author_id", userId)
+                    .eq("author_id", targetUserId)
                     .eq("is_public", false)
                     .order("updated_at", { ascending: false });
 
-                if (privateCollections && privateCollections.length > 0) {
+                if (privateCollections && privateCollections.length > 0 && isMounted) {
                     setCollections(prev => [...prev, ...privateCollections]);
                 }
             }
 
             // 检查好友关系（仅在查看他人主页时检查）
-            if (activeUserId && !isOwner) {
+            if (activeUserId && !isOwner && isMounted) {
                 const { data: friendshipData } = await supabase
                     .from("friendships")
                     .select("status")
-                    .or(`and(requester_id.eq.${activeUserId},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${activeUserId})`)
+                    .or(`and(requester_id.eq.${activeUserId},addressee_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},addressee_id.eq.${activeUserId})`)
                     .maybeSingle();
 
-                if (friendshipData) {
+                if (friendshipData && isMounted) {
                     if (friendshipData.status === "accepted") {
                         setIsFriend(true);
                     } else if (friendshipData.status === "pending") {
@@ -527,8 +595,9 @@ export default function UserProfilePage() {
     }, [userId, supabase, contextUserId]);
 
     const handleAddFriend = async () => {
-        if (!currentUserId || !userId) return;
-        const success = await sendFriendRequest(userId);
+        const targetId = profile?.id;
+        if (!currentUserId || !targetId) return;
+        const success = await sendFriendRequest(targetId);
         if (success) {
             setFriendRequestSent(true);
         }
@@ -574,6 +643,8 @@ export default function UserProfilePage() {
     const renderPostCard = (post: Post, extraInfo?: { label: string; time: string }) => {
         const isRejected = isOwnProfile && post.review_status === "rejected";
         const isPending = isOwnProfile && post.review_status === "pending";
+        const isHidden = isOwnProfile && Boolean(post.is_hidden);
+        const isLocked = Boolean(post.is_locked);
         const postLink = isRejected ? `/posts/${post.id}/edit` : `/posts/${post.id}`;
         const cleanExcerpt = cleanMarkdownText(post.content);
         const coverUrl = getPostCover(post);
@@ -593,20 +664,60 @@ export default function UserProfilePage() {
                                     <MathText text={post.title} inlineOnly />
                                 </h3>
                             </Link>
-                            {isPending && (
-                                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(245,158,11,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5">
-                                    待审核
-                                </Badge>
-                            )}
-                            {isRejected && (
-                                <Link href={`/posts/${post.id}/edit`}>
-                                    <Badge variant="destructive" className="text-[11px] shrink-0 hover:bg-destructive/90 transition-colors cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-0.5 border-0 shadow-xs font-medium">
-                                        <Pencil className="h-3 w-3" />
-                                        <span>需修改</span>
+                            <div className="flex items-center gap-1.5 flex-wrap shrink-0 justify-end">
+                                {isHidden && (
+                                    <Badge variant="destructive" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(244,63,94,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5 inline-flex items-center gap-1">
+                                        <EyeOff className="h-3 w-3" />
+                                        <span>被隐藏</span>
                                     </Badge>
-                                </Link>
-                            )}
+                                )}
+                                {isLocked && (
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(245,158,11,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5 inline-flex items-center gap-1">
+                                        <Lock className="h-3 w-3" />
+                                        <span>评论区已被锁定</span>
+                                    </Badge>
+                                )}
+                                {isPending && (
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_8px_rgba(245,158,11,0.15)] text-[11px] font-medium shrink-0 rounded-full px-2.5 py-0.5">
+                                        待审核
+                                    </Badge>
+                                )}
+                                {isRejected && (
+                                    <Link href={`/posts/${post.id}/edit`}>
+                                        <Badge variant="destructive" className="text-[11px] shrink-0 hover:bg-destructive/90 transition-colors cursor-pointer flex items-center gap-1 rounded-full px-2.5 py-0.5 border-0 shadow-xs font-medium">
+                                            <Pencil className="h-3 w-3" />
+                                            <span>需修改</span>
+                                        </Badge>
+                                    </Link>
+                                )}
+                            </div>
                         </div>
+
+                        {/* 隐藏原因与申诉提示条（仅作者本人在自己主页可见） */}
+                        {isHidden && (
+                            <div className="p-3 rounded-xl bg-rose-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-rose-600 dark:text-rose-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div className="flex items-start gap-2 flex-1">
+                                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
+                                    <div className="leading-relaxed">
+                                        <span className="font-semibold">隐藏说明：</span>
+                                        <span>{post.hidden_reason || "该帖子已被管理员隐藏，仅您本人可见。您可以前往该贴详情页进行修改或提交申诉。"}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                    <Link href={`/posts/${post.id}`}>
+                                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 shrink-0 font-medium rounded-full border-0 bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-3 cursor-pointer shadow-none">
+                                            详情与申诉
+                                        </Button>
+                                    </Link>
+                                    <Link href={`/posts/${post.id}/edit`}>
+                                        <Button size="sm" variant="destructive" className="h-7 text-xs gap-1 shrink-0 shadow-xs font-medium rounded-full border-0 px-3 cursor-pointer">
+                                            <Pencil className="h-3 w-3" />
+                                            修改
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
 
                         {/* 驳回原因提示条 */}
                         {isRejected && (
@@ -638,7 +749,7 @@ export default function UserProfilePage() {
                             <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-2" />
                             <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    {post.author && post.author.id !== userId && (
+                                    {post.author && post.author.id !== profile.id && (
                                         <>
                                             <Link href={`/user/${post.author.id}`} className="font-medium text-zinc-600 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                                 {post.author.username || "学者"}

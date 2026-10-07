@@ -132,11 +132,11 @@ function PaletteCard({
                 "bg-white/70 dark:bg-zinc-900/40 backdrop-blur-xl",
                 // 第二层：表面菲涅尔内高光与柔阴影
                 isKeyboardSelected
-                    ? "bg-violet-500/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_0_0_1.5px_rgba(139,92,246,0.35),0_6px_20px_-4px_rgba(139,92,246,0.2)]"
+                    ? "bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_0_0_1.5px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_0_0_1.5px_rgba(255,255,255,0.15)]"
                     : "shadow-[inset_0_1px_0.8px_rgba(255,255,255,0.85),0_4px_16px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_4px_16px_-4px_rgba(0,0,0,0.3)]",
                 // 第三层：学术冷峻微光 Hover
-                "hover:bg-violet-500/[0.06] dark:hover:bg-violet-500/[0.08]",
-                "hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_6px_20px_-4px_rgba(139,92,246,0.16)]"
+                "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60",
+                "hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.95)]"
             )}
         >
             {/* KaTeX 公式真实渲染 —— 严谨数学衬线体，绝对垂直居中 */}
@@ -242,20 +242,28 @@ export function MathPalette() {
 
             requestAnimationFrame(() => {
                 if (!editor) return;
+                editor.commands.focus();
+                let success = false;
                 if (selectedText && item.slotTarget) {
-                    editor
+                    success = editor
                         .chain()
                         .focus()
                         .deleteSelection()
                         .insertContent(`$${formula}$ `)
                         .run();
                 } else {
-                    editor
+                    success = editor
                         .chain()
                         .focus()
                         .insertContent(`$${formula}$ `)
                         .run();
                 }
+
+                // 兜底插入，确保绝不失败
+                if (!success) {
+                    editor.chain().focus("end").insertContent(`$${formula}$ `).run();
+                }
+
                 toast.success(`已插入：${item.name}`, { duration: 1500 });
             });
         },
@@ -269,11 +277,17 @@ export function MathPalette() {
             setOpen(false);
             requestAnimationFrame(() => {
                 if (!editor) return;
-                editor
+                editor.commands.focus();
+                const success = editor
                     .chain()
                     .focus()
                     .insertContent(`$${symbol.latex}$ `)
                     .run();
+
+                if (!success) {
+                    editor.chain().focus("end").insertContent(`$${symbol.latex}$ `).run();
+                }
+
                 toast.success(`已插入符号 ${symbol.label}`, { duration: 1000 });
             });
         },
@@ -395,18 +409,22 @@ export function MathPalette() {
                         <motion.button
                             type="button"
                             whileTap={{ scale: 0.96 }}
+                            onMouseDown={(e) => e.preventDefault()}
                             className={cn(
-                                "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer select-none border-0",
+                                "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer select-none border-0 shrink-0 whitespace-nowrap",
                                 open
-                                    ? "bg-violet-600/15 text-violet-900 dark:text-violet-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_0_0_1px_rgba(139,92,246,0.3)]"
+                                    ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)]"
                                     : "text-zinc-700 dark:text-zinc-300 bg-white/60 dark:bg-zinc-800/50 backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_6px_-1px_rgba(0,0,0,0.05)] hover:bg-white/90 dark:hover:bg-zinc-800/80 hover:text-zinc-900 dark:hover:text-white"
                             )}
                         >
                             <Sigma
                                 size={14}
-                                className="text-violet-600 dark:text-violet-400"
+                                className={cn(
+                                    "shrink-0",
+                                    open ? "text-white dark:text-zinc-950" : "text-zinc-700 dark:text-zinc-300"
+                                )}
                             />
-                            <span>数学面板</span>
+                            <span className="whitespace-nowrap">数学面板</span>
                         </motion.button>
                     </PopoverTrigger>
                 </TooltipTrigger>
@@ -468,7 +486,7 @@ export function MathPalette() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
                             onClick={() => handleScrollSymbols("left")}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.9)] border-0 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-violet-600 cursor-pointer transition-colors"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.9)] border-0 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-foreground cursor-pointer transition-colors"
                             title="向左滚动"
                         >
                             <ChevronLeft size={13} />
@@ -507,7 +525,7 @@ export function MathPalette() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
                             onClick={() => handleScrollSymbols("right")}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.9)] border-0 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-violet-600 cursor-pointer transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white/90 dark:bg-zinc-800/90 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.9)] border-0 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-foreground cursor-pointer transition-colors"
                             title="向右滚动查看更多符号"
                         >
                             <ChevronRight size={13} />
@@ -617,7 +635,7 @@ export function MathPalette() {
                             <span>插入</span>
                         </span>
                     </div>
-                    <span className="text-[10px] font-mono font-medium text-violet-600/90 dark:text-violet-400/90">
+                    <span className="text-[10px] font-mono font-medium text-zinc-500 dark:text-zinc-400">
                         {filteredItems.length} 项 · KaTeX
                     </span>
                 </div>

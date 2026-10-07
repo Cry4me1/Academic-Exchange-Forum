@@ -11,3 +11,4 @@ export { SieveSequenceViewer, isSieveSequence, parseSieveSequence, type SieveIte
 export { TableChartViewer, parseTableData, type ParsedTableData } from "./TableChartViewer";
 export { MobileArticleBottomBar } from "./MobileArticleBottomBar";
 export { MobileTocSheet } from "./MobileTocSheet";
+export * from "./annotations";

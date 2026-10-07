@@ -228,12 +228,47 @@ export function DashboardClient({
             {recentPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/admin/posts/${post.id}`}
+                href={`/posts/${post.id}`}
+                target="_blank"
                 className="block rounded-lg px-2 py-2 -mx-2 hover:bg-accent/50 transition-colors group"
               >
-                <p className="text-sm font-medium truncate group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                  {post.title}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium truncate group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors flex-1">
+                    {post.title}
+                  </p>
+                  <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+                    {post.is_hidden && (
+                      <Badge variant="destructive" className="text-[10px] rounded-full border-0 px-2 py-0 bg-red-500/15 text-red-600 dark:text-red-400 font-medium shadow-none">
+                        已隐藏
+                      </Badge>
+                    )}
+                    {post.is_locked && (
+                      <Badge className="text-[10px] rounded-full border-0 px-2 py-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium shadow-none">
+                        评论区已被锁定
+                      </Badge>
+                    )}
+                    {post.review_status === "pending" && (
+                      <Badge className="text-[10px] rounded-full border-0 px-2 py-0 bg-blue-500/15 text-blue-600 dark:text-blue-400 font-medium shadow-none">
+                        待审核
+                      </Badge>
+                    )}
+                    {post.review_status === "rejected" && (
+                      <Badge className="text-[10px] rounded-full border-0 px-2 py-0 bg-rose-500/15 text-rose-600 dark:text-rose-400 font-medium shadow-none">
+                        已拦截
+                      </Badge>
+                    )}
+                    {post.is_pinned && (
+                      <Badge className="text-[10px] rounded-full border-0 px-2 py-0 bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium shadow-none">
+                        置顶
+                      </Badge>
+                    )}
+                    {!post.is_hidden && !post.is_locked && post.review_status === "approved" && !post.is_pinned && (
+                      <Badge className="text-[10px] rounded-full border-0 px-2 py-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-medium shadow-none">
+                        正常
+                      </Badge>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-xs text-muted-foreground">
                     {post.author_name ?? "匿名"}

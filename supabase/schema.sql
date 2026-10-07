@@ -429,6 +429,9 @@ CREATE TABLE IF NOT EXISTS public.posts (
     -- 主页封面图展示
     cover_image TEXT,
     
+    -- 实验室共创孵化来源
+    origin_lab_room_id UUID REFERENCES public.lab_rooms(id) ON DELETE SET NULL,
+    
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -437,6 +440,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_author ON public.posts(author_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_tags ON public.posts USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_posts_review_status ON public.posts(review_status);
+CREATE INDEX IF NOT EXISTS idx_posts_origin_lab_room_id ON public.posts(origin_lab_room_id);
 
 -- 2. 帖子双向链接/引用表 (WikiLink)
 CREATE TABLE IF NOT EXISTS public.post_links (
@@ -1655,12 +1659,35 @@ CREATE POLICY "duels_update_participants" ON public.duels FOR UPDATE USING (auth
 CREATE POLICY "duel_rounds_select_public" ON public.duel_rounds FOR SELECT USING (true);
 CREATE POLICY "duel_bets_select_own" ON public.duel_bets FOR SELECT USING (auth.uid() = spectator_id OR public.is_admin());
 
--- 7. Lab Rooms & Notes
-CREATE POLICY "lab_rooms_select_member" ON public.lab_rooms FOR SELECT USING (
-  auth.uid() = created_by OR EXISTS (SELECT 1 FROM public.lab_members lm WHERE lm.room_id = lab_rooms.id AND lm.user_id = auth.uid())
-);
+-- 7. Lab Rooms, Members, Links & Notes
+CREATE POLICY "lab_rooms_select_authenticated" ON public.lab_rooms FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "lab_rooms_insert_auth" ON public.lab_rooms FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "lab_rooms_update_owner" ON public.lab_rooms FOR UPDATE USING (auth.uid() = created_by);
+
+CREATE POLICY "lab_members_select" ON public.lab_members FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY "lab_members_insert" ON public.lab_members FOR INSERT WITH CHECK (
+  auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.lab_rooms lr WHERE lr.id = lab_members.room_id AND lr.created_by = auth.uid())
+);
+CREATE POLICY "lab_members_update" ON public.lab_members FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.lab_rooms lr WHERE lr.id = lab_members.room_id AND lr.created_by = auth.uid())
+);
+CREATE POLICY "lab_members_delete" ON public.lab_members FOR DELETE USING (
+  auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.lab_rooms lr WHERE lr.id = lab_members.room_id AND lr.created_by = auth.uid())
+);
+
+CREATE POLICY "lab_post_links_select" ON public.lab_post_links FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.lab_members lm WHERE lm.room_id = lab_post_links.room_id AND lm.user_id = auth.uid()) OR
+  EXISTS (SELECT 1 FROM public.lab_rooms lr WHERE lr.id = lab_post_links.room_id AND lr.created_by = auth.uid())
+);
+CREATE POLICY "lab_post_links_insert" ON public.lab_post_links FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.lab_members lm WHERE lm.room_id = lab_post_links.room_id AND lm.user_id = auth.uid() AND lm.role IN ('owner', 'admin', 'editor')) OR
+  EXISTS (SELECT 1 FROM public.lab_rooms lr WHERE lr.id = lab_post_links.room_id AND lr.created_by = auth.uid())
+);
+CREATE POLICY "lab_post_links_delete" ON public.lab_post_links FOR DELETE USING (
+  EXISTS (SELECT 1 FROM public.lab_members lm WHERE lm.room_id = lab_post_links.room_id AND lm.user_id = auth.uid() AND lm.role IN ('owner', 'admin')) OR
+  EXISTS (SELECT 1 FROM public.lab_rooms lr WHERE lr.id = lab_post_links.room_id AND lr.created_by = auth.uid())
+);
+
 CREATE POLICY "lab_notes_all_member" ON public.lab_notes FOR ALL USING (
   EXISTS (SELECT 1 FROM public.lab_members lm WHERE lm.room_id = lab_notes.room_id AND lm.user_id = auth.uid())
 );
@@ -1698,6 +1725,8 @@ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.duel_live_comments;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.duel_invitations;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.lab_post_links;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.lab_members;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END

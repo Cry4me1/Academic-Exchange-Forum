@@ -35,7 +35,7 @@ export async function POST(
         // 执行向量化计算与更新
         const result = await generatePostEmbedding(id);
 
-        if (result.error) {
+        if ("error" in result) {
             return NextResponse.json({ error: result.error }, { status: 500 });
         }
 

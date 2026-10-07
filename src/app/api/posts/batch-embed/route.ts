@@ -61,12 +61,17 @@ export async function GET(request: NextRequest) {
             try {
                 const result = await generatePostEmbedding(post.id);
                 
-                if (result.success) {
+                if ("success" in result && result.success) {
                     results.success++;
                     results.details.push({ id: post.id, title: post.title, success: true });
                 } else {
                     results.failed++;
-                    results.details.push({ id: post.id, title: post.title, success: false, error: result.error });
+                    results.details.push({
+                        id: post.id,
+                        title: post.title,
+                        success: false,
+                        error: "error" in result ? result.error : "未知错误",
+                    });
                 }
             } catch (err: any) {
                 results.failed++;

@@ -1,7 +1,8 @@
 import { onUpload } from "@/lib/image-upload";
-import { CheckSquare, Code, Cpu, Heading1, Heading2, Heading3, ImageIcon, List, ListOrdered, MessageSquarePlus, Sigma, Sparkles, Table as TableIcon, TextQuote, Workflow } from "lucide-react";
+import { Box, CheckSquare, Code, Cpu, Heading1, Heading2, Heading3, ImageIcon, List, ListOrdered, MessageSquarePlus, Sigma, Sparkles, Table as TableIcon, TextQuote, Workflow } from "lucide-react";
 import { CommandItemProps } from "./extensions/slash-command-extension";
 import { STEPPER_PRESETS } from "./extensions/algorithm-stepper/presets";
+import { SOLID_GEOMETRY_PRESETS } from "./extensions/solid-geometry/presets";
 
 export const suggestionItems: CommandItemProps[] = [
     {
@@ -147,9 +148,45 @@ export const suggestionItems: CommandItemProps[] = [
         searchTerms: ["table", "biaoge", "grid", "表格", "数据表", "数据"],
         icon: <TableIcon size={18} className="text-blue-500" />,
         command: ({ editor, range }) => {
-            (editor.chain().focus().deleteRange(range) as any)
-                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                .run();
+            editor.chain().focus().deleteRange(range).run();
+            try {
+                const chain = editor.chain().focus() as any;
+                if (typeof chain?.insertTable === "function") {
+                    const ok = chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                    if (ok) return;
+                }
+            } catch {}
+
+            // 标准节点树兜底插入
+            editor.chain().focus().insertContent({
+                type: "table",
+                content: [
+                    {
+                        type: "tableRow",
+                        content: [
+                            { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "列 1" }] }] },
+                            { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "列 2" }] }] },
+                            { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "列 3" }] }] },
+                        ],
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            { type: "tableCell", content: [{ type: "paragraph", content: [] }] },
+                            { type: "tableCell", content: [{ type: "paragraph", content: [] }] },
+                            { type: "tableCell", content: [{ type: "paragraph", content: [] }] },
+                        ],
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            { type: "tableCell", content: [{ type: "paragraph", content: [] }] },
+                            { type: "tableCell", content: [{ type: "paragraph", content: [] }] },
+                            { type: "tableCell", content: [{ type: "paragraph", content: [] }] },
+                        ],
+                    },
+                ],
+            }).run();
         },
     },
     {
@@ -562,6 +599,23 @@ export const suggestionItems: CommandItemProps[] = [
                 .insertContent({
                     type: "algorithmStepper",
                     attrs: STEPPER_PRESETS["cpp-quicksort"],
+                })
+                .run();
+        },
+    },
+    {
+        title: "立体几何 (3D)",
+        description: "插入可交互三维立体几何模型 (正方体/四面体/三棱柱/空间坐标系)",
+        searchTerms: ["geometry", "3d", "liti", "jihe", "cube", "cone", "prism", "立体几何", "空间几何", "正方体", "四面体", "棱柱"],
+        icon: <Box size={18} className="text-sky-500" />,
+        command: ({ editor, range }) => {
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertContent({
+                    type: "solidGeometry",
+                    attrs: SOLID_GEOMETRY_PRESETS["cube-diagonal-section"],
                 })
                 .run();
         },

@@ -46,6 +46,9 @@ export interface RecentPost {
   like_count: number;
   comment_count: number;
   is_hidden: boolean;
+  review_status: string;
+  is_locked: boolean;
+  is_pinned: boolean;
 }
 
 export interface RecentReport {
@@ -235,7 +238,7 @@ export async function getRecentPosts(
   const { data } = await supabase
     .from("posts")
     .select(
-      "id, title, author_id, created_at, view_count, like_count, comment_count, is_hidden, profiles!posts_author_id_fkey(username)"
+      "id, title, author_id, created_at, view_count, like_count, comment_count, is_hidden, review_status, is_locked, is_pinned, profiles!posts_author_id_fkey(username)"
     )
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -251,6 +254,9 @@ export async function getRecentPosts(
     like_count: post.like_count ?? 0,
     comment_count: post.comment_count ?? 0,
     is_hidden: post.is_hidden ?? false,
+    review_status: (post.review_status as string) ?? "approved",
+    is_locked: post.is_locked ?? false,
+    is_pinned: post.is_pinned ?? false,
   }));
 }
 

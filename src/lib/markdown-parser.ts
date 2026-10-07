@@ -184,7 +184,7 @@ export function markdownToTiptapHtml(markdown: string): string {
 export function insertHtmlIntoEditor(
     view: EditorView,
     html: string,
-    options: { replaceSelection?: boolean } = { replaceSelection: true }
+    options: { replaceSelection?: boolean; appendToEnd?: boolean } = { replaceSelection: true }
 ): boolean {
     if (!view || !html) return false;
 
@@ -195,7 +195,11 @@ export function insertHtmlIntoEditor(
         const parser = ProseMirrorDOMParser.fromSchema(view.state.schema as Schema);
         const slice = parser.parseSlice(tempDiv);
 
-        if (options.replaceSelection) {
+        if (options.appendToEnd) {
+            const endPos = view.state.doc.content.size;
+            const tr = view.state.tr.insert(endPos, slice.content);
+            view.dispatch(tr.scrollIntoView());
+        } else if (options.replaceSelection) {
             const tr = view.state.tr.replaceSelection(slice);
             view.dispatch(tr.scrollIntoView());
         } else {

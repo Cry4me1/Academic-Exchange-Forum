@@ -61,7 +61,12 @@ export const AlgorithmStepperNode = Node.create({
     },
 
     addNodeView() {
-        return ReactNodeViewRenderer(AlgorithmStepperComponent);
+        return ReactNodeViewRenderer(AlgorithmStepperComponent, {
+            className: "scholarly-algorithm-stepper-node-container",
+            attrs: {
+                "data-type": "algorithm-stepper",
+            },
+        });
     },
 });
 

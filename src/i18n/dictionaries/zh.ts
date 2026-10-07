@@ -29,6 +29,7 @@ export const zh: TranslationDictionary = {
         trending: "热门学术",
         leaderboard: "排行榜",
         duels: "决斗场",
+        lab: "共创实验室",
         messages: "私信",
         friends: "好友",
         favorites: "我的收藏",

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import PostDetailClient from "./PostDetailClient";
 import PublicPostPreview from "./PublicPostPreview";
 import { getPostInteractionStatus, getCommentLikeStatus } from "./actions";
+import { getPostAnnotations } from "./annotation-actions";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -435,15 +436,39 @@ export default async function PostDetailPage({ params }: PageProps) {
         ),
     ]);
 
+// 获取关联的学术共创实验室
+async function getOriginLabRoom(post: any, coAuthors: any[]) {
+    const roomId = post.origin_lab_room_id || coAuthors.find((ca) => ca.lab_room_id)?.lab_room_id;
+    if (!roomId) return null;
+
+    try {
+        const supabase = await createClient();
+        const { data } = await supabase
+            .from("lab_rooms")
+            .select("id, name, room_type")
+            .eq("id", roomId)
+            .maybeSingle();
+        return data || null;
+    } catch {
+        return null;
+    }
+}
+
     // 增加阅读量（非阻塞）
     incrementViewCount(id);
 
-    // 获取作者其他文章、共创者和反向引用
-    const [authorOtherPosts, coAuthors, backlinks] = await Promise.all([
+    // 获取作者其他文章、共创者、反向引用以及行间学术批注
+    const [authorOtherPosts, coAuthors, backlinks, initialAnnotations] = await Promise.all([
         getAuthorOtherPosts(post.author_id, id),
         getCoAuthors(id),
         getBacklinks(id),
+        getPostAnnotations(id).catch(e => {
+            console.error("Failed to fetch annotations:", e);
+            return [];
+        }),
     ]);
+
+    const originLabRoom = await getOriginLabRoom(post, coAuthors);
 
     return (
         <PostDetailClient
@@ -455,8 +480,10 @@ export default async function PostDetailPage({ params }: PageProps) {
             initialIsBookmarked={interactionStatus.isBookmarked}
             commentLikeStatus={commentLikeStatus}
             coAuthors={coAuthors as any}
+            originLabRoom={originLabRoom}
             backlinks={backlinks}
             collections={collections}
+            initialAnnotations={initialAnnotations}
         />
     );
 }

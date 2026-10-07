@@ -32,6 +32,7 @@ const ActionPill = memo(({ onClick, icon, label, tooltip, danger }: ActionPillPr
         <TooltipTrigger asChild>
             <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -120,13 +121,21 @@ export function TableBubbleMenu() {
 
                     {/* 行管理 */}
                     <ActionPill
-                        onClick={() => (editor.chain().focus() as any).addRowAfter().run()}
+                        onClick={() => {
+                            try {
+                                (editor?.chain()?.focus() as any)?.addRowAfter?.()?.run?.();
+                            } catch {}
+                        }}
                         icon={<Plus className="w-3.5 h-3.5 text-emerald-500" />}
                         label="加行"
                         tooltip="在下方添加一行"
                     />
                     <ActionPill
-                        onClick={() => (editor.chain().focus() as any).deleteRow().run()}
+                        onClick={() => {
+                            try {
+                                (editor?.chain()?.focus() as any)?.deleteRow?.()?.run?.();
+                            } catch {}
+                        }}
                         icon={<Minus className="w-3.5 h-3.5 text-amber-500" />}
                         label="删行"
                         tooltip="删除当前行"
@@ -137,13 +146,21 @@ export function TableBubbleMenu() {
 
                     {/* 列管理 */}
                     <ActionPill
-                        onClick={() => (editor.chain().focus() as any).addColumnAfter().run()}
+                        onClick={() => {
+                            try {
+                                (editor?.chain()?.focus() as any)?.addColumnAfter?.()?.run?.();
+                            } catch {}
+                        }}
                         icon={<Plus className="w-3.5 h-3.5 text-emerald-500" />}
                         label="加列"
                         tooltip="在右侧添加一列"
                     />
                     <ActionPill
-                        onClick={() => (editor.chain().focus() as any).deleteColumn().run()}
+                        onClick={() => {
+                            try {
+                                (editor?.chain()?.focus() as any)?.deleteColumn?.()?.run?.();
+                            } catch {}
+                        }}
                         icon={<Minus className="w-3.5 h-3.5 text-amber-500" />}
                         label="删列"
                         tooltip="删除当前列"
@@ -154,7 +171,11 @@ export function TableBubbleMenu() {
 
                     {/* 表头切换 */}
                     <ActionPill
-                        onClick={() => (editor.chain().focus() as any).toggleHeaderRow().run()}
+                        onClick={() => {
+                            try {
+                                (editor?.chain()?.focus() as any)?.toggleHeaderRow?.()?.run?.();
+                            } catch {}
+                        }}
                         icon={<Heading className="w-3.5 h-3.5 text-blue-500" />}
                         label="表头"
                         tooltip="切换首行是否为高亮表头"
@@ -163,6 +184,7 @@ export function TableBubbleMenu() {
                     {/* 退出表格，在下方插入正文继续写作 */}
                     <ActionPill
                         onClick={() => {
+                            if (!editor) return;
                             const { state } = editor;
                             const { $from } = state.selection;
                             let handled = false;
@@ -198,7 +220,11 @@ export function TableBubbleMenu() {
 
                     {/* 危险操作：整表删除 */}
                     <ActionPill
-                        onClick={() => (editor.chain().focus() as any).deleteTable().run()}
+                        onClick={() => {
+                            try {
+                                (editor?.chain()?.focus() as any)?.deleteTable?.()?.run?.();
+                            } catch {}
+                        }}
                         icon={<Trash2 className="w-3.5 h-3.5" />}
                         label="删表"
                         tooltip="彻底删除整个表格"

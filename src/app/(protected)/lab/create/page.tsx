@@ -1,6 +1,19 @@
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import CreateLabClient from "./CreateLabClient";
 
-// 共创实验室功能暂未上线，所有子路由重定向到 /lab 未上线提示页
-export default function CreateLabPage() {
-    redirect("/lab");
+export const metadata = {
+    title: "创建共创研究室 - Scholarly",
+    description: "配置并创建专属学术共创研讨室",
+};
+
+export default async function CreateLabPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login?next=/lab/create");
+    }
+
+    return <CreateLabClient />;
 }

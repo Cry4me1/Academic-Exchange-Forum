@@ -91,6 +91,8 @@ export default function EditPostPage() {
     const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
     const [postReviewStatus, setPostReviewStatus] = useState<string | null>(null);
     const [reviewerNote, setReviewerNote] = useState<string | null>(null);
+    const [isPostHidden, setIsPostHidden] = useState(false);
+    const [hiddenReason, setHiddenReason] = useState<string | null>(null);
     const [isRulesExpanded, setIsRulesExpanded] = useState(false);
 
     // 草稿相关状态
@@ -166,6 +168,8 @@ export default function EditPostPage() {
         setIsHelpWanted(initial.isHelpWanted);
         setPostReviewStatus(post.review_status || null);
         setReviewerNote(post.reviewer_note || post.ai_reason || null);
+        setIsPostHidden(Boolean(post.is_hidden));
+        setHiddenReason(post.hidden_reason || null);
         setContent("valid");
         setInitialData(initial);
         setLoading(false);
@@ -536,7 +540,26 @@ export default function EditPostPage() {
                             )}
                         </AnimatePresence>
 
-                        {/* 审核状态提醒横幅 */}
+                        {/* 帖子状态提醒横幅 */}
+                        {isPostHidden && (
+                            <div className="p-4 rounded-2xl border-0 bg-red-500/10 dark:bg-red-950/30 text-red-900 dark:text-red-200 flex items-start gap-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_8px_32px_-4px_rgba(239,68,68,0.12)]">
+                                <div className="p-1.5 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                                    <ShieldAlert className="h-4 w-4" strokeWidth={1.75} />
+                                </div>
+                                <div className="space-y-1">
+                                    <h4 className="font-semibold text-xs sm:text-sm flex items-center gap-2">
+                                        当前帖子已被管理员隐藏
+                                        <Badge variant="destructive" className="text-[10px] rounded-full border-0 px-2 py-0.5 font-medium">
+                                            已被隐藏
+                                        </Badge>
+                                    </h4>
+                                    <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">
+                                        隐藏原因：{hiddenReason || "违反学术社区规范"}。在此修改并保存后，系统将自动向管理员后台发送复查请求与通知。
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {postReviewStatus === "rejected" && (
                             <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-900 dark:text-red-200 flex items-start gap-3 shadow-xs">
                                 <div className="p-1.5 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400 shrink-0 mt-0.5">

@@ -9,6 +9,7 @@ import {
     BookMarked,
     Crown,
     Flame,
+    FlaskConical,
     Home,
     LogOut,
     MessageSquare,
@@ -78,6 +79,7 @@ export function MobileGlassDrawer({ isOpen, onClose, currentUserId }: MobileGlas
         { href: "/trending", label: tNav.trending, icon: Flame },
         { href: "/leaderboard", label: tNav.leaderboard, icon: Trophy },
         { href: "/duels", label: tNav.duels, icon: Swords },
+        { href: "/lab", label: tNav.lab, icon: FlaskConical, isLab: true },
         { href: "/messages", label: tNav.messages, icon: MessageSquare },
         { href: "/friends", label: tNav.friends, icon: Users },
         { href: "/favorites", label: tNav.favorites, icon: Bookmark },
@@ -164,14 +166,16 @@ export function MobileGlassDrawer({ isOpen, onClose, currentUserId }: MobileGlas
                                             isActive
                                                 ? "bg-zinc-950/90 text-white dark:bg-white dark:text-zinc-950 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] dark:shadow-[0_4px_14px_-2px_rgba(255,255,255,0.2),inset_0_1px_1px_rgba(255,255,255,0.9)]"
                                                 : "text-zinc-700 dark:text-zinc-300 hover:bg-white/70 dark:hover:bg-zinc-800/60",
-                                            item.isVip && !isActive && "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                                            item.isVip && !isActive && "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10",
+                                            (item as any).isLab && !isActive && "text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
                                         )}
                                     >
                                         <Icon
                                             className={cn(
                                                 "h-4.5 w-4.5 shrink-0 transition-colors",
                                                 isActive ? "text-white dark:text-zinc-950" : "text-zinc-400 dark:text-zinc-500",
-                                                item.isVip && !isActive && "text-amber-500"
+                                                item.isVip && !isActive && "text-amber-500",
+                                                (item as any).isLab && !isActive && "text-violet-500"
                                             )}
                                             strokeWidth={1.75}
                                         />
@@ -180,6 +184,12 @@ export function MobileGlassDrawer({ isOpen, onClose, currentUserId }: MobileGlas
                                         {showHighlight && (
                                             <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium shadow-xs">
                                                 新
+                                            </span>
+                                        )}
+
+                                        {(item as any).isLab && (
+                                            <span className="text-[10px] bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-2 py-0.5 rounded-full font-medium tracking-tight">
+                                                实时
                                             </span>
                                         )}
 

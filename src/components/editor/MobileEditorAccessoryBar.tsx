@@ -16,9 +16,11 @@ import {
     Undo2,
     BookOpen,
     ShieldCheck,
+    Box,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MobileMathBubbleBar } from "./MobileMathBubbleBar";
+import { SOLID_GEOMETRY_PRESETS } from "./extensions/solid-geometry/presets";
 import { toast } from "sonner";
 
 export function MobileEditorAccessoryBar() {
@@ -35,20 +37,40 @@ export function MobileEditorAccessoryBar() {
     const isBlockquote = editor.isActive("blockquote");
 
     const insertAcademicBlock = (type: "theorem" | "proof", placeholder: string) => {
-        editor.chain().focus().insertContent({
-            type: "academicBlock",
-            attrs: {
-                type,
-                number: type === "theorem" ? "1.1" : "",
-            },
-            content: [
-                {
-                    type: "paragraph",
-                    content: [{ type: "text", text: placeholder }],
+        try {
+            const success = editor.chain().focus().insertContent({
+                type: "academicBlock",
+                attrs: {
+                    academicType: type,
+                    number: type === "theorem" ? "1.1" : "",
                 },
-            ],
-        }).run();
-        toast.success(`已插入${type === "theorem" ? "定理" : "证明"}环境`, { duration: 1500 });
+                content: [
+                    {
+                        type: "paragraph",
+                        content: [{ type: "text", text: placeholder }],
+                    },
+                ],
+            }).run();
+
+            if (!success) {
+                editor.chain().focus().createParagraphNear().insertContent({
+                    type: "academicBlock",
+                    attrs: {
+                        academicType: type,
+                        number: type === "theorem" ? "1.1" : "",
+                    },
+                    content: [
+                        {
+                            type: "paragraph",
+                            content: [{ type: "text", text: placeholder }],
+                        },
+                    ],
+                }).run();
+            }
+            toast.success(`已插入${type === "theorem" ? "定理" : "证明"}环境`, { duration: 1500 });
+        } catch (e) {
+            toast.error("插入失败，请在正文点击后重试");
+        }
     };
 
     return (
@@ -197,6 +219,7 @@ export function MobileEditorAccessoryBar() {
                     <div className="flex items-center gap-1 shrink-0 pl-1 border-l border-zinc-200/80 dark:border-zinc-800/80">
                         <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => insertAcademicBlock("theorem", "在此输入定理内容...")}
                             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 border-0 shrink-0 cursor-pointer active:scale-90"
                         >
@@ -205,11 +228,35 @@ export function MobileEditorAccessoryBar() {
                         </button>
                         <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => insertAcademicBlock("proof", "在此输入证明推导步骤...")}
                             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-200/50 dark:bg-zinc-800/50 border-0 shrink-0 cursor-pointer active:scale-90"
                         >
                             <ShieldCheck size={12} />
                             <span>证明</span>
+                        </button>
+                    </div>
+
+                    {/* 3D 立体几何 */}
+                    <div className="flex items-center gap-1 shrink-0 pl-1 border-l border-zinc-200/80 dark:border-zinc-800/80">
+                        <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                                try {
+                                    editor.chain().focus().insertContent({
+                                        type: "solidGeometry",
+                                        attrs: SOLID_GEOMETRY_PRESETS["cube-diagonal-section"],
+                                    }).run();
+                                    toast.success("已插入 3D 立体几何模型", { duration: 1500 });
+                                } catch (e) {
+                                    toast.error("插入失败，请重试");
+                                }
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-sky-600 dark:text-sky-400 bg-sky-500/10 hover:bg-sky-500/15 border-0 shrink-0 cursor-pointer active:scale-90"
+                        >
+                            <Box size={12} />
+                            <span>3D几何</span>
                         </button>
                     </div>
                 </div>

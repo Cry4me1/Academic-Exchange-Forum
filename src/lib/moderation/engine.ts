@@ -33,6 +33,12 @@ export async function moderatePostContent(params: {
   const fullText = `${title}\n${contentText}`;
   const contentHash = calculateContentHash(title, contentText);
   const supabase = await createClient();
+  const snapshotPayload = {
+    title,
+    contentSnapshot: content,
+    coverImage,
+    tags,
+  };
 
   // ==========================================
   // Layer 1: 敏感词库快速过滤
@@ -64,6 +70,7 @@ export async function moderatePostContent(params: {
       contentHash,
       result,
       modelName: "sensitive-keyword-rule",
+      ...snapshotPayload,
     });
 
     return result;
@@ -94,6 +101,7 @@ export async function moderatePostContent(params: {
       contentHash,
       result,
       modelName: "sensitive-keyword-rule",
+      ...snapshotPayload,
     });
 
     return result;
@@ -138,6 +146,7 @@ export async function moderatePostContent(params: {
           contentHash,
           result,
           modelName: "baidu-image-censor",
+          ...snapshotPayload,
         });
 
         return result;
@@ -168,6 +177,7 @@ export async function moderatePostContent(params: {
           contentHash,
           result,
           modelName: "baidu-image-censor",
+          ...snapshotPayload,
         });
 
         return result;
@@ -193,6 +203,7 @@ export async function moderatePostContent(params: {
             canPublish: true,
           },
           modelName: "baidu-image-censor",
+          ...snapshotPayload,
         });
       }
     } catch (imgErr) {
@@ -237,6 +248,7 @@ export async function moderatePostContent(params: {
         contentHash,
         result,
         modelName: "cache-hit",
+        ...snapshotPayload,
       });
 
       return result;
@@ -284,6 +296,7 @@ export async function moderatePostContent(params: {
     contentHash,
     result,
     modelName: "deepseek-chat",
+    ...snapshotPayload,
   });
 
   return result;
@@ -303,6 +316,11 @@ export async function moderateCommentContent(params: {
   const contentText = extractPlainTextFromContent(content);
   const contentHash = calculateContentHash("comment", contentText);
   const supabase = await createClient();
+  const commentSnapshotPayload = {
+    title: "学术评论",
+    contentSnapshot: content,
+    tags: ["学术评论"],
+  };
 
   // ==========================================
   // Layer 1: 敏感词库快速过滤
@@ -335,6 +353,7 @@ export async function moderateCommentContent(params: {
       contentHash,
       result,
       modelName: "sensitive-keyword-rule",
+      ...commentSnapshotPayload,
     });
 
     return result;
@@ -366,6 +385,7 @@ export async function moderateCommentContent(params: {
       contentHash,
       result,
       modelName: "sensitive-keyword-rule",
+      ...commentSnapshotPayload,
     });
 
     return result;
@@ -404,6 +424,7 @@ export async function moderateCommentContent(params: {
           contentHash,
           result,
           modelName: "baidu-image-censor",
+          ...commentSnapshotPayload,
         });
 
         return result;
@@ -434,6 +455,7 @@ export async function moderateCommentContent(params: {
           contentHash,
           result,
           modelName: "baidu-image-censor",
+          ...commentSnapshotPayload,
         });
 
         return result;
@@ -460,6 +482,7 @@ export async function moderateCommentContent(params: {
             canPublish: true,
           },
           modelName: "baidu-image-censor",
+          ...commentSnapshotPayload,
         });
       }
     } catch (imgErr) {
@@ -505,6 +528,7 @@ export async function moderateCommentContent(params: {
         contentHash,
         result,
         modelName: "cache-hit",
+        ...commentSnapshotPayload,
       });
 
       return result;
@@ -564,6 +588,7 @@ export async function moderateCommentContent(params: {
     contentHash,
     result,
     modelName: "deepseek-chat",
+    ...commentSnapshotPayload,
   });
 
   return result;
@@ -637,7 +662,7 @@ function makeDecision(
 }
 
 /**
- * 记录审核审计日志
+ * 记录审核审计日志（支持帖子内容快照保存）
  */
 async function logModerationRecord(
   supabase: any,
@@ -648,11 +673,27 @@ async function logModerationRecord(
     contentHash: string;
     result: ModerationResult;
     modelName: string;
+    title?: string;
+    contentSnapshot?: any;
+    coverImage?: string | null;
+    tags?: string[];
   }
 ) {
   try {
-    const { postId, commentId, authorId, contentHash, result, modelName } = params;
-    await supabase.from("content_moderation_logs").insert({
+    const {
+      postId,
+      commentId,
+      authorId,
+      contentHash,
+      result,
+      modelName,
+      title,
+      contentSnapshot,
+      coverImage,
+      tags,
+    } = params;
+
+    const payload: Record<string, any> = {
       post_id: postId || null,
       comment_id: commentId || null,
       author_id: authorId,
@@ -667,7 +708,21 @@ async function logModerationRecord(
       cost_tokens: result.costTokens || 0,
       latency_ms: result.latencyMs,
       is_cached: result.isCached,
-    });
+      title: title || null,
+      content_snapshot: contentSnapshot || null,
+      cover_image: coverImage || null,
+      tags: tags || [],
+    };
+
+    const { error } = await supabase.from("content_moderation_logs").insert(payload);
+    if (error && (error.message?.includes("title") || error.message?.includes("content_snapshot"))) {
+      // 容错降级：若数据库尚未执行新快照字段迁移，则回退为基础字段写入
+      delete payload.title;
+      delete payload.content_snapshot;
+      delete payload.cover_image;
+      delete payload.tags;
+      await supabase.from("content_moderation_logs").insert(payload);
+    }
   } catch (err) {
     console.error("[ModerationEngine] 写入审计日志异常:", err);
   }

@@ -17,16 +17,23 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "请先登录" }, { status: 401 });
     }
 
-    // 验证成员
+    // 验证成员或创建者
     const { data: member } = await supabase
         .from("lab_members")
         .select("id")
         .eq("room_id", roomId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
     if (!member) {
-        return NextResponse.json({ error: "无权访问" }, { status: 403 });
+        const { data: room } = await supabase
+            .from("lab_rooms")
+            .select("created_by")
+            .eq("id", roomId)
+            .maybeSingle();
+        if (!room || room.created_by !== user.id) {
+            return NextResponse.json({ error: "无权访问" }, { status: 403 });
+        }
     }
 
     // 获取快照列表（不含 yjs_state 二进制，节省传输）
@@ -82,15 +89,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "参数不完整" }, { status: 400 });
     }
 
-    // 验证成员且角色 >= editor
+    // 验证成员且角色 >= editor，或为房间创建者
     const { data: member } = await supabase
         .from("lab_members")
         .select("id, role")
         .eq("room_id", roomId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (!member || !["owner", "admin", "editor"].includes(member.role)) {
+    let hasPermission = !!member && ["owner", "admin", "editor"].includes(member.role);
+    if (!hasPermission) {
+        const { data: room } = await supabase
+            .from("lab_rooms")
+            .select("created_by")
+            .eq("id", roomId)
+            .maybeSingle();
+        if (room && room.created_by === user.id) {
+            hasPermission = true;
+        }
+    }
+
+    if (!hasPermission) {
         return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
 
@@ -100,7 +119,7 @@ export async function POST(request: NextRequest) {
         .select("id, yjs_state")
         .eq("id", snapshotId)
         .eq("room_id", roomId)
-        .single();
+        .maybeSingle();
 
     if (snapError || !snapshot) {
         return NextResponse.json({ error: "快照不存在" }, { status: 404 });
@@ -111,9 +130,9 @@ export async function POST(request: NextRequest) {
         .from("lab_notes")
         .select("yjs_state")
         .eq("room_id", roomId)
-        .single();
+        .maybeSingle();
 
-    if (currentNote) {
+    if (currentNote && currentNote.yjs_state) {
         await supabase
             .from("lab_note_snapshots")
             .insert({
@@ -143,7 +162,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "回滚失败" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, state: snapshot.yjs_state });
 }
 
 /**
@@ -163,15 +182,27 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: "请先登录" }, { status: 401 });
     }
 
-    // 验证管理员权限
+    // 验证管理员权限或创建者
     const { data: member } = await supabase
         .from("lab_members")
         .select("id, role")
         .eq("room_id", roomId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (!member || !["owner", "admin"].includes(member.role)) {
+    let canDelete = !!member && ["owner", "admin"].includes(member.role);
+    if (!canDelete) {
+        const { data: room } = await supabase
+            .from("lab_rooms")
+            .select("created_by")
+            .eq("id", roomId)
+            .maybeSingle();
+        if (room && room.created_by === user.id) {
+            canDelete = true;
+        }
+    }
+
+    if (!canDelete) {
         return NextResponse.json({ error: "仅管理员可删除快照" }, { status: 403 });
     }
 

@@ -21,6 +21,7 @@ import {
     ChevronRight,
     Heart,
     HelpCircle,
+    Lock,
     MessageCircle,
     MoreHorizontal,
     Pin,
@@ -58,6 +59,7 @@ export interface PostCardProps {
     coverImage?: string;
     authorVipLevel?: number;
     isPinned?: boolean;
+    isLocked?: boolean;
     collectionNames?: string[];
     collections?: Array<{ id: string; name: string }>;
 }
@@ -81,6 +83,7 @@ export function PostCard({
     coverImage,
     authorVipLevel = 1,
     isPinned = false,
+    isLocked = false,
     collectionNames = [],
     collections = [],
 }: PostCardProps) {
@@ -239,10 +242,15 @@ export function PostCard({
                         </Link>
                     )}
 
-                    {/* 置顶/已解决/求助徽标 */}
+                    {/* 置顶/已解决/求助/评论区锁定徽标 */}
                     {isPinned && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                             <Pin className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.75} /> {tPost.pinned}
+                        </span>
+                    )}
+                    {isLocked && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                            <Lock className="h-2.5 w-2.5 text-amber-500" strokeWidth={1.75} /> 评论区已被锁定
                         </span>
                     )}
                     {isSolved && (

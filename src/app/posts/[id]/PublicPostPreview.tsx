@@ -2,6 +2,7 @@
 
 import NovelViewer from "@/components/editor/NovelViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MathText } from "@/components/ui/math-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
@@ -119,7 +120,7 @@ export default function PublicPostPreview({ post, collections = [] }: PublicPost
 
                     {/* 第二层：大标题 */}
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground my-3 leading-snug">
-                        {post.title}
+                        <MathText text={post.title} inlineOnly />
                     </h1>
 
                     {/* 第三层：作者信息与日期/浏览量端对齐 */}

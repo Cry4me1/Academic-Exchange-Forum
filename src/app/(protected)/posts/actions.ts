@@ -130,7 +130,7 @@ export async function createPost(data: {
         await syncPostLinks(supabase, post.id, data.content).catch((err) => {
             console.error("[createPost] 同步双向链接失败:", err);
         });
-        await generatePostEmbedding(post.id, supabase).catch((err) => {
+        await generatePostEmbedding(post.id).catch((err) => {
             console.error("[createPost] 同步生成 Embedding 向量失败:", err);
         });
     }
@@ -165,7 +165,7 @@ export async function updatePost(
     let oldContent: JSONContentNode | null = null;
     const { data: oldPost } = await supabase
         .from("posts")
-        .select("title, content, tags, cover_image, review_status")
+        .select("title, content, tags, cover_image, review_status, is_hidden, hidden_reason")
         .eq("id", postId)
         .eq("author_id", user.id)
         .single();
@@ -238,6 +238,71 @@ export async function updatePost(
         return { error: "更新帖子失败" };
     }
 
+    // 若原帖子已被管理员隐藏，作者修改后，自动向管理员后台和通知发送消息
+    if (oldPost.is_hidden) {
+        try {
+            const { data: authorProfile } = await supabase
+                .from("profiles")
+                .select("id, username")
+                .eq("id", user.id)
+                .single();
+            const authorName = authorProfile?.username || "学者";
+            const postTitle = updatePayload.title || oldPost.title;
+
+            // 1. 向所有管理员发送系统站内通知
+            const { data: adminRoles } = await supabase
+                .from("admin_roles")
+                .select("user_id");
+
+            if (adminRoles && adminRoles.length > 0) {
+                const adminNotifs = adminRoles.map((a) => ({
+                    user_id: a.user_id,
+                    from_user_id: user.id,
+                    type: "system",
+                    title: "被隐藏帖子已修改",
+                    content: `学者 ${authorName} 已修改此前被管理员隐藏的帖子《${postTitle}》，请前往后台复查。`,
+                    related_id: postId,
+                    is_read: false,
+                }));
+                await supabase.from("notifications").insert(adminNotifs);
+            }
+
+            // 2. 写入 reports 表作为待复审工单，让管理员在仪表盘与举报/工单中心第一时间看到
+            await supabase.from("reports").insert({
+                reporter_id: user.id,
+                target_type: "post",
+                target_id: postId,
+                reason: `[被隐藏帖子已修改] 待管理员复审`,
+                details: `作者已对被隐藏的帖子《${postTitle}》完成修改，请求管理员复查并决定是否解除隐藏。`,
+                status: "pending",
+                content_snapshot: {
+                    targetType: "post",
+                    targetId: postId,
+                    post_title: postTitle,
+                    author_id: user.id,
+                    author_name: authorName,
+                    action: "post_modified_after_hidden",
+                },
+            });
+
+            // 3. 记录日志
+            await supabase.from("admin_action_logs").insert({
+                admin_id: user.id,
+                action_type: "post_modified_after_hidden",
+                target_type: "post",
+                target_id: postId,
+                details: {
+                    title: postTitle,
+                    author_id: user.id,
+                    author_name: authorName,
+                    note: "作者已修改被管理员隐藏的帖子",
+                },
+            });
+        } catch (postEditNotifyErr) {
+            console.error("Failed to notify admins of modified hidden post:", postEditNotifyErr);
+        }
+    }
+
     // 若更新后重新进入人工审核队列（pending），发送邮件通知管理员
     if (updatePayload.review_status === "pending" && moderationResult) {
         const { data: authorProfile } = await supabase
@@ -298,7 +363,7 @@ export async function updatePost(
     }
     
     // 只要有任何更新动作，都重新计算向量
-    await generatePostEmbedding(postId, supabase).catch((err) => {
+    await generatePostEmbedding(postId).catch((err) => {
         console.error("[updatePost] 同步生成 Embedding 向量失败:", err);
     });
 
@@ -398,6 +463,7 @@ export async function getPosts(options: {
                 is_solved,
                 is_help_wanted,
                 is_pinned,
+                is_locked,
                 review_status,
                 created_at,
                 author:profiles!author_id (

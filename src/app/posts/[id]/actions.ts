@@ -6,6 +6,7 @@ import { deleteImages, extractImageUrls } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { moderateCommentContent } from "@/lib/moderation/engine";
+import { sendReportEmail } from "@/lib/email";
 
 // JSONContent 类型定义
 interface JSONContentNode {
@@ -626,6 +627,125 @@ export async function deletePost(postId: string) {
     }
 
     revalidatePath("/dashboard");
+    return { success: true };
+}
+
+/**
+ * 作者对被隐藏的帖子提交解除隐藏申诉
+ */
+export async function submitPostAppeal(postId: string, appealReason: string) {
+    if (!postId || !appealReason?.trim()) {
+        return { error: "请输入详细的申诉理由" };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { error: "请先登录" };
+    }
+
+    // 验证帖子存在、属于本人且已被隐藏
+    const { data: post, error: postErr } = await supabase
+        .from("posts")
+        .select("id, title, author_id, is_hidden, hidden_reason")
+        .eq("id", postId)
+        .single();
+
+    if (postErr || !post) {
+        return { error: "帖子不存在" };
+    }
+
+    if (post.author_id !== user.id) {
+        return { error: "仅有帖子作者本人可以发起申诉" };
+    }
+
+    if (!post.is_hidden) {
+        return { error: "该帖子目前处于正常展示状态，无需申诉" };
+    }
+
+    // 获取申诉人档案信息
+    const { data: authorProfile } = await supabase
+        .from("profiles")
+        .select("id, username, email")
+        .eq("id", user.id)
+        .single();
+
+    const authorName = authorProfile?.username || "学者";
+    const authorEmail = authorProfile?.email || user.email || "unknown@email.com";
+    const trimmedReason = appealReason.trim();
+
+    // 1. 写入 reports 表作为申诉记录
+    const { error: reportErr } = await supabase.from("reports").insert({
+        reporter_id: user.id,
+        target_type: "post",
+        target_id: postId,
+        reason: `[解除隐藏申诉] ${trimmedReason.slice(0, 40)}`,
+        details: trimmedReason,
+        status: "pending",
+        content_snapshot: {
+            targetType: "post",
+            targetId: postId,
+            post_title: post.title,
+            hidden_reason: post.hidden_reason,
+            appeal_reason: trimmedReason,
+            author_id: user.id,
+            author_name: authorName,
+            is_appeal: true,
+        },
+    });
+
+    if (reportErr) {
+        console.error("[submitPostAppeal] 写入申诉举报工单失败:", reportErr);
+    }
+
+    // 2. 向所有管理员发送系统站内通知
+    const { data: adminRoles } = await supabase
+        .from("admin_roles")
+        .select("user_id");
+
+    if (adminRoles && adminRoles.length > 0) {
+        const notifs = adminRoles.map((a) => ({
+            user_id: a.user_id,
+            from_user_id: user.id,
+            type: "system",
+            title: "收到帖子解封申诉",
+            content: `学者 ${authorName} 对此前被隐藏的帖子《${post.title}》提交了解除隐藏申诉。申诉理由：${trimmedReason}`,
+            related_id: postId,
+            is_read: false,
+        }));
+        await supabase.from("notifications").insert(notifs);
+    }
+
+    // 3. 记录到管理员审计日志表
+    await supabase.from("admin_action_logs").insert({
+        admin_id: user.id,
+        action_type: "post_appeal_submitted",
+        target_type: "post",
+        target_id: postId,
+        details: {
+            title: post.title,
+            hidden_reason: post.hidden_reason,
+            appeal_reason: trimmedReason,
+            author_id: user.id,
+            author_name: authorName,
+        },
+    });
+
+    // 4. 尝试发送申诉邮件给平台管理员
+    sendReportEmail({
+        reporterEmail: authorEmail,
+        reporterUsername: authorName,
+        targetType: "post",
+        targetId: postId,
+        targetTitle: `[申诉解封] ${post.title}`,
+        reason: `[解除隐藏申诉] ${post.hidden_reason ? `原隐藏原因: ${post.hidden_reason}` : ""}`,
+        details: trimmedReason,
+    }).catch((emailErr) => {
+        console.error("[submitPostAppeal] 发送申诉邮件失败:", emailErr);
+    });
+
+    revalidatePath(`/posts/${postId}`);
     return { success: true };
 }
 

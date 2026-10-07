@@ -14,6 +14,7 @@ interface RecommendedPost {
     comment_count: number;
     similarity: number;
     common_concepts?: string[]; // 共同概念词条
+    is_tag_match?: boolean;
 }
 
 interface SemanticRecommendationsProps {
@@ -71,6 +72,8 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
 
     if (recommendations.length === 0) return null;
 
+    const hasSemanticMatch = recommendations.some((r) => !r.is_tag_match);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -83,11 +86,20 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
             )}
         >
             {/* 顶栏微光标题 */}
-            <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400">
-                    <Sparkles className="h-3.5 w-3.5" />
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400">
+                        <Sparkles className="h-3.5 w-3.5" />
+                    </div>
+                    <h3 className="font-semibold text-xs text-foreground">
+                        {hasSemanticMatch ? "AI 语义推荐" : "学术关联推荐"}
+                    </h3>
                 </div>
-                <h3 className="font-semibold text-xs text-foreground">AI 语义推荐</h3>
+                {!hasSemanticMatch && (
+                    <span className="text-[10px] text-muted-foreground/60 font-medium px-2 py-0.5 rounded-full bg-zinc-100/80 dark:bg-zinc-800/60">
+                        领域关联
+                    </span>
+                )}
             </div>
 
             <ul className="space-y-1">
@@ -121,9 +133,15 @@ export function SemanticRecommendations({ postId, className }: SemanticRecommend
                             )}
 
                             <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60">
-                                <span className="inline-flex items-center gap-1 font-medium">
+                                <span className={cn(
+                                    "inline-flex items-center gap-1 font-medium",
+                                    rec.is_tag_match ? "text-amber-600/90 dark:text-amber-400/90" : "text-sky-600/90 dark:text-sky-400/90"
+                                )}>
                                     <TrendingUp className="h-3 w-3 opacity-70" />
                                     {Math.round(rec.similarity * 100)}%
+                                    {rec.is_tag_match && (
+                                        <span className="text-[10px] opacity-75 font-normal ml-0.5">(标签)</span>
+                                    )}
                                 </span>
                                 <span className="inline-flex items-center gap-0.5">
                                     <Eye className="h-3 w-3 opacity-70" />

@@ -9,6 +9,7 @@ import {
     Award,
     BookOpen,
     Bot,
+    Box,
     Calculator,
     CheckCircle2,
     Code,
@@ -18,6 +19,7 @@ import {
     EyeOff,
     FileCode,
     FileText,
+    FlaskConical,
     GitMerge,
     Globe,
     GraduationCap,
@@ -98,7 +100,7 @@ export default function UpdatesPage() {
                 <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-4 md:ml-6 space-y-12">
 
                     {/* ╔══════════════════════════════════════════════════╗ */}
-                    {/* ║  v1.1.8 – 评论区@提及、Scholarly AI与公式模板 🚀  ║ */}
+                    {/* ║  v1.1.9 – 学术共创实验室、3D几何与行间学术批注 🚀 ║ */}
                     {/* ╚══════════════════════════════════════════════════╝ */}
                     <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
                         {/* Pulsing timeline dot for the latest version */}
@@ -108,15 +110,335 @@ export default function UpdatesPage() {
                         </div>
 
                         <div className="flex flex-col gap-3 mb-5">
-                            <time className="text-sm text-muted-foreground font-mono">2026-09-06</time>
+                            <time className="text-sm text-muted-foreground font-mono">2026-10-07</time>
                             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
                                 <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
-                                    v1.1.8
+                                    v1.1.9
                                 </span>
-                                <span className="text-foreground">— 评论区 @ 提及系统、交互式 Scholarly AI 学术智脑、零基础公式/函数面板与极简 AI 续写流光</span>
+                                <span className="text-foreground">— 学术共创实验室、Yjs CRDT 实时推演、3D 立体几何模型与行间划线学术批注</span>
                                 <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 animate-[pulse_2s_ease-in-out_infinite] text-xs px-3 py-1">
                                     <Sparkles className="w-3 h-3 mr-1" />
                                     最新版本
+                                </Badge>
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
+                                开启多人学术共创与高维空间推演的全新纪元。v1.1.9 重磅推出「学术共创实验室」，搭载自由分屏文献同读视口与基于 Yjs CRDT 的毫秒级多人在线笔记与公式推演工作台，支持学术成果联合署名发帖；编辑器迎来革命性的「3D 立体几何模型」引擎，在长文中直接嵌入可 360° 旋转、带空间透视遮挡与 LaTeX 标签的三维几何结构；全新上线「行间学术批注与边注微线程研讨」，支持正文与公式划词展开四维学术语义探讨；同时构建 AI 审稿 AST 内容快照与违规隔离申诉闭环防御体系。
+                            </p>
+                        </div>
+
+                        {/* Main Card with gradient border effect */}
+                        <div className="relative group mb-12">
+                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
+                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+
+                                <CardHeader className="pt-8">
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                                        全新功能与重大改进
+                                    </CardTitle>
+                                    <CardDescription>
+                                        学术共创实验室、Yjs CRDT 实时推演双栏工作台、3D 立体几何空间渲染引擎、行间学术批注与边注微线程研讨、AI 审稿快照回溯与申诉隔离。
+                                    </CardDescription>
+                                </CardHeader>
+
+                                <CardContent className="space-y-6 pb-8">
+                                    {/* Feature 1: 学术共创实验室 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                                                <FlaskConical className="w-4 h-4" />
+                                            </span>
+                                            学术共创实验室 (Scholarly Lab) 与 Yjs CRDT 实时推演工作台
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>赋能跨地域科研小组文献同读、联合推演与学术成果共同署名：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>多样化研讨室与密码准入</strong>：支持创建加密私密研讨室，涵盖「全能研讨」、「文献共读」与「协作白板」三大形态，研讨篇数与在席成员一目了然。</li>
+                                                <li><strong>自由分屏工作台</strong>：首创左侧文献研读与右侧协同推演双栏无缝联动，提供「研读 70%」、「对等 50%」、「笔记 75%」自由分屏调节。</li>
+                                                <li><strong>视口同频与在席感知</strong>：研读附件栏实时广播滚动视口位置并感知同频学者人数，支持一键注入学术评议（Critique）与提要（Summary）结构化模板。</li>
+                                                <li><strong>Yjs CRDT 毫秒级多端协同</strong>：去中心化冲突解决算法，支持多人同屏推演公式，实时彩色光标（Presence Cursors）动态追踪，自动云端持久化。</li>
+                                                <li><strong>研讨成果联合署名发帖</strong>：一键将推演成果转为论坛主贴，自动注入全员联合署名徽章（Co-Author Badge）与原始实验室溯源链接。</li>
+                                            </ul>
+
+                                            {/* Screenshots: Lab */}
+                                            <div className="mt-4 space-y-4">
+                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-2xl">
+                                                    <div className="relative aspect-[1024/355] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-9/lab-lobby-and-card.png"
+                                                            alt="学术共创实验室大厅与研究室卡片"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 800px"
+                                                            caption="学术共创实验室大厅：支持密码加密、全能研讨与实时成员状态追踪"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 学术共创实验室大厅：房间卡片、密码加密准入与研讨形态分类</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                        <div className="relative aspect-[1024/519] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                            <ZoomableImage
+                                                                src="/updates/v1-1-9/lab-coreading-and-collab-workspace.png"
+                                                                alt="文献共读与协同笔记双栏工作台"
+                                                                fill
+                                                                className="object-contain"
+                                                                sizes="(max-width: 768px) 100vw, 500px"
+                                                                caption="实验室双栏工作台：文献同读视口与 Yjs CRDT 协同推演区自由分屏"
+                                                            />
+                                                        </div>
+                                                        <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                            <span>▲ 实验室双栏工作台：文献共读与协同推演</span>
+                                                            <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                        <div className="relative aspect-[1024/519] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                            <ZoomableImage
+                                                                src="/updates/v1-1-9/lab-multiuser-presence-and-collab.png"
+                                                                alt="双学者同屏毫秒级协同与在席游标"
+                                                                fill
+                                                                className="object-contain"
+                                                                sizes="(max-width: 768px) 100vw, 500px"
+                                                                caption="双学者同屏协同推演实测：实时在席游标、无冲突公式推演与自动保存"
+                                                            />
+                                                        </div>
+                                                        <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                            <span>▲ 双学者同屏协同实测：实时游标与公式推演</span>
+                                                            <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 2: 3D 立体几何模型插入与空间渲染引擎 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                                                <Box className="w-4 h-4" />
+                                            </span>
+                                            交互式 3D 立体几何模型插入与空间渲染引擎 (Solid Geometry 3D Node)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>打破二维平面绘图局限，在学术文章中直接嵌入动态三维立体几何：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>斜杠指令一键插入模型</strong>：编辑器内键入 <code>/</code> 即刻唤出 3D 立体几何菜单，内置正方体体对角面、正四面体空间高线、直三棱柱倾斜截面、圆锥轴截面、空间直角坐标系等数理模型。</li>
+                                                <li><strong>360° 物理交互画布</strong>：支持鼠标左键拖拽旋转、滚轮无级缩放、右键平移，提供右上角一键复位正视视角、重置旋转、网格切换与全屏沉浸视口。</li>
+                                                <li><strong>空间透视虚实遮挡与截面光影</strong>：实线可见棱与虚线遮挡棱严格符合几何规范，不同色彩标定空间高线与体对角线，截面支持半透明光学漫反射着色。</li>
+                                                <li><strong>顶点 LaTeX 动态正投影标签</strong>：空间顶点（$A, B, C, D, A_1, B_1, C_1, D_1$ 及垂足 $O$）配备毛玻璃标签，视角旋转时始终正对观察者。</li>
+                                                <li><strong>参数化自由建模编辑器</strong>：学者可自由增删空间点、自定义棱线类型与截面多边形。</li>
+                                            </ul>
+
+                                            {/* Screenshots: 3D Solid Geometry */}
+                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                                <div className="md:col-span-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[256/330] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-9/editor-insert-solid-geometry-menu.png"
+                                                            alt="插入 3D 立体几何模型快捷下拉菜单"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 300px"
+                                                            caption="编辑器快捷插入 3D 立体几何模型：内置正方体、正四面体、三棱柱等经典数理模型"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 3D 模型快捷插入面板</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="md:col-span-8 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="relative aspect-[1024/426] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-9/solid-geometry-interactive-canvas.png"
+                                                            alt="3D 立体几何模型交互画布与透视截面渲染"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 600px"
+                                                            caption="3D 立体几何模型 360° 交互画布：空间虚实遮挡、LaTeX 标签与截面透视着色"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 3D 几何模型 360° 交互画布与截面着色渲染</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 3: 学术行间划线批注与边注微线程研讨系统 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                                                <MessageSquareCode className="w-4 h-4" />
+                                            </span>
+                                            学术行间划线批注与边注微线程研讨系统 (Inline Margin Notes)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>纸质文献般的批注体验，让学术推演与同行评审深入字里行间：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>划选即刻唤起灵感胶囊</strong>：鼠标划选任意自然语言或复杂 KaTeX 公式，即刻弹出黑曜石毛玻璃悬浮胶囊「添加批注 ✨」。</li>
+                                                <li><strong>四维学术研讨语义分类</strong>：
+                                                    <span className="inline-block ml-1">🔸 琥珀金（推导·释义）</span>、
+                                                    <span className="inline-block ml-1">🔹 天青蓝（存疑·反例）</span>、
+                                                    <span className="inline-block ml-1">🟢 翡翠绿（论据·佐证）</span>、
+                                                    <span className="inline-block ml-1">🟣 幽紫晶（猜想·延伸）</span>。
+                                                </li>
+                                                <li><strong>双模公式批注编辑器</strong>：支持「编辑 / 预览」极速切换，原生解析 Markdown 语法与 <code>$E=mc^2$</code> 公式，实时统计字数并自动锚定原文。</li>
+                                                <li><strong>正文-边注精准双向联动与状态流转</strong>：正文选区渲染对应语义微光底色，侧边栏以流体卡片流展示微线程，支持「全部 / 探讨中 / 已结题」全生命周期流转与 Realtime 毫秒级同步。</li>
+                                            </ul>
+
+                                            {/* Screenshots: Inline Annotations */}
+                                            <div className="mt-4 space-y-4">
+                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-xl">
+                                                    <div className="relative aspect-[816/186] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                        <ZoomableImage
+                                                            src="/updates/v1-1-9/inline-annotation-selection-bubble.png"
+                                                            alt="划选正文与公式唤起添加批注胶囊"
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="(max-width: 768px) 100vw, 600px"
+                                                            caption="正文与公式划词即刻唤出「添加批注 ✨」黑曜石毛玻璃悬浮胶囊"
+                                                        />
+                                                    </div>
+                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <span>▲ 划选正文与公式唤出「添加批注 ✨」悬浮胶囊</span>
+                                                        <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                                    <div className="md:col-span-5 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                        <div className="relative aspect-[520/517] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                            <ZoomableImage
+                                                                src="/updates/v1-1-9/inline-annotation-composer-modal.png"
+                                                                alt="添加行间学术批注弹窗"
+                                                                fill
+                                                                className="object-contain"
+                                                                sizes="(max-width: 768px) 100vw, 400px"
+                                                                caption="行间学术批注编辑弹窗：四维学术研讨分类、LaTeX 公式支持与实时预览"
+                                                            />
+                                                        </div>
+                                                        <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                            <span>▲ 行间学术批注编辑弹窗与四维分类</span>
+                                                            <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="md:col-span-7 space-y-4">
+                                                        <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                            <div className="relative aspect-[1024/384] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                                <ZoomableImage
+                                                                    src="/updates/v1-1-9/inline-annotation-thread-sidebar.png"
+                                                                    alt="正文划线高亮与侧边栏研讨微线程"
+                                                                    fill
+                                                                    className="object-contain"
+                                                                    sizes="(max-width: 768px) 100vw, 600px"
+                                                                    caption="正文划线微光高亮与侧边栏「行间研讨」面板双向联动微线程流"
+                                                                />
+                                                            </div>
+                                                            <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                                <span>▲ 正文划线高亮与侧边栏研讨微线程流</span>
+                                                                <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-sm">
+                                                            <div className="relative aspect-[348/289] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                                <ZoomableImage
+                                                                    src="/updates/v1-1-9/inline-annotation-empty-panel.png"
+                                                                    alt="侧边栏行间研讨空状态"
+                                                                    fill
+                                                                    className="object-contain"
+                                                                    sizes="(max-width: 768px) 100vw, 300px"
+                                                                    caption="侧边栏行间研讨空状态与研讨状态生命周期筛选（全部/探讨中/已结题）"
+                                                                />
+                                                            </div>
+                                                            <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                                <span>▲ 侧边栏行间研讨生命周期筛选</span>
+                                                                <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 4: AI 审稿内容快照与合规隔离防御体系 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                                                <ShieldCheck className="w-4 h-4" />
+                                            </span>
+                                            AI 审稿内容快照回溯与合规隔离防御体系 (Moderation Snapshot & Appeal System)
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>构建公正、严谨且可追溯的社区安全与申诉治理闭环：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>违规内容 AST 结构快照冻结 (<code>content_snapshot</code>)</strong>：当触发风险或拦截时，不可篡改地保存标题、TipTap AST 正文、封面与标签 JSONB 快照，为后台审计复核提供完整底账。</li>
+                                                <li><strong>深度 RLS 违规隔离与申诉流转</strong>：重构 <code>public.posts</code> 行级安全策略，全面隔离被隐藏帖子（<code>is_hidden</code>），杜绝公众越权，同时设立安全合规的作者申诉通道（Reports）。</li>
+                                                <li><strong>评论区动态风险锁死 (<code>is_locked</code>)</strong>：对争议帖一键启用全贴评论锁定，防止舆情蔓延。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <Separator className="bg-border/60" />
+
+                                    {/* Feature 5: 全栈架构加固与 Apple Liquid Glass 极致视觉 */}
+                                    <div className="space-y-3">
+                                        <h3 className="text-base font-bold flex items-center gap-2.5">
+                                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500">
+                                                <Zap className="w-4 h-4" />
+                                            </span>
+                                            全栈架构加固与 Apple Liquid Glass 极致视觉
+                                        </h3>
+                                        <div className="pl-10 text-sm text-muted-foreground space-y-2">
+                                            <p>追求极致丝滑交互与零瑕疵工程健壮度：</p>
+                                            <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                                <li><strong>根除 React Hydration Mismatch</strong>：对动态时间戳、复杂 Katex 节点与主题状态解耦水合，彻底消除控制台水合报错。</li>
+                                                <li><strong>Apple Liquid Glass 规范全方位贯彻</strong>：面板与模态框升级为大曲率无边框圆角（<code>rounded-2xl</code> / <code>rounded-3xl</code>），操作按钮统一为水滴流体胶囊（<code>rounded-full</code>），应用表面张力菲涅尔内高光与单色微光晕。</li>
+                                                <li><strong>移动端划词批注抽屉与响应式优化</strong>：针对触摸屏量身打造底部批注抽屉（<code>MobileAnnotationSheet</code>），单手触控自然顺畅。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* ╔══════════════════════════════════════════════════╗ */}
+                    {/* ║  v1.1.8 – 评论区@提及、Scholarly AI与公式模板 🚀  ║ */}
+                    {/* ╚══════════════════════════════════════════════════╝ */}
+                    <div className="relative pl-8 md:pl-12">
+                        {/* Static timeline dot */}
+                        <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary/40 ring-4 ring-background" />
+
+                        <div className="flex flex-col gap-3 mb-5">
+                            <time className="text-sm text-muted-foreground font-mono">2026-09-06</time>
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
+                                <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto]">
+                                    v1.1.8
+                                </span>
+                                <span className="text-foreground">— 评论区 @ 提及系统、交互式 Scholarly AI 学术智脑、零基础公式/函数面板与极简 AI 续写流光</span>
+                                <Badge variant="outline" className="text-xs font-normal">
+                                    正式版
                                 </Badge>
                             </h2>
                             <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">

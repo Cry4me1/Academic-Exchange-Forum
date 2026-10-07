@@ -372,7 +372,7 @@ export default function NovelViewer({
         <div
             ref={containerRef}
             className={cn(
-                "novel-viewer-container rich-text-content w-full relative",
+                "novel-viewer-container rich-text-content w-full relative [&_.ProseMirror-selectednode]:!bg-transparent [&_.ProseMirror-selectednode]:!outline-none [&_.ProseMirror-selectednode]:!shadow-none",
                 className ?? "bg-background"
             )}
         >
@@ -385,7 +385,7 @@ export default function NovelViewer({
                         editorProps={{
                             attributes: {
                                 class: cn(
-                                    "prose dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full",
+                                    "prose dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full [&_.ProseMirror-selectednode]:!bg-transparent [&_.ProseMirror-selectednode]:!outline-none [&_.ProseMirror-selectednode]:!shadow-none",
                                     editorClassName ?? "prose-lg"
                                 ),
                             },

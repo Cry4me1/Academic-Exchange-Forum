@@ -37,6 +37,7 @@ interface PostData {
     is_solved: boolean;
     is_help_wanted: boolean;
     is_pinned: boolean;
+    is_locked?: boolean;
     created_at: string;
     author: {
         id: string;
@@ -264,6 +265,7 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
                                     isHelpWanted={post.is_help_wanted}
                                     authorVipLevel={post.authorVipLevel}
                                     isPinned={post.is_pinned}
+                                    isLocked={post.is_locked}
                                     collections={post.collections}
                                 />
                             </motion.div>

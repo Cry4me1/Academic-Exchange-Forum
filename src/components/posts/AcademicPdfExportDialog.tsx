@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { MathText } from "@/components/ui/math-text";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -190,7 +191,7 @@ export function AcademicPdfExportDialog({
                     <div className="p-3 rounded-xl border border-border/40 bg-card flex items-center justify-between text-xs">
                         <div className="truncate mr-3">
                             <p className="font-semibold text-foreground truncate">
-                                {post.title}
+                                <MathText text={post.title} inlineOnly />
                             </p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">
                                 作者: {post.author.username} · 日期:{" "}

@@ -6,6 +6,7 @@ import {
     BookMarked,
     Crown,
     Flame,
+    FlaskConical,
     Home,
     MessageSquare,
     Settings,
@@ -31,6 +32,7 @@ export function MainNav() {
         { href: "/trending", label: tNav.trending, icon: Flame },
         { href: "/leaderboard", label: tNav.leaderboard, icon: Trophy },
         { href: "/duels", label: tNav.duels, icon: Swords },
+        { href: "/lab", label: tNav.lab, icon: FlaskConical, isLab: true },
         { href: "/messages", label: tNav.messages, icon: MessageSquare },
         { href: "/friends", label: tNav.friends, icon: Users },
         { href: "/favorites", label: tNav.favorites, icon: Bookmark },
@@ -66,7 +68,9 @@ export function MainNav() {
                                 ? "bg-white/90 dark:bg-zinc-800/90 text-zinc-950 dark:text-zinc-50 shadow-[inset_0_1px_0.5px_rgba(255,255,255,1),0_2px_8px_-1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(0,0,0,0.4)] backdrop-blur-md font-medium"
                                 : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/60 dark:hover:bg-zinc-800/40 font-medium",
                             item.isVip && !isActive && "text-amber-600/90 dark:text-amber-400/90 hover:bg-amber-500/10",
-                            item.isVip && isActive && "bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(245,158,11,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(245,158,11,0.25)]"
+                            item.isVip && isActive && "bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(245,158,11,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(245,158,11,0.25)]",
+                            item.isLab && !isActive && "text-violet-600/90 dark:text-violet-400/90 hover:bg-violet-500/10",
+                            item.isLab && isActive && "bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_8px_-1px_rgba(124,58,237,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_2px_8px_-1px_rgba(124,58,237,0.25)]"
                         )}
                     >
                         <span className="relative flex items-center justify-center shrink-0">
@@ -77,6 +81,7 @@ export function MainNav() {
                                         ? "text-zinc-900 dark:text-zinc-100"
                                         : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
                                     item.isVip && "text-amber-500",
+                                    item.isLab && "text-violet-500",
                                     showHighlight && "text-amber-500"
                                 )}
                                 strokeWidth={1.75}
@@ -91,6 +96,12 @@ export function MainNav() {
                         {showHighlight && (
                             <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-1.5 py-0.2 rounded-full font-medium">
                                 新
+                            </span>
+                        )}
+
+                        {item.isLab && (
+                            <span className="text-[10px] bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-1.5 py-0.2 rounded-full font-medium tracking-tight">
+                                实时
                             </span>
                         )}
 

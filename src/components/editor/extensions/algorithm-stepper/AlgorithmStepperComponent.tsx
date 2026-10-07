@@ -190,8 +190,9 @@ export function AlgorithmStepperComponent({
         }
     }, [activeStep?.formula]);
 
-    // 切换预设
+    // 切换预设（仅在可编辑模式下允许切换）
     const applyPreset = (presetKey: string) => {
+        if (!isEditable) return;
         const p = STEPPER_PRESETS[presetKey];
         if (!p) return;
         updateAttributes({
@@ -253,45 +254,48 @@ export function AlgorithmStepperComponent({
 
                 {/* 右侧操作区 */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                    {/* 预设模板菜单 */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                type="button"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full border-0 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-white/10 dark:hover:bg-white/15 text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer font-medium"
-                                title="切换算法与公式模板"
-                            >
-                                <Layers size={13} className="text-sky-500" />
-                                <span className="hidden sm:inline">常用模板</span>
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="z-[80] w-56 text-xs rounded-2xl border-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-xl p-1.5">
-                            <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
-                                经典算法与公式推演模板
-                            </DropdownMenuLabel>
-                            <DropdownMenuItem
-                                onClick={() => applyPreset("cpp-quicksort")}
-                                className="flex items-center gap-2 cursor-pointer rounded-xl"
-                            >
-                                <Code2 size={14} className="text-sky-500" />
-                                <span>C++ 快速排序双指针分区</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => applyPreset("cpp-binary-search")}
-                                className="flex items-center gap-2 cursor-pointer rounded-xl"
-                            >
-                                <Binary size={14} className="text-emerald-500" />
-                                <span>C++ 二分查找区间折半</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => applyPreset("math-euler")}
-                                className="flex items-center gap-2 cursor-pointer rounded-xl"
-                            >
-                                <Sigma size={14} className="text-purple-500" />
-                                <span>欧拉恒等式 (e^(iπ)+1=0) 推导</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    {/* 预设模板菜单（仅在作者编辑/发帖模式下显示，浏览帖子时隐藏以防意外覆盖） */}
+                    {isEditable && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full border-0 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-white/10 dark:hover:bg-white/15 text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer font-medium outline-none focus:outline-none ring-0"
+                                    title="切换算法与公式模板"
+                                >
+                                    <Layers size={13} className="text-sky-500" />
+                                    <span className="hidden sm:inline">常用模板</span>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="z-[80] w-56 text-xs rounded-2xl border-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-xl p-1.5 outline-none">
+                                <DropdownMenuLabel className="text-[11px] text-muted-foreground font-normal">
+                                    经典算法与公式推演模板
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    onClick={() => applyPreset("cpp-quicksort")}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl outline-none"
+                                >
+                                    <Code2 size={14} className="text-sky-500" />
+                                    <span>C++ 快速排序双指针分区</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => applyPreset("cpp-binary-search")}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl outline-none"
+                                >
+                                    <Binary size={14} className="text-emerald-500" />
+                                    <span>C++ 二分查找区间折半</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => applyPreset("math-euler")}
+                                    className="flex items-center gap-2 cursor-pointer rounded-xl outline-none"
+                                >
+                                    <Sigma size={14} className="text-purple-500" />
+                                    <span>欧拉恒等式 (e^(iπ)+1=0) 推导</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
 
                     {/* 作者端编辑步骤 */}
                     {isEditable && (
@@ -368,12 +372,13 @@ export function AlgorithmStepperComponent({
                             <React.Fragment key={step.id || idx}>
                                 <button
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         setActiveIndex(idx);
                                         setIsPlaying(false);
                                     }}
                                     className={cn(
-                                        "group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-all duration-300 border-0 cursor-pointer font-medium",
+                                        "group inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-all duration-300 border-0 cursor-pointer font-medium outline-none focus:outline-none ring-0",
                                         isCurrent
                                             ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-[0_4px_16px_rgba(0,0,0,0.22),inset_0_1px_1px_rgba(255,255,255,0.4)]"
                                             : isPast
@@ -512,41 +517,52 @@ export function AlgorithmStepperComponent({
 
                                             {/* 数组状态可视化卡片 */}
                                             {activeStep.arrayState && (
-                                                <div className="mb-4 p-3.5 rounded-2xl bg-white/85 dark:bg-zinc-900/85 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
+                                                <div className="mb-4 p-3 sm:p-3.5 rounded-2xl bg-white/85 dark:bg-zinc-900/85 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                                                     <div className="text-[11px] font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                                                         <Binary size={12} className="text-sky-500" />
                                                         <span>{activeStep.arrayState.label || "数组内存切片状态"}</span>
                                                     </div>
 
-                                                    {/* 数组格子序列 */}
-                                                    <div className="flex items-center gap-1.5 overflow-x-auto py-1">
-                                                        {activeStep.arrayState.items.map((val, cellIdx) => {
-                                                            const isHighlighted = activeStep.arrayState?.highlightIndices?.includes(cellIdx);
-                                                            const pointerLabel = activeStep.arrayState?.pointerLabels?.[cellIdx];
+                                                    {/* 数组格子序列（消除系统原生粗滚动条，动态紧凑排布防止截断） */}
+                                                    <div className="relative w-full overflow-hidden">
+                                                        <div className={cn(
+                                                            "flex items-center overflow-x-auto no-scrollbar scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 scroll-smooth w-full",
+                                                            activeStep.arrayState.items.length >= 6
+                                                                ? "gap-1 sm:gap-1.5 justify-start sm:justify-center"
+                                                                : "gap-1.5 justify-start sm:justify-center"
+                                                        )}>
+                                                            {activeStep.arrayState.items.map((val, cellIdx) => {
+                                                                const isHighlighted = activeStep.arrayState?.highlightIndices?.includes(cellIdx);
+                                                                const pointerLabel = activeStep.arrayState?.pointerLabels?.[cellIdx];
+                                                                const isDense = (activeStep.arrayState?.items.length || 0) >= 6;
 
-                                                            return (
-                                                                <div key={cellIdx} className="flex flex-col items-center gap-1">
-                                                                    <div
-                                                                        className={cn(
-                                                                            "w-9 h-9 rounded-xl flex items-center justify-center font-mono text-xs font-bold transition-all shadow-xs",
-                                                                            isHighlighted
-                                                                                ? "bg-sky-500 text-white scale-105 shadow-[0_2px_8px_rgba(14,165,233,0.35)]"
-                                                                                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
-                                                                        )}
-                                                                    >
-                                                                        {val}
-                                                                    </div>
-                                                                    <span className="text-[9px] font-mono text-zinc-400 select-none">
-                                                                        [{cellIdx}]
-                                                                    </span>
-                                                                    {pointerLabel && (
-                                                                        <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 whitespace-nowrap">
-                                                                            {pointerLabel}
+                                                                return (
+                                                                    <div key={cellIdx} className="flex flex-col items-center gap-1 shrink-0">
+                                                                        <div
+                                                                            className={cn(
+                                                                                "rounded-xl flex items-center justify-center font-mono font-bold transition-all shadow-xs",
+                                                                                isDense
+                                                                                    ? "w-8 h-8 sm:w-8.5 sm:h-8.5 text-[11px]"
+                                                                                    : "w-9 h-9 text-xs",
+                                                                                isHighlighted
+                                                                                    ? "bg-sky-500 text-white scale-105 shadow-[0_2px_8px_rgba(14,165,233,0.35)]"
+                                                                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
+                                                                            )}
+                                                                        >
+                                                                            {val}
+                                                                        </div>
+                                                                        <span className="text-[9px] font-mono text-zinc-400 select-none">
+                                                                            [{cellIdx}]
                                                                         </span>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
+                                                                        {pointerLabel && (
+                                                                            <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 whitespace-nowrap">
+                                                                                {pointerLabel}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
@@ -686,11 +702,12 @@ export function AlgorithmStepperComponent({
             )}>
                 <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         prevStep();
                         setIsPlaying(false);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border-0 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.1)] transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border-0 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.1)] transition-all cursor-pointer outline-none focus:outline-none ring-0"
                 >
                     <ChevronLeft size={14} />
                     <span>上一阶段</span>
@@ -700,9 +717,12 @@ export function AlgorithmStepperComponent({
                 <div className="flex items-center gap-3">
                     <button
                         type="button"
-                        onClick={() => setIsPlaying(!isPlaying)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsPlaying(!isPlaying);
+                        }}
                         className={cn(
-                            "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border-0",
+                            "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border-0 outline-none focus:outline-none ring-0",
                             isPlaying
                                 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25"
                                 : isPureMath
@@ -723,13 +743,13 @@ export function AlgorithmStepperComponent({
                         )}
                     </button>
 
-                    <span className="text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">
+                    <span className="text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400 select-none">
                         0{activeIndex + 1} / 0{steps.length} 步 · {Math.round(((activeIndex + 1) / steps.length) * 100)}%
                     </span>
 
                     {/* 全屏模式下的键盘快捷提示微胶囊 */}
                     {isModal && (
-                        <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-white/5 font-mono">
+                        <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-white/5 font-mono select-none">
                             ← / → 翻页 · 空格播放 · ESC 退出
                         </span>
                     )}
@@ -737,11 +757,12 @@ export function AlgorithmStepperComponent({
 
                 <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         nextStep();
                         setIsPlaying(false);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border-0 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.1)] transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border-0 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.1)] transition-all cursor-pointer outline-none focus:outline-none ring-0"
                 >
                     <span>下一阶段</span>
                     <ChevronRight size={14} />
@@ -770,11 +791,14 @@ export function AlgorithmStepperComponent({
     );
 
     return (
-        <NodeViewWrapper className="scholarly-algorithm-stepper-wrapper my-8 select-none">
+        <NodeViewWrapper
+            tabIndex={-1}
+            className="scholarly-algorithm-stepper-wrapper my-8 select-none outline-none focus:outline-none ring-0 focus:ring-0 focus-visible:outline-none focus-visible:ring-0 [&.ProseMirror-selectednode]:outline-none [&.ProseMirror-selectednode]:bg-transparent [&.ProseMirror-selectednode]:ring-0"
+        >
             {/* 行内视图卡片：Apple Liquid Glass 无边框流体毛玻璃 */}
             {isFullscreen ? (
                 /* 全屏时文内显示的优雅占位微岛，防止布局塌陷并提供快捷召回 */
-                <div className="relative overflow-hidden rounded-3xl border-0 w-full p-8 text-center bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl flex flex-col items-center justify-center gap-3 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.8)]">
+                <div className="relative overflow-hidden rounded-3xl border-0 w-full p-8 text-center bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl flex flex-col items-center justify-center gap-3 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.8)] outline-none focus:outline-none ring-0">
                     <div className="p-3 rounded-full bg-sky-500/10 text-sky-500">
                         <Maximize2 size={22} />
                     </div>
@@ -787,13 +811,13 @@ export function AlgorithmStepperComponent({
                     <button
                         type="button"
                         onClick={() => setIsFullscreen(false)}
-                        className="mt-1 px-4 py-1.5 rounded-full text-xs font-medium bg-zinc-950 text-white hover:bg-zinc-900 dark:bg-white dark:text-zinc-950 cursor-pointer transition-all shadow-sm"
+                        className="mt-1 px-4 py-1.5 rounded-full text-xs font-medium bg-zinc-950 text-white hover:bg-zinc-900 dark:bg-white dark:text-zinc-950 cursor-pointer transition-all shadow-sm outline-none focus:outline-none ring-0"
                     >
                         收起并返回正文
                     </button>
                 </div>
             ) : (
-                <div className="relative overflow-hidden rounded-3xl border-0 w-full flex flex-col transition-all duration-300 bg-white/80 dark:bg-zinc-900/75 backdrop-blur-2xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.07),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_20px_50px_-8px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.12)]">
+                <div className="relative overflow-hidden rounded-3xl border-0 w-full flex flex-col transition-all duration-300 bg-white/80 dark:bg-zinc-900/75 backdrop-blur-2xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.07),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_20px_50px_-8px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.12)] outline-none focus:outline-none ring-0">
                     {renderCardContent(false)}
                 </div>
             )}

@@ -18,24 +18,38 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "请先登录" }, { status: 401 });
     }
 
-    // 验证是房间成员
+    // 验证是房间成员或创建者
+    let isAuthorized = false;
     const { data: member } = await supabase
         .from("lab_members")
         .select("id")
         .eq("room_id", roomId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (!member) {
+    if (member) {
+        isAuthorized = true;
+    } else {
+        const { data: roomData } = await supabase
+            .from("lab_rooms")
+            .select("created_by")
+            .eq("id", roomId)
+            .maybeSingle();
+        if (roomData?.created_by === user.id) {
+            isAuthorized = true;
+        }
+    }
+
+    if (!isAuthorized) {
         return NextResponse.json({ error: "无权访问" }, { status: 403 });
     }
 
-    // 获取当前状态
+    // 获取当前状态（使用 maybeSingle 避免 0 行时抛出 PGRST116）
     const { data, error } = await supabase
         .from("lab_notes")
         .select("yjs_state, updated_at, updated_by")
         .eq("room_id", roomId)
-        .single();
+        .maybeSingle();
 
     if (error || !data) {
         // 没有保存过，返回空
@@ -76,15 +90,29 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "参数不完整" }, { status: 400 });
     }
 
-    // 验证成员身份
+    // 验证成员或创建者身份
+    let isAuthorized = false;
     const { data: member } = await supabase
         .from("lab_members")
         .select("id, role")
         .eq("room_id", roomId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (!member) {
+    if (member) {
+        isAuthorized = true;
+    } else {
+        const { data: roomData } = await supabase
+            .from("lab_rooms")
+            .select("created_by")
+            .eq("id", roomId)
+            .maybeSingle();
+        if (roomData?.created_by === user.id) {
+            isAuthorized = true;
+        }
+    }
+
+    if (!isAuthorized) {
         return NextResponse.json({ error: "无权操作" }, { status: 403 });
     }
 
@@ -127,9 +155,13 @@ export async function POST(request: NextRequest) {
         }
 
         // 清理旧的自动快照（保留最近50个）
-        await supabase.rpc("cleanup_old_lab_snapshots", {
-            target_room_id: roomId,
-        });
+        try {
+            await supabase.rpc("cleanup_old_lab_snapshots", {
+                target_room_id: roomId,
+            });
+        } catch (rpcErr) {
+            // 忽略 rpc 错误，不阻断正常返回
+        }
     }
 
     return NextResponse.json({ success: true });

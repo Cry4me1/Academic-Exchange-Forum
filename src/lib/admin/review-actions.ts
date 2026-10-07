@@ -21,6 +21,7 @@ export async function getReviewStats() {
     pendingCommentsRes,
     approvedCommentsRes,
     rejectedCommentsRes,
+    rejectedLogsRes,
     wordsRes,
   ] = await Promise.all([
     supabase.from("posts").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
@@ -29,8 +30,13 @@ export async function getReviewStats() {
     supabase.from("comments").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
     supabase.from("comments").select("id", { count: "exact", head: true }).eq("review_status", "approved"),
     supabase.from("comments").select("id", { count: "exact", head: true }).eq("review_status", "rejected"),
+    supabase.from("content_moderation_logs").select("id", { count: "exact", head: true }).eq("final_action", "auto_rejected"),
     supabase.from("sensitive_words").select("id", { count: "exact", head: true }).eq("is_active", true),
   ]);
+
+  const rejectedSnapshotsCount = rejectedLogsRes.count || 0;
+  const rejectedPostsCount = rejectedPostsRes.count || 0;
+  const rejectedCommentsCount = rejectedCommentsRes.count || 0;
 
   return {
     pendingCount: (pendingPostsRes.count || 0) + (pendingCommentsRes.count || 0),
@@ -39,9 +45,10 @@ export async function getReviewStats() {
     approvedCount: (approvedPostsRes.count || 0) + (approvedCommentsRes.count || 0),
     approvedPostsCount: approvedPostsRes.count || 0,
     approvedCommentsCount: approvedCommentsRes.count || 0,
-    rejectedCount: (rejectedPostsRes.count || 0) + (rejectedCommentsRes.count || 0),
-    rejectedPostsCount: rejectedPostsRes.count || 0,
-    rejectedCommentsCount: rejectedCommentsRes.count || 0,
+    rejectedCount: rejectedSnapshotsCount + rejectedPostsCount + rejectedCommentsCount,
+    rejectedPostsCount,
+    rejectedCommentsCount,
+    rejectedSnapshotsCount,
     activeWordsCount: wordsRes.count || 0,
   };
 }
@@ -448,6 +455,10 @@ export async function getModerationLogsList(options: {
       post_id,
       author_id,
       content_hash,
+      title,
+      content_snapshot,
+      cover_image,
+      tags,
       model_name,
       score,
       risk_level,
@@ -479,8 +490,51 @@ export async function getModerationLogsList(options: {
     .range(offset, offset + pageSize - 1);
 
   if (error) {
-    console.error("[getModerationLogsList] Error:", error);
-    throw new Error(`获取审核日志失败: ${error.message}`);
+    // 兼容回退：若数据库尚未执行新快照字段迁移，按基础字段查询
+    const fallbackRes = await supabase
+      .from("content_moderation_logs")
+      .select(
+        `
+        id,
+        post_id,
+        author_id,
+        content_hash,
+        model_name,
+        score,
+        risk_level,
+        reason,
+        detected_tags,
+        matched_sensitive_words,
+        final_action,
+        cost_tokens,
+        latency_ms,
+        is_cached,
+        created_at,
+        post:posts!content_moderation_logs_post_id_fkey(title),
+        profile:profiles!content_moderation_logs_author_id_fkey(username, avatar_url)
+      `,
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (fallbackRes.error) {
+      console.error("[getModerationLogsList] Error:", error);
+      throw new Error(`获取审核日志失败: ${error.message}`);
+    }
+
+    const formattedLogs = (fallbackRes.data || []).map((item: any) => ({
+      ...item,
+      post: Array.isArray(item.post) ? item.post[0] || null : item.post,
+      profile: Array.isArray(item.profile) ? item.profile[0] || null : item.profile,
+    }));
+
+    return {
+      logs: formattedLogs,
+      totalCount: fallbackRes.count || 0,
+      currentPage: page,
+      pageSize,
+    };
   }
 
   const formattedLogs = (data || []).map((item: any) => ({
@@ -650,3 +704,228 @@ export async function deleteSensitiveWord(id: string) {
   revalidatePath("/admin/sensitive-words");
   return { success: true };
 }
+
+export interface RejectedPostSnapshotItem {
+  id: string;
+  post_id: string | null;
+  author_id: string;
+  title: string | null;
+  content_snapshot: any;
+  cover_image: string | null;
+  tags: string[] | null;
+  score: number;
+  risk_level: string;
+  reason: string | null;
+  matched_sensitive_words: string[] | null;
+  final_action: string;
+  model_name: string;
+  cost_tokens: number;
+  latency_ms: number;
+  is_cached: boolean;
+  created_at: string;
+  profile: {
+    id: string;
+    username: string | null;
+    avatar_url: string | null;
+    email: string | null;
+  } | null;
+}
+
+/**
+ * 获取 AI 审核拦截 / 未通过的帖子内容快照列表
+ */
+export async function getRejectedPostSnapshots(options: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  riskLevel?: string;
+} = {}) {
+  await requireAdmin("moderator");
+  const { page = 1, pageSize = 15, search = "", riskLevel = "" } = options;
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("content_moderation_logs")
+    .select(
+      `
+      id,
+      post_id,
+      author_id,
+      content_hash,
+      title,
+      content_snapshot,
+      cover_image,
+      tags,
+      score,
+      risk_level,
+      reason,
+      detected_tags,
+      matched_sensitive_words,
+      final_action,
+      model_name,
+      cost_tokens,
+      latency_ms,
+      is_cached,
+      created_at,
+      profile:profiles!content_moderation_logs_author_id_fkey (
+        id,
+        username,
+        avatar_url,
+        email
+      )
+    `,
+      { count: "exact" }
+    )
+    .eq("final_action", "auto_rejected");
+
+  if (search) {
+    query = query.ilike("title", `%${search}%`);
+  }
+
+  if (riskLevel && riskLevel !== "all") {
+    query = query.eq("risk_level", riskLevel);
+  }
+
+  const offset = (page - 1) * pageSize;
+  const { data, count, error } = await query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + pageSize - 1);
+
+  if (error) {
+    console.error("[getRejectedPostSnapshots] Error:", error);
+    return {
+      snapshots: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize,
+    };
+  }
+
+  const snapshots: RejectedPostSnapshotItem[] = (data || []).map((item: any) => ({
+    ...item,
+    profile: Array.isArray(item.profile) ? item.profile[0] : item.profile,
+  }));
+
+  return {
+    snapshots,
+    totalCount: count || 0,
+    currentPage: page,
+    pageSize,
+  };
+}
+
+/**
+ * 管理员基于快照复核并人工放行帖子（将快照转为正式通过发布的帖子）
+ */
+export async function restoreRejectedPostFromSnapshot(logId: string, note: string = "") {
+  const admin = await requireAdmin("moderator");
+  const supabase = await createClient();
+
+  const { data: log, error: logError } = await supabase
+    .from("content_moderation_logs")
+    .select("*")
+    .eq("id", logId)
+    .single();
+
+  if (logError || !log) {
+    throw new Error("未找到该审核拦截快照记录");
+  }
+
+  if (!log.content_snapshot && !log.title) {
+    throw new Error("该记录未包含有效快照内容，无法直接恢复");
+  }
+
+  let targetPostId = log.post_id;
+
+  if (targetPostId) {
+    // 针对已有帖子（如修改时被AI误拦截）进行覆盖恢复与放行
+    const { error: updateError } = await supabase
+      .from("posts")
+      .update({
+        title: log.title,
+        content: log.content_snapshot,
+        cover_image: log.cover_image || null,
+        tags: log.tags || [],
+        review_status: "approved",
+        is_published: true,
+        reviewer_id: admin.id,
+        reviewer_note: note || "管理员人工基于快照审核放行",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", targetPostId);
+
+    if (updateError) {
+      throw new Error(`恢复帖子失败: ${updateError.message}`);
+    }
+  } else {
+    // 全新创建放行帖子
+    const { data: newPost, error: insertError } = await supabase
+      .from("posts")
+      .insert({
+        author_id: log.author_id,
+        title: log.title || "已恢复文章",
+        content: log.content_snapshot,
+        cover_image: log.cover_image || null,
+        tags: log.tags || [],
+        review_status: "approved",
+        is_published: true,
+        ai_score: log.score,
+        ai_risk_level: log.risk_level,
+        ai_reason: log.reason,
+        matched_sensitive_words: log.matched_sensitive_words || [],
+        reviewer_id: admin.id,
+        reviewer_note: note || "管理员人工基于快照审核放行并发布",
+        reviewed_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !newPost) {
+      throw new Error(`创建放行帖子失败: ${insertError?.message || "未知错误"}`);
+    }
+    targetPostId = newPost.id;
+  }
+
+  // 更新 content_moderation_logs 状态为人工放行
+  await supabase
+    .from("content_moderation_logs")
+    .update({
+      final_action: "manual_approved",
+      post_id: targetPostId,
+    })
+    .eq("id", logId);
+
+  // 记录管理员操作审计日志
+  await logAdminAction({
+    actionType: "post_snapshot_restored",
+    targetType: "post",
+    targetId: targetPostId,
+    details: { logId, note, author_id: log.author_id, title: log.title },
+  });
+
+  // 异步同步双向链接与向量
+  if (log.content_snapshot) {
+    await syncPostLinks(supabase, targetPostId, log.content_snapshot).catch(console.error);
+    await generatePostEmbedding(targetPostId, supabase).catch(console.error);
+  }
+
+  // 给作者发送系统通知
+  if (log.author_id) {
+    await supabase.from("notifications").insert({
+      user_id: log.author_id,
+      type: "system",
+      title: "被拦截文章经人工复核已放行",
+      content: `您之前提交的文章《${log.title || "学术文章"}》经管理员人工复核放行，已正式发布上线！${note ? `审核备注：${note}` : ""}`,
+      related_id: targetPostId,
+    });
+  }
+
+  revalidatePath("/admin/review");
+  revalidatePath("/admin/logs/moderation");
+  revalidatePath("/admin/posts");
+  revalidatePath(`/posts/${targetPostId}`);
+  revalidatePath("/dashboard");
+
+  return { success: true, postId: targetPostId };
+}
+

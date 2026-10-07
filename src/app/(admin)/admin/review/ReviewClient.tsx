@@ -49,6 +49,8 @@ import {
   rejectPostReview,
   approveCommentReview,
   rejectCommentReview,
+  restoreRejectedPostFromSnapshot,
+  type RejectedPostSnapshotItem,
 } from "@/lib/admin/review-actions";
 import { toast } from "sonner";
 import { extractPlainTextFromContent, extractImageUrls } from "@/lib/moderation/utils";
@@ -112,6 +114,7 @@ interface ReviewClientProps {
     rejectedCount: number;
     rejectedPostsCount?: number;
     rejectedCommentsCount?: number;
+    rejectedSnapshotsCount?: number;
     activeWordsCount: number;
   };
   posts: PostItem[];
@@ -120,10 +123,13 @@ interface ReviewClientProps {
   comments: CommentReviewItem[];
   commentsTotalCount: number;
   commentsCurrentPage: number;
+  rejectedSnapshots: RejectedPostSnapshotItem[];
+  rejectedTotalCount: number;
+  rejectedCurrentPage: number;
   pageSize: number;
   search: string;
   riskFilter: string;
-  activeTab: "posts" | "comments";
+  activeTab: "posts" | "comments" | "rejected";
 }
 
 export function ReviewClient({
@@ -134,13 +140,16 @@ export function ReviewClient({
   comments,
   commentsTotalCount,
   commentsCurrentPage,
+  rejectedSnapshots,
+  rejectedTotalCount,
+  rejectedCurrentPage,
   pageSize,
   search: initialSearch,
   riskFilter: initialRiskFilter,
   activeTab: initialTab,
 }: ReviewClientProps) {
   const router = useRouter();
-  const [tab, setTab] = useState<"posts" | "comments">(initialTab);
+  const [tab, setTab] = useState<"posts" | "comments" | "rejected">(initialTab);
   const [search, setSearch] = useState(initialSearch);
   const [isPending, startTransition] = useTransition();
 
@@ -158,11 +167,16 @@ export function ReviewClient({
   const [rejectCommentDialog, setRejectCommentDialog] = useState<CommentReviewItem | null>(null);
   const [rejectCommentReason, setRejectCommentReason] = useState("");
 
-  const currentTotal = tab === "posts" ? postsTotalCount : commentsTotalCount;
-  const currentPage = tab === "posts" ? postsCurrentPage : commentsCurrentPage;
+  // 拦截快照弹窗状态
+  const [previewSnapshot, setPreviewSnapshot] = useState<RejectedPostSnapshotItem | null>(null);
+  const [restoreDialog, setRestoreDialog] = useState<RejectedPostSnapshotItem | null>(null);
+  const [restoreNote, setRestoreNote] = useState("");
+
+  const currentTotal = tab === "posts" ? postsTotalCount : tab === "comments" ? commentsTotalCount : rejectedTotalCount;
+  const currentPage = tab === "posts" ? postsCurrentPage : tab === "comments" ? commentsCurrentPage : rejectedCurrentPage;
   const totalPages = Math.ceil(currentTotal / pageSize);
 
-  const handleTabChange = (nextTab: "posts" | "comments") => {
+  const handleTabChange = (nextTab: "posts" | "comments" | "rejected") => {
     setTab(nextTab);
     const params = new URLSearchParams();
     params.set("tab", nextTab);
@@ -258,6 +272,23 @@ export function ReviewClient({
     });
   };
 
+  // 拦截快照放行发布
+  const handleRestoreSnapshot = async () => {
+    if (!restoreDialog) return;
+    startTransition(async () => {
+      try {
+        await restoreRejectedPostFromSnapshot(restoreDialog.id, restoreNote);
+        toast.success("已基于内容快照成功恢复并发布该文章！");
+        setRestoreDialog(null);
+        setPreviewSnapshot(null);
+        setRestoreNote("");
+        router.refresh();
+      } catch (err: any) {
+        toast.error(err.message || "恢复操作失败");
+      }
+    });
+  };
+
   const getScoreBadge = (score: number | null) => {
     const val = score ?? 100;
     if (val >= 80) {
@@ -345,12 +376,19 @@ export function ReviewClient({
           </div>
         </div>
 
-        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-center gap-3">
+        <div
+          onClick={() => handleTabChange("rejected")}
+          className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-center gap-3 cursor-pointer hover:bg-red-500/10 transition-colors"
+          title="点击查看被拦截与驳回的快照队列"
+        >
           <div className="p-2.5 rounded-lg bg-red-500/10 text-red-600">
             <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground font-medium">已驳回/拦截</p>
+            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              已驳回/拦截快照
+              <ExternalLink className="h-3 w-3 opacity-60" />
+            </p>
             <p className="text-2xl font-bold text-foreground">{stats.rejectedCount}</p>
           </div>
         </div>
@@ -398,6 +436,20 @@ export function ReviewClient({
               </span>
             )}
           </Button>
+          <Button
+            variant={tab === "rejected" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => handleTabChange("rejected")}
+            className="gap-2 text-xs h-8"
+          >
+            <ShieldAlert className="h-4 w-4 text-red-500" />
+            拦截快照
+            {((stats.rejectedSnapshotsCount ?? rejectedTotalCount) > 0) && (
+              <span className="bg-red-500/20 text-red-600 dark:text-red-400 px-1.5 py-0.2 rounded-full text-[10px] font-semibold">
+                {stats.rejectedSnapshotsCount ?? rejectedTotalCount}
+              </span>
+            )}
+          </Button>
         </div>
 
         {/* 筛选与搜索 */}
@@ -405,7 +457,7 @@ export function ReviewClient({
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={tab === "posts" ? "搜索待审帖子标题..." : "搜索评论内容或帖子..."}
+              placeholder={tab === "posts" ? "搜索待审帖子标题..." : tab === "comments" ? "搜索评论内容或帖子..." : "搜索拦截快照标题..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -711,11 +763,162 @@ export function ReviewClient({
         </>
       )}
 
+      {/* 拦截帖子快照列表 */}
+      {tab === "rejected" && (
+        <>
+          {rejectedSnapshots.length === 0 ? (
+            <div className="rounded-3xl border-0 p-12 text-center bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
+              <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">暂无拦截帖子快照</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                当前没有被 AI 自动化安全初审拦截或违规驳回的帖子快照记录。
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {rejectedSnapshots.map((item) => {
+                const author = item.profile;
+                const plainText = extractPlainTextFromContent(item.content_snapshot);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-3xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] p-5 transition-all hover:shadow-[0_12px_40px_-6px_rgba(0,0,0,0.1)]"
+                  >
+                    <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
+                      {/* 左侧主要信息 */}
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {getScoreBadge(item.score)}
+                          {getRiskBadge(item.risk_level)}
+                          <Badge variant="outline" className="rounded-full border-0 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs px-2.5 py-0.5">
+                            <XCircle className="h-3 w-3 mr-1 inline" />
+                            AI 拦截快照
+                          </Badge>
+                          {item.matched_sensitive_words && item.matched_sensitive_words.length > 0 && (
+                            <Badge variant="destructive" className="rounded-full gap-1 text-xs">
+                              <AlertTriangle className="h-3 w-3" />
+                              命中敏感词: {item.matched_sensitive_words.join(", ")}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <h3 className="text-lg font-bold text-foreground">
+                              {item.title || "（未命名文章提交）"}
+                            </h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {plainText || "（暂无文本快照）"}
+                            </p>
+                          </div>
+                          {item.cover_image && (
+                            <div className="relative aspect-[16/9] w-28 sm:w-32 rounded-2xl overflow-hidden border-0 bg-muted shrink-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={item.cover_image}
+                                alt="文章封面"
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full bg-black/60 text-[9px] text-white">
+                                封面
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* AI 拦截依据 */}
+                        {item.reason && (
+                          <div className="p-3.5 rounded-2xl border-0 bg-red-500/5 dark:bg-red-950/20 text-xs text-muted-foreground flex items-start gap-2.5">
+                            <Sparkles className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <div>
+                                <span className="font-semibold text-foreground">AI 拦截判定依据：</span>
+                                <span className="text-red-600 dark:text-red-400 font-medium">{item.reason}</span>
+                              </div>
+                              <div className="text-[11px] text-muted-foreground/80 flex items-center gap-3">
+                                <span>审核模型: {item.model_name}</span>
+                                <span>•</span>
+                                <span>初审耗时: {item.latency_ms}ms</span>
+                                {item.cost_tokens > 0 && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Token消耗: {item.cost_tokens}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 作者与标签 */}
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={author?.avatar_url || undefined} />
+                              <AvatarFallback className="text-[10px]">
+                                {(author?.username || "U").slice(0, 1).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{author?.username || "学者"}</span>
+                          </div>
+                          <span>•</span>
+                          <span>
+                            拦截于 {item.created_at ? formatDistanceToNow(item.created_at) : "刚刚"}
+                          </span>
+                          {item.tags && item.tags.length > 0 && (
+                            <>
+                              <span>•</span>
+                              <div className="flex gap-1 flex-wrap">
+                                {item.tags.map((tag) => (
+                                  <Badge key={tag} variant="secondary" className="text-[10px] rounded-full border-0">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 右侧操作按钮 */}
+                      <div className="flex sm:flex-row lg:flex-col gap-2 w-full lg:w-auto shrink-0 justify-end pt-2 lg:pt-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPreviewSnapshot(item)}
+                          className="gap-1 text-xs rounded-full border-0 shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.8)]"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          查看内容快照
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setRestoreDialog(item)}
+                          className="gap-1 text-xs rounded-full border-0 bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_4px_16px_-2px_rgba(16,185,129,0.38),inset_0_1px_1px_rgba(255,255,255,0.38)]"
+                          disabled={isPending}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          人工放行发布
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
       {/* 分页 */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
           <p className="text-sm text-muted-foreground">
-            第 {currentPage} / {totalPages} 页（共 {currentTotal} 条待审）
+            第 {currentPage} / {totalPages} 页（共 {currentTotal} 条{tab === "rejected" ? "拦截快照" : "待审"}）
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -1067,6 +1270,197 @@ export function ReviewClient({
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               确认驳回
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 拦截帖子内容快照预览弹窗 */}
+      <Dialog open={!!previewSnapshot} onOpenChange={(open) => !open && setPreviewSnapshot(null)}>
+        <DialogContent className="max-w-3xl max-h-[88vh] flex flex-col border-0 rounded-3xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-[0_16px_64px_-12px_rgba(0,0,0,0.25)]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2 font-bold text-foreground">
+              <BookOpen className="h-5 w-5 text-primary" />
+              {previewSnapshot?.title || "帖子内容快照详情"}
+            </DialogTitle>
+            <DialogDescription>
+              作者：{previewSnapshot?.profile?.username || "学者"} |
+              拦截时间：{previewSnapshot?.created_at ? new Date(previewSnapshot.created_at).toLocaleString("zh-CN") : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-3 pr-1">
+            {/* AI 初审结果卡片 */}
+            <div className="p-4 rounded-2xl border-0 bg-red-500/5 dark:bg-red-950/20 text-sm space-y-2 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Sparkles className="h-4 w-4 text-red-500" />
+                <span className="font-semibold text-foreground">AI 拦截诊断：</span>
+                {getScoreBadge(previewSnapshot?.score ?? null)}
+                {getRiskBadge(previewSnapshot?.risk_level ?? null)}
+                <Badge variant="outline" className="rounded-full border-0 bg-red-500/10 text-red-600 text-xs px-2.5 py-0.5">
+                  自动拦截
+                </Badge>
+              </div>
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                {previewSnapshot?.reason}
+              </p>
+              {previewSnapshot?.matched_sensitive_words && previewSnapshot.matched_sensitive_words.length > 0 && (
+                <p className="text-xs text-red-500 font-semibold">
+                  ⚠️ 命中敏感词库：{previewSnapshot.matched_sensitive_words.join("、")}
+                </p>
+              )}
+              <div className="text-[11px] text-muted-foreground pt-1 flex items-center gap-3 flex-wrap">
+                <span>审核模型: {previewSnapshot?.model_name}</span>
+                <span>•</span>
+                <span>初审耗时: {previewSnapshot?.latency_ms}ms</span>
+                {(previewSnapshot?.cost_tokens ?? 0) > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>消耗 Token: {previewSnapshot?.cost_tokens}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 封面图预览 */}
+            {previewSnapshot?.cover_image && (
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">帖子封面图：</span>
+                <div className="relative aspect-[21/9] w-full max-h-48 rounded-2xl overflow-hidden border-0 bg-muted shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewSnapshot.cover_image}
+                    alt="封面图"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 正文快照渲染 */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">帖子正文快照：</span>
+              {previewSnapshot?.content_snapshot ? (
+                <div className="p-4 rounded-2xl border-0 bg-card/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                  {typeof previewSnapshot.content_snapshot === "object" && previewSnapshot.content_snapshot?.type === "doc" ? (
+                    <NovelViewer initialValue={previewSnapshot.content_snapshot} />
+                  ) : (
+                    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                      {extractPlainTextFromContent(previewSnapshot.content_snapshot)}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl text-center text-xs text-muted-foreground bg-muted/20">
+                  暂无正文快照数据
+                </div>
+              )}
+            </div>
+
+            {/* 提取配图图表 */}
+            {(() => {
+              const images = extractImageUrls(previewSnapshot?.content_snapshot);
+              if (images.length === 0) return null;
+              return (
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span>正文包含的插图 ({images.length} 张)：</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {images.map((src, i) => (
+                      <a
+                        key={i}
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group relative block aspect-video rounded-2xl overflow-hidden border-0 bg-muted/40 hover:opacity-90 transition-opacity shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]"
+                      >
+                        <img
+                          src={src}
+                          alt={`快照插图 ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full bg-black/60 text-[10px] text-white">
+                          点击放大
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
+            <Button variant="outline" className="rounded-full border-0" onClick={() => setPreviewSnapshot(null)}>
+              关闭
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-0 shadow-[0_4px_16px_-2px_rgba(16,185,129,0.38)]"
+              onClick={() => {
+                const target = previewSnapshot;
+                setPreviewSnapshot(null);
+                setRestoreDialog(target);
+              }}
+            >
+              人工放行并发布
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 确认放行发布弹窗 */}
+      <Dialog open={!!restoreDialog} onOpenChange={(open) => !open && setRestoreDialog(null)}>
+        <DialogContent className="max-w-md border-0 rounded-3xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg flex items-center gap-2 font-bold text-foreground">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              人工放行并发布文章
+            </DialogTitle>
+            <DialogDescription>
+              确定要将《{restoreDialog?.title || "该快照文章"}》从拦截状态恢复并正式公开发布到全站吗？
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label htmlFor="restore-note" className="text-xs">
+              放行备注（可选，将通知作者）：
+            </Label>
+            <Textarea
+              id="restore-note"
+              placeholder="如：经人工复核，文章属于合规学术讨论，予以放行。"
+              value={restoreNote}
+              onChange={(e) => setRestoreNote(e.target.value)}
+              className="text-xs min-h-[80px] rounded-2xl border-0 bg-muted/40 shadow-[inset_0_1px_0.5px_rgba(0,0,0,0.1)]"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              className="rounded-full border-0"
+              onClick={() => {
+                setRestoreDialog(null);
+                setRestoreNote("");
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-0 shadow-[0_4px_16px_-2px_rgba(16,185,129,0.38)]"
+              onClick={handleRestoreSnapshot}
+              disabled={isPending}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  处理中...
+                </>
+              ) : (
+                "确认放行并发布"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
