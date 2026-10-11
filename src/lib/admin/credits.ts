@@ -52,7 +52,12 @@ export interface VipLevelConfigRow {
   name: string;
   title: string;
   min_spent: number;
-  color_scheme: Record<string, string>;
+  min_exp?: number;
+  min_posts?: number;
+  min_likes?: number;
+  min_contributions?: number;
+  monthly_bonus?: number;
+  color_scheme?: Record<string, string>;
   perks: string[];
   is_active: boolean;
   updated_by: string | null;
@@ -472,6 +477,11 @@ export async function updateVipLevelConfig(
     name?: string;
     title?: string;
     min_spent?: number;
+    min_exp?: number;
+    min_posts?: number;
+    min_likes?: number;
+    min_contributions?: number;
+    monthly_bonus?: number;
     perks?: string[];
     is_active?: boolean;
   }
@@ -495,11 +505,11 @@ export async function updateVipLevelConfig(
     })
     .eq("level", level);
 
-  if (error) throw new Error(`更新 VIP 配置失败: ${error.message}`);
+  if (error) throw new Error(`更新学者等级配置失败: ${error.message}`);
 
-  // 重新同步所有用户的 VIP 等级（sync_all_vip_titles 仅 service_role 可调用）
+  // 重新同步所有用户的学者等级
   const adminClient = createAdminClient();
-  await adminClient.rpc("sync_all_vip_titles");
+  await adminClient.rpc("sync_all_scholar_levels");
 
   await logAdminAction({
     actionType: "vip_config_updated",
@@ -511,6 +521,18 @@ export async function updateVipLevelConfig(
     },
   });
 
+  revalidatePath("/admin/credits");
+  revalidatePath("/vip");
+  return { success: true };
+}
+
+/**
+ * 一键全网重新核算所有学者等级
+ */
+export async function recalculateAllScholarLevels() {
+  await requireAdmin("admin");
+  const adminClient = createAdminClient();
+  await adminClient.rpc("sync_all_scholar_levels");
   revalidatePath("/admin/credits");
   revalidatePath("/vip");
   return { success: true };

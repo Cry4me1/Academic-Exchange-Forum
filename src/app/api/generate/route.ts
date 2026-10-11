@@ -78,12 +78,22 @@ export async function POST(req: Request): Promise<Response> {
         return new Response("请先登录", { status: 401 });
     }
 
-    // 预检余额：至少需要最低消费积分
-    const { data: creditData } = await supabase
-        .from("user_credits")
-        .select("balance")
-        .eq("user_id", user.id)
-        .single();
+    // 预检余额与学者等级权限
+    const [creditRes, profileRes] = await Promise.all([
+        supabase
+            .from("user_credits")
+            .select("balance")
+            .eq("user_id", user.id)
+            .single(),
+        supabase
+            .from("profiles")
+            .select("vip_level")
+            .eq("id", user.id)
+            .single(),
+    ]);
+
+    const creditData = creditRes.data;
+    const userVipLevel = profileRes.data?.vip_level ?? 1;
 
     // 无积分记录或余额不足时拒绝（注册奖励由数据库触发器发放，
     // 老用户补发已由 20260228 迁移处理，此处不再以用户会话铸造积分）
@@ -102,10 +112,18 @@ export async function POST(req: Request): Promise<Response> {
         const prompt = body.prompt || "";
         const option = body.option || "zap";
         const command = body.command || "";
+        const requestedThinking = Boolean(body.thinking || body.mode === "thinking");
+        // 学者等级 Lv4+ 专享深度推理推演通道
+        const isThinking = requestedThinking && userVipLevel >= 4;
+
+        if (requestedThinking && userVipLevel < 4) {
+            console.warn(`[API Generate] 用户 ${user.id} (学者等级 Lv${userVipLevel}) 尝试调用深度推理思考链，已安全降级为极速模式`);
+        }
 
         console.log("[API Generate] prompt:", prompt);
         console.log("[API Generate] option:", option);
         console.log("[API Generate] command:", command);
+        console.log("[API Generate] isThinking:", isThinking, "(用户等级: Lv" + userVipLevel + ")");
 
         let messages: { role: "system" | "user"; content: string }[];
 
@@ -299,16 +317,21 @@ export async function POST(req: Request): Promise<Response> {
 
         const result = streamText({
             model: deepseek("deepseek-v4-flash"),
-            providerOptions: { deepseek: { thinking: { type: "disabled" } } },
+            providerOptions: {
+                deepseek: {
+                    thinking: { type: isThinking ? "enabled" : "disabled" },
+                },
+            },
             messages,
-            temperature: 0.7,
+            temperature: isThinking ? 0.6 : 0.7,
             onFinish: async ({ usage }) => {
                 // 流完成后根据实际 token 用量扣费
                 const totalTokens = usage?.totalTokens || ((usage?.inputTokens || 0) + (usage?.outputTokens || 0));
                 const creditCost = calculateCreditCost(totalTokens);
+                const modeSuffix = isThinking ? " (深度推理)" : "";
 
                 console.log(`[API Generate] Token 用量: input=${usage?.inputTokens}, output=${usage?.outputTokens}, total=${totalTokens}`);
-                console.log(`[API Generate] 积分消耗: ${creditCost} (功能: ${optionLabel})`);
+                console.log(`[API Generate] 积分消耗: ${creditCost} (功能: ${optionLabel}${modeSuffix})`);
 
                 try {
                     const { data: deductResult, error: deductError } = await supabase.rpc(
@@ -316,10 +339,12 @@ export async function POST(req: Request): Promise<Response> {
                         {
                             p_user_id: userId,
                             p_amount: creditCost,
-                            p_description: `Ask AI · ${optionLabel}`,
+                            p_description: `Ask AI · ${optionLabel}${modeSuffix}`,
                             p_metadata: {
                                 option,
                                 option_label: optionLabel,
+                                thinking_mode: isThinking,
+                                user_level: userVipLevel,
                                 input_tokens: usage?.inputTokens || 0,
                                 output_tokens: usage?.outputTokens || 0,
                                 total_tokens: totalTokens,

@@ -36,7 +36,7 @@ export const en: TranslationDictionary = {
         collections: "Collections",
         updates: "Changelog",
         profile: "Profile",
-        vip: "Ask AI · VIP",
+        vip: "Scholar Level",
         settings: "Settings",
         myProfile: "My Profile",
         logout: "Sign Out",

@@ -38,6 +38,13 @@ import {
     UserX,
     Users,
     Zap,
+    Coins,
+    CreditCard,
+    Receipt,
+    RefreshCw,
+    AlertCircle,
+    HelpCircle,
+    ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -47,11 +54,15 @@ export function RulesClient() {
     const searchParams = useSearchParams();
     const tabParam = searchParams.get("tab");
     const [currentTab, setCurrentTab] = useState<string>(
-        tabParam === "guidelines" ? "guidelines" : "terms"
+        tabParam === "guidelines"
+            ? "guidelines"
+            : tabParam === "credits"
+            ? "credits"
+            : "terms"
     );
 
     useEffect(() => {
-        if (tabParam === "guidelines" || tabParam === "terms") {
+        if (tabParam === "guidelines" || tabParam === "terms" || tabParam === "credits") {
             setCurrentTab(tabParam);
         }
     }, [tabParam]);
@@ -74,7 +85,7 @@ export function RulesClient() {
                             返回主页
                         </Link>
                     </Button>
-                    <Badge variant="outline" className="gap-1.5 py-1 px-3 border-primary/30 text-primary">
+                    <Badge variant="outline" className="gap-1.5 py-1 px-3 border-0 bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
                         <Sparkles className="w-3.5 h-3.5" />
                         法律文件 & 行为公约 v2026.1
                     </Badge>
@@ -82,7 +93,7 @@ export function RulesClient() {
 
                 {/* 页面主标题 */}
                 <div className="mb-8 text-center sm:text-left">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
                         <Shield className="w-3.5 h-3.5" />
                         Scholarly 平台治理与合规中心
                     </div>
@@ -90,26 +101,33 @@ export function RulesClient() {
                         法律协议与社区准则
                     </h1>
                     <p className="mt-3 text-base text-muted-foreground max-w-2xl leading-relaxed">
-                        Scholarly 致力于打造专业、严谨、开放且合规的学术交流共同体。请学者们仔细查阅下方用户协议与社区公约。
+                        Scholarly 致力于打造专业、严谨、开放且合规的学术交流共同体。请学者们仔细查阅下方用户协议、积分服务条款与社区公约。
                     </p>
                 </div>
 
-                {/* 双支柱 Tab 切换 */}
+                {/* 三支柱 Tab 切换 */}
                 <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full space-y-8">
-                    <TabsList className="grid w-full grid-cols-2 p-1.5 bg-muted/60 border border-border/60 rounded-xl h-auto">
+                    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 p-1.5 bg-muted/60 border-0 rounded-2xl h-auto backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.15)]">
                         <TabsTrigger
                             value="terms"
-                            className="py-3 px-4 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm sm:text-base flex items-center justify-center gap-2 transition-all"
+                            className="py-3 px-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
                         >
                             <ScrollText className="w-4 h-4 text-primary" />
-                            <span>📜 用户协议（法律文件）</span>
+                            <span>📜 用户协议</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="credits"
+                            className="py-3 px-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
+                        >
+                            <Coins className="w-4 h-4 text-amber-500" />
+                            <span>🪙 积分服务条款</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="guidelines"
-                            className="py-3 px-4 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm sm:text-base flex items-center justify-center gap-2 transition-all"
+                            className="py-3 px-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
                         >
                             <HeartHandshake className="w-4 h-4 text-emerald-500" />
-                            <span>📋 社区公约（行为准则）</span>
+                            <span>📋 社区公约</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -317,7 +335,337 @@ export function RulesClient() {
                     </TabsContent>
 
                     {/* ========================================================================= */}
-                    {/* TAB 2: 📋 社区公约（行为准则） */}
+                    {/* TAB 2: 🪙 积分服务条款（充值与虚拟权益条款） */}
+                    {/* ========================================================================= */}
+                    <TabsContent value="credits" className="space-y-6 focus-visible:outline-none">
+                        {/* 协议性质与快速指引卡片 */}
+                        <div className="rounded-3xl border-0 bg-amber-500/10 dark:bg-amber-500/5 p-6 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(245,158,11,0.08),inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
+                                    <Coins className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h3 className="font-bold text-lg text-foreground">
+                                            《Scholarly 积分与充值服务使用条款》
+                                        </h3>
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                                            生效版本 v2026.1
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        欢迎使用 Scholarly 学者积分充值与数字化特权服务。请您在充值或使用积分前，完整仔细阅读本协议。<strong>当您点击充值、勾选同意、输入支付凭证或以任何方式确认支付，即视为您已充分知悉并无保留同意本协议全部条款约束。</strong>
+                                    </p>
+                                    <div className="pt-2 flex flex-wrap gap-2 text-xs">
+                                        <span className="px-3 py-1 rounded-full bg-background/80 text-foreground/80 font-medium shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+                                            ⚠️ 非法定货币·不可提现
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full bg-background/80 text-foreground/80 font-medium shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+                                            🛡️ 7天未消费退款机制
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full bg-background/80 text-foreground/80 font-medium shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+                                            ⏳ 365天有效期·先进先出
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full bg-background/80 text-foreground/80 font-medium shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+                                            🔬 AI 学术辅助参考免责
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 第一条：服务定义与主体 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-primary/10 text-primary shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <BookOpen className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第一条：服务定义与主体</CardTitle>
+                                        <CardDescription>平台法律主体与服务凭证属性界定</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    1.1 <strong>服务主体：</strong>本协议由 Scholarly 学术论坛平台运营实体（以下简称“本平台”或“Scholarly”）与充值或使用积分服务的注册学者用户（以下简称“用户”或“您”）共同订立。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    1.2 <strong>学者积分（Scholarly Credits）：</strong>指用户通过法定货币在平台充值购买、或通过平台官方学术贡献奖励无偿获取的，<strong>仅限在 Scholarly 平台生态内兑换特定数字化学术计算、模型调用及增值特权服务的虚拟计量凭据</strong>。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    1.3 <strong>适用服务范围：</strong>积分可用于平台公示的数字化学术功能，包括但不限于 Ask AI 学术研讨、长文本论文深度解析、复杂公式/代码推理、学术竞技对决互动等专项增值算力服务。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第二条：积分法律性质与非货币属性（核心合规声明） */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <Scale className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第二条：积分法律性质与权利边界</CardTitle>
+                                        <CardDescription>虚拟资产定性与反金融化、反炒作严正声明</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm text-foreground/90 leading-relaxed">
+                                <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-900 dark:text-amber-200 font-semibold text-xs sm:text-sm shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                                    “Scholarly 积分属纯数字化虚拟服务凭据，绝非法定货币或金融投资品，不可转让、不可倒卖、严禁反向提现或兑换现金。”
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="p-4 rounded-2xl bg-muted/30 space-y-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                                        <h4 className="font-semibold text-foreground flex items-center gap-1.5">
+                                            <Ban className="w-4 h-4 text-rose-500" />
+                                            不可反向兑现与转让
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                            积分任何情况下均<strong>不支持提现为人民币或其他法定货币</strong>，不支持在不同账号之间转赠、继承、质押或出借，亦不支持任何场外黑市交易。
+                                        </p>
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-muted/30 space-y-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                                        <h4 className="font-semibold text-foreground flex items-center gap-1.5">
+                                            <ShieldAlert className="w-4 h-4 text-amber-500" />
+                                            严禁场外倒卖与套现
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                            任何未经平台许可的私下交易买卖积分行为均属严重违规。由此导致的一切账户被封禁、资金受骗等损失由违规用户完全自行承担。
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第三条：充值资费、计费标准与支付渠道 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <CreditCard className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第三条：充值资费与合规支付</CardTitle>
+                                        <CardDescription>兑换汇率、阶梯套餐及合法资金渠道规则</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    3.1 <strong>基准换算比例：</strong>平台积分与人民币基准兑换比例为：<strong>1 元人民币（CNY）= 10 学者积分</strong>。平台可能推出阶梯套餐或限时优惠，实际价格以支付界面实时展示为准。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    3.2 <strong>赠送积分规则：</strong>各充值套餐中附赠的额外积分属于平台向学者的无偿鼓励权益，<strong>不具有现金对价</strong>。在消费时系统将按规则扣减，任何退款计算中赠送积分均不折算任何退款金额。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    3.3 <strong>支付方式合规：</strong>用户充值必须使用由平台接入的、具有合法资质的第三方支付渠道（如支付宝、微信支付等）。严禁使用非法资金、涉案银行卡或恶意透支信用卡进行充值。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第四条：数字化在线交付与消费扣费确认 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <Receipt className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第四条：数字化即时交付与扣费确认</CardTitle>
+                                        <CardDescription>充值即时到账履约与服务调用实时扣除</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    4.1 <strong>即时交付确认：</strong>用户完成款项支付后，第三方支付机构返回支付凭证，系统将即时向用户账户注入相应积分。<strong>积分到账即表明数字化虚拟商品已交付完毕且合同主项履约完成</strong>。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    4.2 <strong>服务实时扣费：</strong>当用户调用 Ask AI、长文本研读或使用算力服务时，系统依据该功能当时公布的费率即时扣减账户积分。扣减操作在系统响应发起时生效且不可逆撤销。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    4.3 <strong>透明账单流水：</strong>用户可随时前往「个人中心 - 积分与资产」查验每一笔充值、赠送及消费消耗的明细日志与余额变动。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第五条：退款政策与售后规则（支付风控核心条款） */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <RefreshCw className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第五条：退款政策与售后保障</CardTitle>
+                                        <CardDescription>数字商品法定免退原则与 7 天未消费退款机制</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm text-foreground/90 leading-relaxed">
+                                <div className="p-4 rounded-2xl bg-purple-500/10 text-purple-900 dark:text-purple-200 font-semibold text-xs sm:text-sm shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                                    “根据《消费者权益保护法》第二十五条数字化商品原则，积分购买后仅在 7 天内且完全未产生任何消费的情况下支持退款；一经消费不支持退款。”
+                                </div>
+                                <div className="space-y-2.5 text-xs sm:text-sm text-muted-foreground">
+                                    <div className="flex items-start gap-2 p-3 rounded-2xl bg-muted/20">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <strong className="text-foreground">7 天全额无消费退款支持：</strong>
+                                            充值完成之日起 7 个自然日内，若该笔订单所获充值积分及赠送积分<strong>完全未被任何服务消耗使用</strong>，用户可联系平台客服申请退款。经系统核实验证后，平台扣除第三方支付通道收取的必要手续费（0.6%）后原路退回支付账户，处理周期为 3-5 个工作日。
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2 p-3 rounded-2xl bg-muted/20">
+                                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <strong className="text-foreground">明确不予支持退款的情形：</strong>
+                                            <ul className="list-disc list-inside mt-1 space-y-1 pl-1">
+                                                <li>自充值成功之日起已超过 7 个自然日；</li>
+                                                <li>充值所获积分已经发生任何消耗或调用（哪怕仅消耗 1 积分，该笔订单亦丧失未消费退款资格）；</li>
+                                                <li>免费获赠积分、系统活动奖励或社区学术成果贡献所获积分；</li>
+                                                <li>因严重违反社区公约或法律法规被封禁处罚的账户。</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2 p-3 rounded-2xl bg-muted/20">
+                                        <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                                        <div>
+                                            <strong className="text-foreground">异常交易申诉通道：</strong>
+                                            如遇因网络故障导致的“已扣款未到账”或“重复扣款”，用户可向官方提供扣款凭证与订单号，经核实后平台将在 24 小时内完成补单或原路退还重复支付款项。
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第六条：积分有效期与生命周期规则 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <Clock className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第六条：积分有效期与生命周期</CardTitle>
+                                        <CardDescription>365 天有效期与先进先出自动扣减原则</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    6.1 <strong>有效期时限：</strong>充值获取的积分自充值成功之日起算，<strong>有效期为 365 个自然日（1 年）</strong>。逾期未使用的积分将自动清零失效，请您及时规划使用。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    6.2 <strong>先进先出（FIFO）原则：</strong>为最大化保障用户权益，系统在扣除积分时，自动遵循“先进先出”顺序，优先扣除最临近失效日期的积分批次。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    6.3 <strong>账号注销清算：</strong>若用户主动申请注销 Scholarly 账号，账号内尚未消耗完毕的剩余积分将在注销成功时一并清空作废，平台不予折现或退款。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第七条：使用规范与安全反洗钱风控 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <ShieldAlert className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第七条：使用规范与反作弊风控</CardTitle>
+                                        <CardDescription>严禁洗钱、恶意套现与黑灰产攻击</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    7.1 <strong>禁止违规行为：</strong>用户在使用积分及充值服务时，严格禁止：
+                                </p>
+                                <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-muted-foreground pl-1">
+                                    <li>利用支付通道或系统 Bug 实施虚假支付、信用卡恶意套现、洗钱或金融诈骗；</li>
+                                    <li>使用脚本、外挂、爬虫等非正常工具批量自动化刷取积分或并发恶意消耗算力服务；</li>
+                                    <li>利用兑换的 AI 算力生成违法违规、侵犯国家安全、色情暴恐、侵犯知识产权或学术造假的内容。</li>
+                                </ul>
+                                <p className="text-muted-foreground">
+                                    7.2 <strong>处置措施：</strong>一经发现上述行为，Scholarly 有权立即冻结交易、追回非法获取的全部积分、停用账号功能直至永久封禁，并不予退款，同时保留依法追究法律责任的权利。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第八条：未成年人特别保护 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <Users className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第八条：未成年人特别保护条款</CardTitle>
+                                        <CardDescription>监护人责任与理性消费指导</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    8.1 若您为未满 18 周岁的未成年人，请在法定监护人的指导、陪同下阅读本条款，且<strong>必须获得法定监护人的明确同意后方可进行充值支付操作</strong>。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    8.2 法定监护人应履行好监护职责，妥善保管支付账户密码。若监护人发现被监护人未经允许进行大额充值，请及时联系客服提供监护人证明材料，平台将在法律规定框架内予以妥善核查处理。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第九条：AI 成果参考性质与免责声明 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <Sparkles className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第九条：AI 成果参考性质与免责声明</CardTitle>
+                                        <CardDescription>学术研讨参考定位与不可抗力免责</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    9.1 <strong>学术参考性说明：</strong>Scholarly 平台积分兑换的 AI 深度研读与计算分析成果均由人工智能模型计算生成，<strong>仅供学者进行科研探讨与灵感启发参考，不构成经过学术委员会同行评审的终局结论、亦不构成任何专业法律、医疗或商业建议</strong>。学者应当自行审慎验算与复核。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    9.2 <strong>不可抗力与运维：</strong>鉴于网络服务的特殊性，因电信运营商通信故障、大型 DDoS 恶意攻击、基础大模型上游接口临时熔断调整或支付通道系统升级等不可抗力导致的服务短暂波动，平台将积极组织维护抢修，并在合理范围内给予积分补偿，但不承担由此衍生的连带损失责任。
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* 第十条：条款修订、通知与管辖法律 */}
+                        <Card className="border-0 rounded-3xl bg-card/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
+                                        <Gavel className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">第十条：条款修订与法律管辖</CardTitle>
+                                        <CardDescription>规则更新公示机制与争议裁决约定</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                                <p className="text-muted-foreground">
+                                    10.1 <strong>条款修订：</strong>Scholarly 保留根据法律法规更新或平台运营实际需要调整积分资费与服务条款的权利。修改后的条款将在平台公示后生效。若用户在条款变更后继续充值或使用积分，即视为接受最新修订条款。
+                                </p>
+                                <p className="text-muted-foreground">
+                                    10.2 <strong>争议解决：</strong>本条款的订立、执行与解释均适用中华人民共和国大陆地区法律。因本条款履行产生的任何争议，双方应首先友好协商；协商不成的，任何一方均可向平台运营方住所地有管辖权的人民法院提起诉讼。
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ========================================================================= */}
+                    {/* TAB 3: 📋 社区公约（行为准则） */}
                     {/* ========================================================================= */}
                     <TabsContent value="guidelines" className="space-y-6 focus-visible:outline-none">
                         {/* 社区愿景卡片 */}

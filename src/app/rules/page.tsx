@@ -4,8 +4,8 @@ import { RulesClient } from "./RulesClient";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
-    title: "用户协议与社区公约 - Scholarly",
-    description: "Scholarly 学术论坛用户服务协议（法律文件）与社区行为准则公约",
+    title: "用户协议、积分服务条款与社区公约 - Scholarly",
+    description: "Scholarly 学术论坛用户服务协议、付费积分与充值服务条款（退款政策）与社区行为准则公约",
 };
 
 export default function CommunityRulesPage() {

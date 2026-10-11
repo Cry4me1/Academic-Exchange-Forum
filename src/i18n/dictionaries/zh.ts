@@ -36,7 +36,7 @@ export const zh: TranslationDictionary = {
         collections: "关注专栏",
         updates: "更新日志",
         profile: "个人中心",
-        vip: "Ask AI · VIP",
+        vip: "学者等级",
         settings: "设置",
         myProfile: "个人主页",
         logout: "退出登录",

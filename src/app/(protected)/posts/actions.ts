@@ -8,6 +8,7 @@ import { deleteImages, extractImageUrls, findRemovedImages } from "@/lib/storage
 import { syncPostLinks } from "@/lib/post-links";
 import { generatePostEmbedding } from "@/lib/post-embed";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { moderatePostContent } from "@/lib/moderation/engine";
 import { sendPendingReviewEmail } from "@/lib/email";
 import { extractTextFromContent } from "@/lib/extract-text";
@@ -73,6 +74,27 @@ export async function createPost(data: {
     const isApproved = moderation.reviewStatus === "approved";
     const academicMeta = extractAcademicMeta(data.content);
 
+    // 计算 PQS 帖子质量评分 (0-100)，避免纯刷量水帖
+    let pqsScore = 0;
+    const rawText = extractTextFromContent(data.content as any) || "";
+    const textLen = rawText.trim().length;
+    if (textLen >= 500) pqsScore += 30;
+    else if (textLen >= 200) pqsScore += 20;
+    else if (textLen >= 80) pqsScore += 10;
+
+    const academicElementsCount = academicMeta?.totalAcademicCount ?? 0;
+    if (academicElementsCount > 0) pqsScore += 25;
+    else if (JSON.stringify(data.content).includes("math") || JSON.stringify(data.content).includes("codeBlock")) pqsScore += 15;
+
+    if (JSON.stringify(data.content).includes("heading") || JSON.stringify(data.content).includes("bulletList")) pqsScore += 20;
+    else pqsScore += 10;
+
+    if (moderation.score >= 80) pqsScore += 25;
+    else if (moderation.score >= 60) pqsScore += 15;
+
+    pqsScore = Math.min(100, Math.max(0, pqsScore));
+    const isQualityApproved = pqsScore >= 60;
+
     const { data: post, error } = await supabase
         .from("posts")
         .insert({
@@ -91,8 +113,10 @@ export async function createPost(data: {
             matched_sensitive_words: moderation.matchedSensitiveWords,
             academic_meta: academicMeta,
             theorem_count: academicMeta.totalAcademicCount,
+            pqs_score: pqsScore,
+            is_quality_approved: isQualityApproved,
         })
-        .select("id, review_status, ai_score, ai_risk_level")
+        .select("id, review_status, ai_score, ai_risk_level, pqs_score")
         .single();
 
     if (error) {
@@ -125,7 +149,7 @@ export async function createPost(data: {
         });
     }
 
-    // 审核通过时，同步双向链接与同步生成 Embedding
+    // 审核通过时，同步双向链接、Embedding 与学者等级
     if (post?.id && isApproved) {
         await syncPostLinks(supabase, post.id, data.content).catch((err) => {
             console.error("[createPost] 同步双向链接失败:", err);
@@ -133,6 +157,14 @@ export async function createPost(data: {
         await generatePostEmbedding(post.id).catch((err) => {
             console.error("[createPost] 同步生成 Embedding 向量失败:", err);
         });
+
+        // 异步同步学者等级经验与晋升
+        try {
+            const adminClient = createAdminClient();
+            await adminClient.rpc("sync_scholar_level", { p_user_id: user.id });
+        } catch (err) {
+            console.error("[createPost] 同步学者等级失败:", err);
+        }
     }
 
     revalidatePath("/dashboard");

@@ -168,46 +168,111 @@ export function CreditRechargeDialog({
                         ))}
                     </div>
 
+                    {/* 渐变消融分割微光缝 */}
+                    <div className="my-5 h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-800/80 to-transparent" />
+
                     {/* 使用条款 */}
-                    <div className="mt-6 border-t border-zinc-800/60 pt-4">
-                        <button
-                            type="button"
-                            onClick={() => setShowTerms(!showTerms)}
-                            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                            <span>Scholarly 积分服务使用条款</span>
-                            <motion.span
-                                animate={{ rotate: showTerms ? 180 : 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="inline-block"
-                            >▾</motion.span>
-                        </button>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs">
+                            <button
+                                type="button"
+                                onClick={() => setShowTerms(!showTerms)}
+                                className="text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                            >
+                                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                                <span>Scholarly 积分服务使用条款与退款政策</span>
+                                <motion.span
+                                    animate={{ rotate: showTerms ? 180 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="inline-block text-[10px] text-zinc-500"
+                                >▾</motion.span>
+                            </button>
+
+                            <a
+                                href="/rules?tab=credits"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 hover:underline underline-offset-2"
+                            >
+                                <span>查看完整条款</span>
+                                <span>↗</span>
+                            </a>
+                        </div>
 
                         {showTerms && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="mt-3 text-[11px] text-zinc-600 leading-relaxed space-y-2 max-h-40 overflow-y-auto pr-2 scrollbar-thin"
+                                className="p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] text-[11px] text-zinc-400 leading-relaxed space-y-2.5 max-h-48 overflow-y-auto pr-2 scrollbar-thin"
                             >
-                                <p><strong className="text-zinc-400">1. 积分有效期：</strong>积分自充值日起 365 天内有效，到期未使用将自动失效。赠送积分不可转让、不可提现。</p>
-                                <p><strong className="text-zinc-400">2. 退款政策：</strong>已购买的积分仅在购买后 7 天内且未使用的情况下支持退款，退款将原路返回支付账户，处理时间为 3-5 个工作日。</p>
-                                <p><strong className="text-zinc-400">3. 使用规范：</strong>积分仅限用于 Scholarly 平台 Ask AI 功能调用，不可用于其他平台或服务。严禁利用 AI 功能生成违法违规内容。</p>
-                                <p><strong className="text-zinc-400">4. 服务调整：</strong>Scholarly 保留根据运营需要调整积分价格、兑换比例及服务内容的权利，调整前将提前 15 天通知用户。</p>
-                                <p><strong className="text-zinc-400">5. 隐私保护：</strong>我们严格保护您的支付信息与使用记录，详见《隐私政策》。您的 AI 对话内容不会用于训练模型。</p>
-                                <p><strong className="text-zinc-400">6. 免责声明：</strong>AI 生成内容仅供参考，不构成专业学术建议。用户应自行验证 AI 输出的准确性和完整性。</p>
+                                <p>
+                                    <strong className="text-zinc-200">1. 虚拟资产属性：</strong>
+                                    Scholarly 积分属纯数字化虚拟服务凭据，非任何法定货币或金融投资品。<strong>不可转让、不可倒卖、严禁反向提现或任何场外交易</strong>。
+                                </p>
+                                <p>
+                                    <strong className="text-zinc-200">2. 7 天未消费退款机制：</strong>
+                                    充值后 7 个自然日内且积分<strong>完全未产生任何消费或调用</strong>，可联系客服申请原路退款（扣除 0.6% 渠道手续费）。一经产生任何消费或超过 7 天，依据数字化商品属性不予退款。
+                                </p>
+                                <p>
+                                    <strong className="text-zinc-200">3. 365 天有效期与先进先出：</strong>
+                                    充值积分自到账起 365 个自然日内有效，逾期自动失效。扣费时系统自动遵循先进先出规则，优先消耗最临近到期的积分批次。
+                                </p>
+                                <p>
+                                    <strong className="text-zinc-200">4. 赠送积分规则：</strong>
+                                    充值套餐附赠积分及社区活动奖励积分属于无偿赠予，不具有现金对价，任何情况下均不支持折现或单独退款。
+                                </p>
+                                <p>
+                                    <strong className="text-zinc-200">5. AI 学术免责声明：</strong>
+                                    AI 大模型生成的研读分析与学术推导仅供科研参考，不构成同行评审结论或专业建议，学者应自行严谨审慎验证。
+                                </p>
+                                <p>
+                                    <strong className="text-zinc-200">6. 安全风控与反作弊：</strong>
+                                    严禁利用系统漏洞套现、信用卡恶意套现、洗钱或利用 AI 生成违规内容。违规者将被立即清空积分、终止服务并追究法律责任。
+                                </p>
+                                <div className="pt-1.5 border-t border-zinc-800/40 text-center">
+                                    <a
+                                        href="/rules?tab=credits"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] text-purple-400 hover:text-purple-300 font-medium hover:underline"
+                                    >
+                                        前往法务合规中心阅读《Scholarly 积分服务使用条款》全文 ↗
+                                    </a>
+                                </div>
                             </motion.div>
                         )}
                     </div>
 
-                    <div className="mt-4 flex items-center gap-4 justify-between">
-                        <p className="text-xs text-zinc-500 leading-relaxed max-w-[400px]">
-                            1 人民币 = 10 积分。支持支付宝支付。
-                            <br />购买即视为同意上述使用条款。
-                        </p>
+                    <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                        <div className="text-xs text-zinc-500 leading-relaxed">
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={true}
+                                    readOnly
+                                    className="rounded border-zinc-700 bg-zinc-900 text-purple-600 focus:ring-0 cursor-default"
+                                />
+                                <span className="text-zinc-400 text-[11px]">
+                                    我已阅读并同意
+                                    <a
+                                        href="/rules?tab=credits"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-purple-400 hover:underline mx-1"
+                                    >
+                                        《Scholarly 积分服务使用条款》
+                                    </a>
+                                    与退款政策
+                                </span>
+                            </label>
+                            <p className="text-[11px] text-zinc-500 mt-1">
+                                兑换比例：1 元人民币 = 10 积分。支持支付宝/微信合规支付。
+                            </p>
+                        </div>
                         <Button
                             disabled={true}
-                            className="bg-zinc-700 text-zinc-400 border-none min-w-[120px] h-11 text-base font-medium cursor-not-allowed opacity-70"
+                            className="bg-zinc-800 text-zinc-400 border-0 rounded-full min-w-[130px] h-11 text-sm font-medium cursor-not-allowed opacity-75 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                         >
                             支付功能即将上线
                         </Button>

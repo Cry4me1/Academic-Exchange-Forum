@@ -42,6 +42,7 @@ export async function POST(req: Request) {
                 INVALID_TARGET: "押注对象无效",
                 ALREADY_BET: "您已对本场决斗进行过下注",
                 INSUFFICIENT_REPUTATION: "信誉分不足",
+                REQUIRES_SCHOLAR_LV2: "需要达到学者等级 Lv2 及以上方可参与对决预测质押",
             };
             return NextResponse.json(
                 { error: messageMap[result.error ?? ""] ?? "下注失败" },

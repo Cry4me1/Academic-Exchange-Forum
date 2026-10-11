@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandInput, CommandList } from "@/components/ui/command";
 import { useCompletion } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Coins } from "lucide-react";
+import { ArrowUp, BrainCircuit, Coins, Lock, Sparkles, Zap } from "lucide-react";
 import { useEditor } from "novel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import AISelectorCommands from "./ai-selector-commands";
 import { AcademicAiStreamCapsule } from "./AcademicAiStreamCapsule";
 
 const MIN_CREDIT_COST = 8;
+type ModelMode = "fast" | "thinking";
 
 interface AISelectorProps {
     open: boolean;
@@ -33,14 +34,19 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
     const { editor } = useEditor();
     const [inputValue, setInputValue] = useState("");
     const [creditBalance, setCreditBalance] = useState<number | null>(null);
+    const [userLevel, setUserLevel] = useState<number>(1);
+    const [modelMode, setModelMode] = useState<ModelMode>("fast");
     const [showDeduction, setShowDeduction] = useState(false);
     const [deductedAmount, setDeductedAmount] = useState<number>(0);
     const prevBalanceRef = useRef<number | null>(null);
 
-    // 加载积分余额
+    // 加载积分余额与学者等级
     const refreshCredits = useCallback(async () => {
         const result = await getMyCredits();
         const newBalance = result.balance;
+        const level = ("scholarLevel" in result ? (result.scholarLevel as number) : (result as any).vipLevel) || 1;
+        setUserLevel(level);
+
         // 检测是否发生了扣费（余额减少了）
         if (prevBalanceRef.current !== null && newBalance < prevBalanceRef.current) {
             setDeductedAmount(prevBalanceRef.current - newBalance);
@@ -54,6 +60,20 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
     useEffect(() => {
         refreshCredits();
     }, [refreshCredits]);
+
+    // 读取本地偏好
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem("scholarly_ai_model_mode");
+            if (saved === "thinking" && userLevel >= 4) {
+                setModelMode("thinking");
+            } else if (userLevel < 4) {
+                setModelMode("fast");
+            }
+        } catch {
+            // ignore localStorage errors
+        }
+    }, [userLevel]);
 
     const { completion, complete, isLoading, error, stop } = useCompletion({
         api: "/api/generate",
@@ -106,6 +126,34 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         return () => window.removeEventListener("ai-generation-stop", handleStop);
     }, [stop]);
 
+    // 模式切换与等级特权校验
+    const handleSelectMode = (newMode: ModelMode) => {
+        if (newMode === "thinking") {
+            if (userLevel < 4) {
+                toast.info("深度思考推演通道需学者等级达到 Lv4 解锁", {
+                    description: `您当前学者等级为 Lv${userLevel}。通过发表高质研讨、积累同行认可与采纳即可晋升！`,
+                    action: {
+                        label: "查看特权",
+                        onClick: () => {
+                            window.location.href = "/vip";
+                        },
+                    },
+                });
+                return;
+            }
+            setModelMode("thinking");
+            try {
+                localStorage.setItem("scholarly_ai_model_mode", "thinking");
+            } catch {}
+            toast.success("已切换至 DeepSeek 深度思考推理模式 (长思维链推演)");
+        } else {
+            setModelMode("fast");
+            try {
+                localStorage.setItem("scholarly_ai_model_mode", "fast");
+            } catch {}
+        }
+    };
+
     // Handle initialOption execution
     useEffect(() => {
         if (initialOption && !completion && !isLoading && editor) {
@@ -132,10 +180,10 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                     return;
                 }
 
-                complete(text, { body: { option: "continue" } });
+                complete(text, { body: { option: "continue", thinking: modelMode === "thinking" } });
             }
         }
-    }, [initialOption, editor, completion, isLoading, complete, onOpenChange]);
+    }, [initialOption, editor, completion, isLoading, complete, onOpenChange, modelMode]);
 
     // Handle error display (skip 402 as it's handled by onError)
     useEffect(() => {
@@ -155,7 +203,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                     if (titleInput?.value?.trim()) text = `研讨命题：${titleInput.value.trim()}`;
                 }
                 if (text.trim()) {
-                    complete(text, { body: { option: "continue" } });
+                    complete(text, { body: { option: "continue", thinking: modelMode === "thinking" } });
                 }
             }
         };
@@ -164,7 +212,7 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
         return () => {
             window.removeEventListener("trigger-ai-continue", handleContinue);
         };
-    }, [editor, completion, isLoading, complete]);
+    }, [editor, completion, isLoading, complete, modelMode]);
 
     const hasCompletion = completion.length > 0;
 
@@ -175,11 +223,11 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
 
         if (completion) {
             complete(completion, {
-                body: { option: "zap", command: inputValue },
+                body: { option: "zap", command: inputValue, thinking: modelMode === "thinking" },
             }).then(() => setInputValue(""));
         } else if (selectedText || inputValue) {
             complete(selectedText || inputValue, {
-                body: { option: "zap", command: inputValue },
+                body: { option: "zap", command: inputValue, thinking: modelMode === "thinking" },
             }).then(() => setInputValue(""));
         } else {
             toast.error("请先选择文本或输入内容");
@@ -191,26 +239,88 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
     return (
         <Command
             className={cn(
-                "overflow-hidden transition-all duration-300 border border-zinc-200/80 dark:border-zinc-800 bg-background/95 backdrop-blur-xl shadow-2xl rounded-xl",
-                isLoading || hasCompletion ? "w-[380px] sm:w-[440px]" : "w-[350px]"
+                "overflow-hidden transition-all duration-300 border-0 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-2xl shadow-[0_20px_50px_-10px_rgba(0,0,0,0.18),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[0_24px_56px_-10px_rgba(0,0,0,0.7),inset_0_1px_0.5px_rgba(255,255,255,0.12)] rounded-3xl",
+                isLoading || hasCompletion ? "w-[400px] sm:w-[480px]" : "w-[360px] sm:w-[410px]"
             )}
         >
-            {/* ====== 积分与模型状态栏 ====== */}
-            <div className="flex items-center justify-between px-3.5 py-2 border-b border-border/60 bg-muted/20">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 dark:bg-emerald-400/80" />
-                    <span className="font-sans font-medium text-zinc-700 dark:text-zinc-300">DeepSeek 智述</span>
-                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                    <span className="text-[11px] text-zinc-400">起消 {MIN_CREDIT_COST} 积分</span>
+            {/* ====== 顶栏：水滴分段模型切换器与研讨积分 ====== */}
+            <div className="flex items-center justify-between px-3.5 py-2.5 bg-zinc-50/60 dark:bg-zinc-900/40 select-none">
+                {/* 模型模式水滴双联切换胶囊 (Liquid Glass Segmented Capsule) */}
+                <div className="relative flex items-center p-0.5 rounded-full bg-zinc-200/50 dark:bg-zinc-800/60 shadow-[inset_0_1px_1px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(0,0,0,0.3)]">
+                    {/* 极速模式按钮 */}
+                    <button
+                        type="button"
+                        onClick={() => handleSelectMode("fast")}
+                        className={cn(
+                            "relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors duration-200",
+                            modelMode === "fast"
+                                ? "text-zinc-900 dark:text-zinc-100"
+                                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                        )}
+                    >
+                        {modelMode === "fast" && (
+                            <motion.div
+                                layoutId="ai-model-mode-pill"
+                                className="absolute inset-0 rounded-full bg-white dark:bg-zinc-900 shadow-[0_2px_6px_rgba(0,0,0,0.08),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[0_2px_6px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.15)] -z-10"
+                                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                            />
+                        )}
+                        <Zap className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                        <span>极速撰写</span>
+                    </button>
+
+                    {/* 深度推理模式按钮 */}
+                    <button
+                        type="button"
+                        onClick={() => handleSelectMode("thinking")}
+                        className={cn(
+                            "relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors duration-200",
+                            modelMode === "thinking"
+                                ? "text-zinc-900 dark:text-zinc-100"
+                                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                        )}
+                        title={userLevel < 4 ? `需学者等级 Lv4 解锁 (当前 Lv${userLevel})` : "DeepSeek 深度思考长思维链"}
+                    >
+                        {modelMode === "thinking" && (
+                            <motion.div
+                                layoutId="ai-model-mode-pill"
+                                className="absolute inset-0 rounded-full bg-white dark:bg-zinc-900 shadow-[0_2px_6px_rgba(0,0,0,0.08),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[0_2px_6px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.15)] -z-10"
+                                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                            />
+                        )}
+                        <BrainCircuit className={cn(
+                            "h-3 w-3",
+                            modelMode === "thinking" ? "text-violet-600 dark:text-violet-400" : "text-zinc-400"
+                        )} />
+                        <span>深度思考</span>
+
+                        {/* 特权标签 / 加锁提示 */}
+                        {userLevel < 4 ? (
+                            <span className="flex items-center gap-0.5 px-1 py-0.2 rounded-full bg-zinc-200/80 dark:bg-zinc-700/80 text-[9px] font-mono text-zinc-500 dark:text-zinc-400">
+                                <Lock className="h-2 w-2" />
+                                Lv4
+                            </span>
+                        ) : (
+                            <span className="px-1 py-0.2 rounded-full bg-violet-100 dark:bg-violet-950/60 text-[9px] font-mono font-semibold text-violet-600 dark:text-violet-400">
+                                Lv4+
+                            </span>
+                        )}
+                    </button>
                 </div>
-                <div className="flex items-center gap-1.5 relative">
-                    <Coins className="h-3.5 w-3.5 text-amber-500/90" />
+
+                {/* 右侧：研讨积分余额微胶囊 */}
+                <div
+                    onClick={() => window.dispatchEvent(new CustomEvent("open-recharge-dialog"))}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-200/40 hover:bg-zinc-200/70 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors relative"
+                    title="点击管理/充值研讨积分"
+                >
+                    <Coins className="h-3 w-3 text-amber-500/90" />
                     <AnimatePresence mode="popLayout">
                         <motion.span
                             key={creditBalance}
-                            initial={{ y: -8, opacity: 0, scale: 0.8 }}
+                            initial={{ y: -6, opacity: 0, scale: 0.85 }}
                             animate={{ y: 0, opacity: 1, scale: 1 }}
-                            exit={{ y: 8, opacity: 0, scale: 0.8 }}
+                            exit={{ y: 6, opacity: 0, scale: 0.85 }}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             className={`text-xs font-semibold tabular-nums font-mono ${
                                 insufficientCredits ? "text-red-500" : "text-amber-600 dark:text-amber-400"
@@ -224,11 +334,11 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                     <AnimatePresence>
                         {showDeduction && (
                             <motion.span
-                                initial={{ opacity: 1, y: 0, x: 4 }}
-                                animate={{ opacity: 0, y: -20 }}
+                                initial={{ opacity: 1, y: 0, x: 2 }}
+                                animate={{ opacity: 0, y: -18 }}
                                 exit={{ opacity: 0 }}
                                 transition={{ duration: 1.5, ease: "easeOut" }}
-                                className="absolute -top-1 right-0 text-[10px] font-bold text-red-500 pointer-events-none whitespace-nowrap font-mono"
+                                className="absolute -top-1.5 right-1 text-[10px] font-bold text-red-500 pointer-events-none whitespace-nowrap font-mono"
                             >
                                 -{deductedAmount}
                             </motion.span>
@@ -237,12 +347,16 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                 </div>
             </div>
 
+            {/* 渐变消融微光缝 */}
+            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
             {/* ====== 核心生成与推演动效视图 ====== */}
             {(isLoading || hasCompletion) && (
                 <AcademicAiStreamCapsule
                     isLoading={isLoading}
                     completion={completion}
                     onStop={stop}
+                    isThinkingMode={modelMode === "thinking"}
                 />
             )}
 
@@ -258,7 +372,9 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                                 placeholder={
                                     insufficientCredits
                                         ? "积分不足，请先充值..."
-                                        : "让 AI 编辑或生成学术段落..."
+                                        : modelMode === "thinking"
+                                            ? "输入学术命题，开启深度长链推演..."
+                                            : "让 AI 编辑或生成学术段落..."
                                 }
                             />
                             <Button
@@ -288,7 +404,17 @@ export function AISelector({ onOpenChange, initialOption }: AISelectorProps) {
                                 completion={completion}
                             />
                         ) : (
-                            <AISelectorCommands onSelect={(value, option, command) => complete(value, { body: { option, command } })} />
+                            <AISelectorCommands
+                                onSelect={(value, option, command) =>
+                                    complete(value, {
+                                        body: {
+                                            option,
+                                            command,
+                                            thinking: modelMode === "thinking",
+                                        },
+                                    })
+                                }
+                            />
                         )}
                     </CommandList>
                 </>

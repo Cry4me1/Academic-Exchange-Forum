@@ -4,28 +4,38 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Square, Sparkles, Feather } from "lucide-react";
+import { BrainCircuit, Feather, Sparkles, Square } from "lucide-react";
 
 interface AcademicAiStreamCapsuleProps {
     isLoading: boolean;
     completion: string;
     onStop?: () => void;
+    isThinkingMode?: boolean;
 }
 
-// 典雅克制的学者沉思阶段
-const SCHOLARLY_STAGES = [
+// 极速写作模式阶段
+const FAST_STAGES = [
     { step: "01", label: "研读前文语境与命题主旨" },
-    { step: "02", label: "梳理学术逻辑与推演脉络" },
-    { step: "03", label: "组织凝练论据，行文成篇" },
+    { step: "02", label: "梳理学术逻辑与行文脉络" },
+    { step: "03", label: "组织凝练论据，润色成篇" },
+];
+
+// 深度推理思考模式阶段 (Lv4+ 专享特权)
+const REASONING_STAGES = [
+    { step: "01", label: "构造逻辑假定与命题约束" },
+    { step: "02", label: "展开深度推理与长思维链求证" },
+    { step: "03", label: "综合多维论据，收敛学术结论" },
 ];
 
 export function AcademicAiStreamCapsule({
     isLoading,
     completion,
     onStop,
+    isThinkingMode = false,
 }: AcademicAiStreamCapsuleProps) {
     const [stageIndex, setStageIndex] = useState(0);
     const hasCompletion = completion.length > 0;
+    const stages = isThinkingMode ? REASONING_STAGES : FAST_STAGES;
 
     // 首字等待阶段的状态机轮播（每 1.8 秒推进一次）
     useEffect(() => {
@@ -35,11 +45,11 @@ export function AcademicAiStreamCapsule({
         }
 
         const interval = setInterval(() => {
-            setStageIndex((prev) => (prev + 1) % SCHOLARLY_STAGES.length);
+            setStageIndex((prev) => (prev + 1) % stages.length);
         }, 1800);
 
         return () => clearInterval(interval);
-    }, [isLoading, hasCompletion]);
+    }, [isLoading, hasCompletion, stages.length]);
 
     return (
         <div className="relative w-full overflow-hidden bg-zinc-50/90 dark:bg-zinc-950/90 text-zinc-900 dark:text-zinc-100 select-none">
@@ -47,13 +57,17 @@ export function AcademicAiStreamCapsule({
             {isLoading && (
                 <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-zinc-200 dark:bg-zinc-800/80 overflow-hidden z-20">
                     <motion.div
-                        className="h-full w-1/3 bg-gradient-to-r from-transparent via-zinc-500/60 dark:via-zinc-300/80 to-transparent"
+                        className={
+                            isThinkingMode
+                                ? "h-full w-1/3 bg-gradient-to-r from-transparent via-violet-500/70 dark:via-violet-400/80 to-transparent"
+                                : "h-full w-1/3 bg-gradient-to-r from-transparent via-zinc-500/60 dark:via-zinc-300/80 to-transparent"
+                        }
                         animate={{
                             x: ["-100%", "300%"],
                         }}
                         transition={{
                             repeat: Infinity,
-                            duration: 2.2,
+                            duration: isThinkingMode ? 2.6 : 2.0,
                             ease: "easeInOut",
                         }}
                     />
@@ -65,9 +79,13 @@ export function AcademicAiStreamCapsule({
                 <div className="px-4 py-5 flex flex-col gap-3.5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Feather className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
-                            <span className="text-[11px] font-mono tracking-widest text-zinc-400 dark:text-zinc-500 uppercase">
-                                Scholarly 推演中
+                            {isThinkingMode ? (
+                                <BrainCircuit className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 animate-pulse" />
+                            ) : (
+                                <Feather className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+                            )}
+                            <span className="text-[11px] font-mono tracking-wider text-zinc-500 dark:text-zinc-400">
+                                {isThinkingMode ? "Deep Reasoning 深度推演中" : "Scholarly 极速撰写中"}
                             </span>
                         </div>
 
@@ -96,7 +114,7 @@ export function AcademicAiStreamCapsule({
                     <div className="h-6 flex items-center overflow-hidden">
                         <AnimatePresence mode="wait">
                             <motion.div
-                                key={stageIndex}
+                                key={`${isThinkingMode ? "reasoning" : "fast"}-${stageIndex}`}
                                 initial={{ opacity: 0, y: 8, filter: "blur(2px)" }}
                                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                                 exit={{ opacity: 0, y: -8, filter: "blur(2px)" }}
@@ -104,9 +122,9 @@ export function AcademicAiStreamCapsule({
                                 className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-sans"
                             >
                                 <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 px-1 py-0.5 rounded bg-zinc-200/60 dark:bg-zinc-800/60">
-                                    {SCHOLARLY_STAGES[stageIndex].step}
+                                    {stages[stageIndex].step}
                                 </span>
-                                <span>{SCHOLARLY_STAGES[stageIndex].label}</span>
+                                <span>{stages[stageIndex].label}</span>
                             </motion.div>
                         </AnimatePresence>
                     </div>
@@ -155,10 +173,14 @@ export function AcademicAiStreamCapsule({
                                     >
                                         <Sparkles className="h-3 w-3 text-amber-500/80 dark:text-amber-400/80" />
                                     </motion.div>
-                                    <span>撰写中 · {completion.length} 字</span>
+                                    <span>
+                                        {isThinkingMode ? "深度推理中" : "撰写中"} · {completion.length} 字
+                                    </span>
                                 </>
                             ) : (
-                                <span>生成完毕 · {completion.length} 字</span>
+                                <span>
+                                    {isThinkingMode ? "深度推演完毕" : "生成完毕"} · {completion.length} 字
+                                </span>
                             )}
                         </div>
 

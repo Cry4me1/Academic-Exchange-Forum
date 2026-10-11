@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -16,67 +15,38 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Crown,
+  Award,
   Edit,
   Loader2,
-  Save,
-  Star,
-  Trophy,
-  Sparkles,
-  Shield,
-  Gem,
-  Zap,
+  RefreshCw,
+  Plus,
+  Trash2,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { VipLevelConfigRow } from "@/lib/admin/credits";
-import { updateVipLevelConfig } from "@/lib/admin/credits";
+import { updateVipLevelConfig, recalculateAllScholarLevels } from "@/lib/admin/credits";
 
 interface Props {
   initialConfig: VipLevelConfigRow[];
   adminRole: string;
 }
 
-const levelIcons = [Star, Trophy, Sparkles, Shield, Gem, Zap];
-
-const levelGradients = [
-  "from-zinc-400 to-zinc-500",
-  "from-green-400 to-emerald-500",
-  "from-blue-400 to-cyan-500",
-  "from-purple-400 to-violet-500",
-  "from-amber-400 to-orange-500",
-  "from-rose-400 via-pink-500 to-fuchsia-500",
-];
-
-const levelBgGradients = [
-  "from-zinc-500/10 to-zinc-500/5",
-  "from-green-500/10 to-emerald-500/5",
-  "from-blue-500/10 to-cyan-500/5",
-  "from-purple-500/10 to-violet-500/5",
-  "from-amber-500/10 to-orange-500/5",
-  "from-rose-500/10 to-pink-500/5",
-];
-
-const levelBorderColors = [
-  "border-zinc-400/30",
-  "border-green-400/30",
-  "border-blue-400/30",
-  "border-purple-400/30",
-  "border-amber-400/30",
-  "border-rose-400/30",
-];
-
 export function VipConfigPanel({ initialConfig, adminRole }: Props) {
   const [config, setConfig] = useState(initialConfig);
-  const [editingLevel, setEditingLevel] = useState<VipLevelConfigRow | null>(
-    null
-  );
+  const [editingLevel, setEditingLevel] = useState<VipLevelConfigRow | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isRecalculating, startRecalculateTransition] = useTransition();
 
   // 编辑表单状态
   const [editForm, setEditForm] = useState({
     name: "",
     title: "",
-    min_spent: 0,
+    min_exp: 0,
+    min_posts: 0,
+    min_likes: 0,
+    min_contributions: 0,
+    monthly_bonus: 100,
     perks: [] as string[],
     is_active: true,
     newPerk: "",
@@ -87,7 +57,11 @@ export function VipConfigPanel({ initialConfig, adminRole }: Props) {
     setEditForm({
       name: level.name,
       title: level.title,
-      min_spent: level.min_spent,
+      min_exp: level.min_exp ?? 0,
+      min_posts: level.min_posts ?? 0,
+      min_likes: level.min_likes ?? 0,
+      min_contributions: level.min_contributions ?? 0,
+      monthly_bonus: Number(level.monthly_bonus ?? 100),
       perks: [...level.perks],
       is_active: level.is_active,
       newPerk: "",
@@ -102,12 +76,15 @@ export function VipConfigPanel({ initialConfig, adminRole }: Props) {
         await updateVipLevelConfig(editingLevel.level, {
           name: editForm.name,
           title: editForm.title,
-          min_spent: editForm.min_spent,
+          min_exp: editForm.min_exp,
+          min_posts: editForm.min_posts,
+          min_likes: editForm.min_likes,
+          min_contributions: editForm.min_contributions,
+          monthly_bonus: editForm.monthly_bonus,
           perks: editForm.perks,
           is_active: editForm.is_active,
         });
 
-        // 更新本地状态
         setConfig((prev) =>
           prev.map((c) =>
             c.level === editingLevel.level
@@ -115,7 +92,11 @@ export function VipConfigPanel({ initialConfig, adminRole }: Props) {
                   ...c,
                   name: editForm.name,
                   title: editForm.title,
-                  min_spent: editForm.min_spent,
+                  min_exp: editForm.min_exp,
+                  min_posts: editForm.min_posts,
+                  min_likes: editForm.min_likes,
+                  min_contributions: editForm.min_contributions,
+                  monthly_bonus: editForm.monthly_bonus,
                   perks: editForm.perks,
                   is_active: editForm.is_active,
                 }
@@ -124,11 +105,20 @@ export function VipConfigPanel({ initialConfig, adminRole }: Props) {
         );
 
         setEditingLevel(null);
-        toast.success(`V${editingLevel.level} 配置已更新`);
+        toast.success(`Lv${editingLevel.level} 学者配置已更新并同步`);
       } catch (err) {
-        toast.error(
-          `保存失败: ${err instanceof Error ? err.message : "未知错误"}`
-        );
+        toast.error(`保存失败: ${err instanceof Error ? err.message : "未知错误"}`);
+      }
+    });
+  };
+
+  const handleRecalculateAll = () => {
+    startRecalculateTransition(async () => {
+      try {
+        await recalculateAllScholarLevels();
+        toast.success("全站学者等级已根据最新门槛重新核算完毕！");
+      } catch (err) {
+        toast.error(`全网重算失败: ${err instanceof Error ? err.message : "未知错误"}`);
       }
     });
   };
@@ -152,286 +142,226 @@ export function VipConfigPanel({ initialConfig, adminRole }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* 说明 */}
-      <div className="flex items-center justify-between">
+      {/* 顶部标题与一键重算运维 CTA */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Crown className="h-4 w-4 text-amber-500" />
-            VIP 等级配置
+          <h3 className="text-base font-semibold flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+            <Award className="h-5 w-5 text-zinc-500" />
+            学者等级体系与阶梯门槛
           </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            配置 VIP 等级的名称、阈值和特权，点击卡片右上角编辑按钮修改
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            由学术产出、同行认可与社区共建三维驱动，支持调整各等级 EXP 阈值、硬性门槛与每月研讨津贴
           </p>
         </div>
+
+        <Button
+          onClick={handleRecalculateAll}
+          disabled={isRecalculating}
+          className="h-9 px-4 rounded-full border-0 text-xs font-medium bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)] shrink-0"
+        >
+          {isRecalculating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              正在全网重新核算...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-3.5 w-3.5 mr-2" />
+              一键全站重新核算等级
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* VIP 等级卡片网格 */}
+      {/* 学者等级阶梯卡片群 (Lv1 ~ Lv6 纯中性 Apple Liquid Glass 风格) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {config.map((level, index) => {
-          const Icon = levelIcons[index] ?? Star;
-          const gradient = levelGradients[index] ?? levelGradients[0];
-          const bgGradient = levelBgGradients[index] ?? levelBgGradients[0];
-          const borderColor = levelBorderColors[index] ?? levelBorderColors[0];
-
-          return (
-            <Card
-              key={level.level}
-              className={`relative overflow-hidden border ${borderColor} bg-gradient-to-br ${bgGradient} transition-all duration-300 hover:shadow-lg ${
-                !level.is_active ? "opacity-60" : ""
-              }`}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}
-                    >
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {level.name}
-                        {!level.is_active && (
-                          <Badge variant="outline" className="text-[10px]">
-                            已禁用
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {level.title}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => openEdit(level)}
-                    className="h-8 w-8 shrink-0"
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                {/* 消费阈值 */}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">消费阈值</span>
-                  <span className="font-bold">
-                    {level.min_spent.toLocaleString("zh-CN")} 积分
-                  </span>
-                </div>
-
-                {/* 特权列表 */}
-                <div className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">等级特权</p>
-                  <div className="flex flex-wrap gap-1">
-                    {level.perks.map((perk, i) => (
-                      <Badge
-                        key={i}
-                        variant="outline"
-                        className="text-[10px] bg-background/50"
-                      >
-                        {perk}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* 等级阈值对比 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">等级阈值对比</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {config.map((level, index) => {
-              const maxThreshold = Math.max(...config.map((c) => c.min_spent));
-              // 使用对数刻度使小值也能清晰展示
-              const logMax = Math.log10(Math.max(maxThreshold, 1) + 1);
-              const logVal = Math.log10(Math.max(level.min_spent, 0) + 1);
-              const percentage = logMax > 0 ? (logVal / logMax) * 100 : 0;
-              // 确保最小宽度，即使 0 也有一个小条
-              const barWidth = Math.max(percentage, 8);
-              const gradient = levelGradients[index] ?? levelGradients[0];
-
-              return (
-                <div key={level.level} className="flex items-center gap-3">
-                  <span className="text-xs font-medium w-16 shrink-0">
-                    {level.name}
-                  </span>
-                  <div className="flex-1 h-7 rounded-full bg-muted/50 overflow-hidden relative">
-                    <div
-                      className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-700 ease-out flex items-center pr-2`}
-                      style={{ width: `${barWidth}%` }}
-                    >
-                      <span className="text-[10px] font-bold text-white drop-shadow-sm ml-auto whitespace-nowrap">
-                        {level.min_spent.toLocaleString("zh-CN")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-3">
-            * 图表使用对数刻度展示，便于比较不同等级间的差异
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* 编辑对话框 */}
-      <Dialog
-        open={!!editingLevel}
-        onOpenChange={(open) => !open && setEditingLevel(null)}
-      >
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-amber-500" />
-              编辑 {editingLevel?.name} 配置
-            </DialogTitle>
-            <DialogDescription>
-              修改 VIP 等级 {editingLevel?.level} 的相关配置
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* 等级名称 */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="vip-name">等级名称</Label>
-                <Input
-                  id="vip-name"
-                  value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="V1"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="vip-title">称号</Label>
-                <Input
-                  id="vip-title"
-                  value={editForm.title}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, title: e.target.value }))
-                  }
-                  placeholder="学术新星"
-                />
-              </div>
-            </div>
-
-            {/* 消费阈值 */}
-            <div className="space-y-2">
-              <Label htmlFor="vip-threshold">消费阈值 (积分)</Label>
-              <Input
-                id="vip-threshold"
-                type="number"
-                min={0}
-                value={editForm.min_spent}
-                onChange={(e) =>
-                  setEditForm((prev) => ({
-                    ...prev,
-                    min_spent: parseInt(e.target.value) || 0,
-                  }))
-                }
-              />
-            </div>
-
-            {/* 特权管理 */}
-            <div className="space-y-2">
-              <Label>等级特权</Label>
-              <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-lg border bg-muted/30">
-                {editForm.perks.map((perk, i) => (
-                  <Badge
-                    key={i}
-                    variant="outline"
-                    className="text-xs cursor-pointer hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
-                    onClick={() => removePerk(i)}
-                  >
-                    {perk} ×
-                  </Badge>
-                ))}
-                {editForm.perks.length === 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    暂无特权
+        {config.map((level) => (
+          <div
+            key={level.level}
+            className={`rounded-2xl border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-xl p-5 space-y-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_4px_20px_-2px_rgba(0,0,0,0.3)] transition-all ${
+              !level.is_active ? "opacity-60" : ""
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl font-bold font-mono text-zinc-900 dark:text-zinc-100">
+                  {level.name}
+                </span>
+                {!level.is_active && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
+                    已禁用
                   </span>
                 )}
               </div>
-              <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openEdit(level)}
+                className="h-7 w-7 rounded-full text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            {/* 门槛网格 */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
+                <span className="text-[10px] text-zinc-400 block">综合 EXP</span>
+                <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                  {level.min_exp ?? 0}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
+                <span className="text-[10px] text-zinc-400 block">每月研讨津贴</span>
+                <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                  +{level.monthly_bonus ?? 100} 积分
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
+                <span className="text-[10px] text-zinc-400 block">有效发帖要求</span>
+                <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                  $\ge$ {level.min_posts ?? 0} 篇
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
+                <span className="text-[10px] text-zinc-400 block">累计获赞要求</span>
+                <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                  $\ge$ {level.min_likes ?? 0} 次
+                </span>
+              </div>
+            </div>
+
+            {/* 渐变消融微光缝 */}
+            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
+            {/* 特权清单 */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] text-zinc-400 font-medium">特权配置</span>
+              <div className="flex flex-wrap gap-1">
+                {level.perks.map((perk, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+                  >
+                    {perk}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 编辑学者等级模态弹窗 */}
+      <Dialog open={!!editingLevel} onOpenChange={(open) => !open && setEditingLevel(null)}>
+        <DialogContent className="max-w-md rounded-3xl border-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.85),0_16px_48px_-8px_rgba(0,0,0,0.2)] p-6 space-y-4">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              配置 {editingLevel?.name} 学者等级
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              设置该等级的晋升经验、硬性学术门槛以及每月津贴
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 text-xs">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="cfg-exp">所需综合 EXP</Label>
                 <Input
-                  placeholder="添加新特权..."
-                  value={editForm.newPerk}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({
-                      ...prev,
-                      newPerk: e.target.value,
-                    }))
-                  }
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && (e.preventDefault(), addPerk())
-                  }
-                  className="text-sm"
+                  id="cfg-exp"
+                  type="number"
+                  value={editForm.min_exp}
+                  onChange={(e) => setEditForm({ ...editForm, min_exp: parseInt(e.target.value) || 0 })}
+                  className="rounded-full border-zinc-200 dark:border-zinc-800 font-mono text-xs h-9"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addPerk}
-                  disabled={!editForm.newPerk.trim()}
-                >
-                  添加
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cfg-bonus">每月研讨津贴 (积分)</Label>
+                <Input
+                  id="cfg-bonus"
+                  type="number"
+                  value={editForm.monthly_bonus}
+                  onChange={(e) => setEditForm({ ...editForm, monthly_bonus: parseInt(e.target.value) || 100 })}
+                  className="rounded-full border-zinc-200 dark:border-zinc-800 font-mono text-xs h-9"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="cfg-posts">有效发帖最低门槛</Label>
+                <Input
+                  id="cfg-posts"
+                  type="number"
+                  value={editForm.min_posts}
+                  onChange={(e) => setEditForm({ ...editForm, min_posts: parseInt(e.target.value) || 0 })}
+                  className="rounded-full border-zinc-200 dark:border-zinc-800 font-mono text-xs h-9"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cfg-likes">累计获赞最低门槛</Label>
+                <Input
+                  id="cfg-likes"
+                  type="number"
+                  value={editForm.min_likes}
+                  onChange={(e) => setEditForm({ ...editForm, min_likes: parseInt(e.target.value) || 0 })}
+                  className="rounded-full border-zinc-200 dark:border-zinc-800 font-mono text-xs h-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>特权条目</Label>
+              <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                {editForm.perks.map((p, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs p-1.5 px-3 rounded-xl bg-zinc-100 dark:bg-zinc-800/50">
+                    <span>{p}</span>
+                    <button type="button" onClick={() => removePerk(idx)} className="text-zinc-400 hover:text-rose-500">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Input
+                  placeholder="新增特权条目描述..."
+                  value={editForm.newPerk}
+                  onChange={(e) => setEditForm({ ...editForm, newPerk: e.target.value })}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPerk())}
+                  className="rounded-full border-zinc-200 dark:border-zinc-800 text-xs h-8"
+                />
+                <Button type="button" size="sm" onClick={addPerk} className="h-8 rounded-full border-0 px-3 text-xs">
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
 
-            {/* 启用/禁用 */}
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">启用此等级</p>
-                <p className="text-xs text-muted-foreground">
-                  禁用后用户仍保留等级，但不再升入此等级
-                </p>
-              </div>
+            <div className="flex items-center justify-between pt-2">
+              <Label htmlFor="cfg-active">启用该等级</Label>
               <Switch
+                id="cfg-active"
                 checked={editForm.is_active}
-                onCheckedChange={(checked) =>
-                  setEditForm((prev) => ({ ...prev, is_active: checked }))
-                }
+                onCheckedChange={(checked) => setEditForm({ ...editForm, is_active: checked })}
               />
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => setEditingLevel(null)}
-              disabled={isPending}
+              className="rounded-full text-xs h-9"
             >
               取消
             </Button>
             <Button
               onClick={handleSave}
               disabled={isPending}
-              className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white"
+              className="rounded-full border-0 text-xs h-9 bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.3)]"
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  保存中...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  保存配置
-                </>
-              )}
+              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+              保存并同步全站
             </Button>
           </DialogFooter>
         </DialogContent>

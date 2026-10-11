@@ -193,32 +193,37 @@ export function PostCard({
     // ============================================================
     // 顶部公共作者栏组件
     // ============================================================
+    // 顶部公共作者栏组件（纯粹作者身份 + 操作菜单，严格单行杜绝错位折行）
+    // ============================================================
     function PostHeader() {
         return (
-            <div className="flex items-center justify-between gap-2.5 mb-3.5">
-                {/* 左侧：头像 + 昵称 + 身份徽章 + 日期（自然横向排列，严格抗折行） */}
-                <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                    <Link href={`/user/${author.id}`} prefetch={false} className="shrink-0 flex items-center gap-2 min-w-0">
-                        <Avatar className="h-7.5 w-7.5 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] shrink-0">
+            <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+                {/* 左侧：头像 + 昵称 + 等级徽章 + 身份徽章 + 日期（严谨单行锁死，自然弹性截断，零布局跳动） */}
+                <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                    <Link href={`/user/${author.id}`} prefetch={false} className="shrink-0 flex items-center gap-1.5">
+                        <Avatar className="h-7 w-7 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] shrink-0">
                             <AvatarImage src={author.avatar} alt={author.name} />
                             <AvatarFallback className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium">
                                 {author.initials}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[100px] sm:max-w-[130px]">
+                        <span className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[85px] sm:max-w-[130px]">
                             {author.name}
                         </span>
                     </Link>
 
-                    {/* 身份徽章 - 低饱和度中性微胶囊 */}
+                    {/* 学者等级徽章：白底彩字，紧随昵称 */}
+                    <VipBadge vipLevel={authorVipLevel} size="xs" className="shrink-0" />
+
+                    {/* 身份徽章 - 特殊称号微胶囊（合理最大宽度截断） */}
                     {author.special_title && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] shrink-0">
+                        <span
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] shrink-0 max-w-[70px] sm:max-w-[110px] truncate"
+                            title={author.special_title}
+                        >
                             {author.special_title}
                         </span>
                     )}
-
-                    {/* LV.X 徽章 */}
-                    <VipBadge vipLevel={authorVipLevel} size="sm" className="shrink-0" />
 
                     {/* 点隔断与发布时间 */}
                     <span className="text-zinc-300 dark:text-zinc-700 text-xs select-none shrink-0">·</span>
@@ -227,44 +232,8 @@ export function PostCard({
                     </span>
                 </div>
 
-                {/* 右侧：所属专栏 / 置顶徽标 / 操作菜单 */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                    {/* 所属专栏指示徽章 */}
-                    {finalCollections.length > 0 && (
-                        <Link
-                            href={`/collections/${finalCollections[0].id || ''}`}
-                            prefetch={false}
-                            onClick={(e) => e.stopPropagation()}
-                            className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/70 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-colors max-w-[110px]"
-                        >
-                            <BookOpen className="h-2.5 w-2.5 text-zinc-400" strokeWidth={1.75} />
-                            <span className="truncate">{finalCollections[0].name}</span>
-                        </Link>
-                    )}
-
-                    {/* 置顶/已解决/求助/评论区锁定徽标 */}
-                    {isPinned && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-700 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
-                            <Pin className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.75} /> {tPost.pinned}
-                        </span>
-                    )}
-                    {isLocked && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
-                            <Lock className="h-2.5 w-2.5 text-amber-500" strokeWidth={1.75} /> 评论区已被锁定
-                        </span>
-                    )}
-                    {isSolved && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
-                            <CheckCircle2 className="h-2.5 w-2.5" strokeWidth={1.75} /> {tPost.solved}
-                        </span>
-                    )}
-                    {isHelpWanted && !isSolved && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
-                            <HelpCircle className="h-2.5 w-2.5" strokeWidth={1.75} /> {tPost.helpWanted}
-                        </span>
-                    )}
-
-                    {/* 更多操作 */}
+                {/* 右侧：更多操作菜单（严格固定右上角，绝不随着内容掉队换行） */}
+                <div className="flex items-center shrink-0">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -283,6 +252,63 @@ export function PostCard({
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
+            </div>
+        );
+    }
+
+    // ============================================================
+    // 帖子元信息与属性微胶囊条（置顶/专栏/求助/解决状态，左对齐与标题紧密契合）
+    // ============================================================
+    function PostMetaBadges() {
+        const hasBadges = isPinned || finalCollections.length > 0 || (isHelpWanted && !isSolved) || isSolved || isLocked;
+        if (!hasBadges) return null;
+
+        return (
+            <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                {/* 置顶徽标：温润琥珀微金光晕，尊贵醒目，彻底告别孤行浮游 */}
+                {isPinned && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_0_12px_rgba(245,158,11,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_0_12px_rgba(245,158,11,0.22)] select-none">
+                        <Pin className="h-3 w-3 text-amber-600 dark:text-amber-400 fill-current" strokeWidth={1.75} />
+                        <span>{tPost.pinned}</span>
+                    </span>
+                )}
+
+                {/* 所属专栏徽章：左对齐学术晶体微胶囊 */}
+                {finalCollections.length > 0 && (
+                    <Link
+                        href={`/collections/${finalCollections[0].id || ''}`}
+                        prefetch={false}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100/90 dark:bg-zinc-800/80 hover:bg-zinc-200/90 dark:hover:bg-zinc-700/80 text-zinc-700 dark:text-zinc-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-all max-w-[180px] group/col"
+                    >
+                        <BookOpen className="h-3 w-3 text-zinc-400 group-hover/col:text-zinc-600 dark:group-hover/col:text-zinc-200 shrink-0" strokeWidth={1.75} />
+                        <span className="truncate">{finalCollections[0].name}</span>
+                    </Link>
+                )}
+
+                {/* 问答求助 */}
+                {isHelpWanted && !isSolved && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-orange-500/10 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] select-none">
+                        <HelpCircle className="h-3 w-3 text-orange-500" strokeWidth={1.75} />
+                        <span>{tPost.helpWanted}</span>
+                    </span>
+                )}
+
+                {/* 已解决 */}
+                {isSolved && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] select-none">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" strokeWidth={1.75} />
+                        <span>{tPost.solved}</span>
+                    </span>
+                )}
+
+                {/* 评论区锁定 */}
+                {isLocked && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-500/10 dark:bg-zinc-400/10 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] select-none">
+                        <Lock className="h-3 w-3 text-zinc-500" strokeWidth={1.75} />
+                        <span>评论区锁定</span>
+                    </span>
+                )}
             </div>
         );
     }
@@ -363,6 +389,9 @@ export function PostCard({
                         </div>
                     </Link>
 
+                    {/* 内容元信息与属性微胶囊 */}
+                    <PostMetaBadges />
+
                     {/* 标题 */}
                     <Link href={`/posts/${id}`} prefetch={false} className="block group/title">
                         <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2 group-hover/title:text-primary transition-colors duration-150">
@@ -407,6 +436,9 @@ export function PostCard({
                 <div className="p-5">
                     {/* 顶部作者栏 */}
                     <PostHeader />
+
+                    {/* 内容元信息与属性微胶囊 */}
+                    <PostMetaBadges />
 
                     {/* 标题 */}
                     <Link href={`/posts/${id}`} prefetch={false} className="block group/title">
