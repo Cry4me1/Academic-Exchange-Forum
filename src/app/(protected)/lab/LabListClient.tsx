@@ -3,7 +3,7 @@
 import { LabRoomCard } from "@/components/lab/LabRoomCard";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { FlaskConical, Plus, Sparkles, Users } from "lucide-react";
+import { FlaskConical, Plus, Sparkles, Users, Cpu } from "lucide-react";
 import Link from "next/link";
 
 interface LabListClientProps {
@@ -67,6 +67,17 @@ export default function LabListClient({ rooms }: LabListClientProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <Link href="/lab/sandbox">
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium border-0 transition-all duration-200 bg-white/70 dark:bg-zinc-800/70 hover:bg-white/90 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] cursor-pointer"
+                            >
+                                <Cpu className="h-4 w-4 text-sky-500" />
+                                <span>AI 代码沙盒</span>
+                            </motion.button>
+                        </Link>
+
                         <Link href="/lab/create">
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
