@@ -67,19 +67,23 @@ export function PostCollectionSidebarWidget({
                 <div className="space-y-1">
                     {displayedPosts.map((postItem, idx) => {
                         const isCurrent = postItem.id === currentPostId;
+                        const isLead = collection.only_show_lead_post_in_feed && (
+                            collection.lead_post_id ? collection.lead_post_id === postItem.id : idx === 0
+                        );
+
                         return (
                             <Link
                                 key={postItem.id}
                                 href={`/posts/${postItem.id}`}
                                 className={cn(
-                                    "flex items-start gap-2 px-2.5 py-1.5 rounded-xl text-xs transition-all group/item",
+                                    "flex items-center gap-2 px-2.5 py-1.5 rounded-full text-xs transition-all group/item",
                                     isCurrent
                                         ? "bg-zinc-100 dark:bg-zinc-800/80 text-foreground font-semibold shadow-xs"
                                         : "text-muted-foreground hover:text-foreground hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40"
                                 )}
                             >
                                 <span className={cn(
-                                    "font-mono text-[11px] shrink-0 mt-0.5",
+                                    "font-mono text-[11px] shrink-0",
                                     isCurrent ? "text-primary font-bold" : "text-muted-foreground/50 group-hover/item:text-foreground"
                                 )}>
                                     {String(idx + 1).padStart(2, "0")}.
@@ -89,10 +93,21 @@ export function PostCollectionSidebarWidget({
                                     {postItem.title}
                                 </span>
 
+                                {isLead && !isCurrent && (
+                                    <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/15 text-sky-700 dark:text-sky-300 border-0 shadow-[0_0_8px_rgba(14,165,233,0.18)]">
+                                        ✦ 导读篇
+                                    </span>
+                                )}
+
                                 {isCurrent && (
-                                    <span className="shrink-0 flex items-center text-[10px] text-primary font-medium">
+                                    <span className={cn(
+                                        "shrink-0 flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border-0",
+                                        isLead
+                                            ? "bg-sky-500/20 text-sky-700 dark:text-sky-300 shadow-[0_0_10px_rgba(14,165,233,0.25)]"
+                                            : "bg-primary/10 text-primary"
+                                    )}>
                                         <Sparkles className="h-3 w-3 mr-0.5" />
-                                        阅读中
+                                        {isLead ? "导读主篇中" : "阅读中"}
                                     </span>
                                 )}
                             </Link>
@@ -106,7 +121,7 @@ export function PostCollectionSidebarWidget({
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="w-full mt-2 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 justify-center rounded-full"
+                        className="w-full mt-2 h-7 text-xs text-muted-foreground hover:text-foreground gap-1 justify-center rounded-full border-0"
                     >
                         {isExpanded ? (
                             <>
@@ -124,34 +139,38 @@ export function PostCollectionSidebarWidget({
 
                 {/* 上一篇 / 下一篇 快捷跳转 */}
                 {(prevPost || nextPost) && (
-                    <div className="mt-3 pt-2.5 border-t border-zinc-200/50 dark:border-zinc-800/50 flex items-center gap-2">
-                        {prevPost && (
-                            <Button
-                                asChild
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 border-0 rounded-full transition-all shadow-xs"
-                            >
-                                <Link href={`/posts/${prevPost.id}`} title={`上一篇: ${prevPost.title}`}>
-                                    <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="font-medium">上一篇</span>
-                                </Link>
-                            </Button>
-                        )}
+                    <div className="mt-3 pt-2">
+                        {/* 渐变消融微光缝 */}
+                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-2.5" />
+                        <div className="flex items-center gap-2">
+                            {prevPost && (
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 border-0 rounded-full transition-all shadow-xs"
+                                >
+                                    <Link href={`/posts/${prevPost.id}`} title={`上一篇: ${prevPost.title}`}>
+                                        <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="font-medium">上一篇</span>
+                                    </Link>
+                                </Button>
+                            )}
 
-                        {nextPost && (
-                            <Button
-                                asChild
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 border-0 rounded-full transition-all shadow-xs"
-                            >
-                                <Link href={`/posts/${nextPost.id}`} title={`下一篇: ${nextPost.title}`}>
-                                    <span className="font-medium">下一篇</span>
-                                    <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                                </Link>
-                            </Button>
-                        )}
+                            {nextPost && (
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 min-w-0 h-8 px-2.5 text-xs justify-center gap-1.5 text-muted-foreground hover:text-primary hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 border-0 rounded-full transition-all shadow-xs"
+                                >
+                                    <Link href={`/posts/${nextPost.id}`} title={`下一篇: ${nextPost.title}`}>
+                                        <span className="font-medium">下一篇</span>
+                                        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

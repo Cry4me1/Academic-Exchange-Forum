@@ -509,8 +509,20 @@ export async function getPosts(options: {
             `)
             .eq("is_published", true)
             .eq("is_hidden", false)
-            .eq("review_status", "approved")
-            .range(offset, offset + limit - 1);
+            .eq("review_status", "approved");
+
+        // 若专栏作者设置了“主页仅展示导读文章”，则从主页流中排除该专栏内非导读的后续篇章
+        try {
+            const { data: excludedRows } = await supabase.rpc("get_feed_excluded_collection_post_ids");
+            const excludedIds = (excludedRows || []).map((r: any) => r.post_id).filter(Boolean);
+            if (excludedIds.length > 0) {
+                query = query.not("id", "in", `(${excludedIds.join(",")})`);
+            }
+        } catch (filterErr) {
+            console.warn("[getPosts] 获取专栏排除文章列表异常，降级显示:", filterErr);
+        }
+
+        query = query.range(offset, offset + limit - 1);
 
         // 默认情况：所有查询优先考虑 is_pinned，然后才是业务排序
         query = query.order("is_pinned", { ascending: false });
@@ -536,7 +548,14 @@ export async function getPosts(options: {
         // 获取用户的点赞、收藏状态及帖子的所属专栏
         let userLikes: string[] = [];
         let userBookmarks: string[] = [];
-        const postCollectionsMap: Record<string, Array<{ id: string; name: string }>> = {};
+        const postCollectionsMap: Record<string, Array<{ 
+            id: string; 
+            name: string; 
+            postCount?: number; 
+            onlyShowLeadPostInFeed?: boolean; 
+            leadPostId?: string | null; 
+            isLeadPost?: boolean;
+        }>> = {};
 
         if (posts && posts.length > 0) {
             const postIds = posts.map((p) => p.id);
@@ -560,10 +579,14 @@ export async function getPosts(options: {
                     .from("collection_posts")
                     .select(`
                         post_id,
+                        position,
                         collection:collections!collection_id (
                             id,
                             name,
-                            is_public
+                            is_public,
+                            post_count,
+                            only_show_lead_post_in_feed,
+                            lead_post_id
                         )
                     `)
                     .in("post_id", postIds),
@@ -574,13 +597,21 @@ export async function getPosts(options: {
 
             if ((collectionsResult as any).data) {
                 for (const item of (collectionsResult as any).data) {
-                    if (item.collection && item.collection.is_public) {
+                    const col = item.collection;
+                    if (col && col.is_public) {
                         if (!postCollectionsMap[item.post_id]) {
                             postCollectionsMap[item.post_id] = [];
                         }
+                        const isLeadPost = !!col.only_show_lead_post_in_feed && (
+                            col.lead_post_id ? col.lead_post_id === item.post_id : item.position === 0
+                        );
                         postCollectionsMap[item.post_id].push({
-                            id: item.collection.id,
-                            name: item.collection.name,
+                            id: col.id,
+                            name: col.name,
+                            postCount: col.post_count || 1,
+                            onlyShowLeadPostInFeed: col.only_show_lead_post_in_feed,
+                            leadPostId: col.lead_post_id,
+                            isLeadPost,
                         });
                     }
                 }

@@ -54,6 +54,8 @@ const mathExtension = Mathematics.configure({
     },
 });
 
+import { cn } from "@/lib/utils";
+
 /**
  * Read-only WikiLink node — pure HTML, no React NodeView, no Suggestion plugin.
  * Renders as a styled <a> tag that links to the referenced post.
@@ -75,7 +77,10 @@ const WikiLinkViewerNode = Node.create({
             },
             title: {
                 default: null,
-                parseHTML: (element) => element.textContent?.trim() ?? "",
+                parseHTML: (element) => {
+                    const raw = element.textContent?.trim() ?? "";
+                    return raw.replace(/^[📎🔗\s]+/, "");
+                },
                 renderHTML: () => ({}),
             },
         };
@@ -86,15 +91,42 @@ const WikiLinkViewerNode = Node.create({
     },
 
     renderHTML({ node, HTMLAttributes }) {
+        const rawTitle = node.attrs.title || "引用帖子";
+        const title = rawTitle.replace(/^[📎🔗\s]+/, "");
+
         return [
             "a",
             mergeAttributes(HTMLAttributes, {
                 "data-wiki-link": "",
+                "data-post-id": node.attrs.postId,
                 href: `/posts/${node.attrs.postId}`,
-                class: "wiki-link inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium no-underline cursor-pointer transition-colors duration-150 border border-primary/20",
+                class: cn(
+                    "wiki-link group inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5",
+                    "text-xs font-medium no-underline cursor-pointer border-0 align-middle mx-1",
+                    "bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700/90",
+                    "text-foreground/90 hover:text-primary backdrop-blur-xl",
+                    "shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.06)]",
+                    "dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.35)]",
+                    "hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_0_12px_rgba(14,165,233,0.18)]",
+                    "dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2),0_0_16px_rgba(14,165,233,0.25)]",
+                    "transition-all duration-200 active:scale-[0.98]"
+                ),
                 target: "_blank",
+                rel: "noopener noreferrer",
             }),
-            `📎 ${node.attrs.title}`,
+            [
+                "span",
+                {
+                    class:
+                        "w-4 h-4 rounded-full bg-sky-500/10 dark:bg-sky-400/15 flex items-center justify-center shrink-0 text-[10px] text-sky-600 dark:text-sky-400 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.15)]",
+                },
+                "📎",
+            ],
+            [
+                "span",
+                { class: "truncate max-w-[280px] sm:max-w-[360px]" },
+                title,
+            ],
         ];
     },
 });

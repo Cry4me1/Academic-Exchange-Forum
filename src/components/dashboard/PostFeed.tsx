@@ -3,22 +3,11 @@
 import { getPosts } from "@/app/(protected)/posts/actions";
 import { AnimatePresence, motion } from "framer-motion";
 import { extractTextFromContent } from "@/lib/extract-text";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { FeedFilter } from "./FeedTabs";
 import { PostCard } from "./PostCard";
-import { PostCardSkeletonCompact, PostCardSkeletonWithCover, PostFeedSkeleton } from "./PostCardSkeleton";
-// @ts-ignore
-import Masonry from "react-masonry-css";
+import { PostCardSkeletonCompact, PostFeedSkeleton } from "./PostCardSkeleton";
 import { useI18n } from "@/i18n/context";
-
-// ====================
-// 瀑布流断点
-// ====================
-const breakpointColumnsObj = {
-    default: 2,
-    1280: 2,
-    768: 1
-};
 
 // ====================
 // Types
@@ -26,7 +15,7 @@ const breakpointColumnsObj = {
 interface PostData {
     id: string;
     title: string;
-    content: object;
+    content: object | string;
     tags: string[];
     cover_image?: string | null;
     view_count: number;
@@ -49,7 +38,14 @@ interface PostData {
     isLiked: boolean;
     isBookmarked: boolean;
     authorVipLevel: number;
-    collections?: Array<{ id: string; name: string }>;
+    collections?: Array<{ 
+        id: string; 
+        name: string;
+        postCount?: number;
+        onlyShowLeadPostInFeed?: boolean;
+        leadPostId?: string | null;
+        isLeadPost?: boolean;
+    }>;
 }
 
 interface PostFeedProps {
@@ -63,13 +59,13 @@ const PAGE_SIZE = 12;
 // 动画变体
 // ====================
 const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 16 },
     visible: (i: number) => ({
         opacity: 1,
         y: 0,
         transition: {
-            delay: i * 0.05,
-            duration: 0.4,
+            delay: (i % 6) * 0.04,
+            duration: 0.35,
             ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
         },
     }),
@@ -88,6 +84,15 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
     const [isPending, startTransition] = useTransition();
     const isFirstMount = useRef(true);
 
+    // 响应式检测：小于 768px 使用单列流，保持时间序列线性
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+
     // 使用 ref 持有最新的可变状态，避免 IntersectionObserver 闭包陷阱
     const pageRef = useRef(page);
     const hasMoreRef = useRef(hasMore);
@@ -101,7 +106,7 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
 
     // 初始加载 & filter 变化时重新加载
     useEffect(() => {
-        // 关键性能优化：首次挂载且有服务端预取数据时，直接跳过客户端发起的 2.6s POST 请求！
+        // 关键性能优化：首次挂载且有服务端预取数据时，直接跳过客户端发起的请求
         if (isFirstMount.current) {
             isFirstMount.current = false;
             if (initialPosts.length > 0 && filter === "latest") {
@@ -127,7 +132,7 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
         });
     }, [filter]);
 
-    // 加载更多 — 通过 ref 读取最新状态，避免 stale closure
+    // 加载更多
     const loadMore = useCallback(async () => {
         if (isLoadingMoreRef.current || !hasMoreRef.current) return;
         isLoadingMoreRef.current = true;
@@ -148,7 +153,7 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
 
         setIsLoadingMore(false);
         isLoadingMoreRef.current = false;
-    }, []); // 无依赖，函数引用稳定
+    }, []);
 
     // 清理 observer
     useEffect(() => {
@@ -157,13 +162,10 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
         };
     }, []);
 
-    // 使用 callback ref 绑定 IntersectionObserver
-    // 当 DOM 元素挂载/卸载时自动触发，不受 Framer Motion 动画时序影响
+    // 绑定 IntersectionObserver
     const loadMoreRef = useCallback(
         (node: HTMLDivElement | null) => {
-            // 断开旧的 observer
             observerRef.current?.disconnect();
-
             if (!node) return;
 
             const observer = new IntersectionObserver(
@@ -172,7 +174,7 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
                         loadMore();
                     }
                 },
-                { rootMargin: "200px" }
+                { rootMargin: "300px" }
             );
 
             observer.observe(node);
@@ -181,9 +183,75 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
         [loadMore]
     );
 
+    // ============================================================
+    // 双列高度平衡贪心分列算法（Greedy Height Balancing）
+    // 解决 react-masonry-css 纯轮流分配导致的大图扎堆和严重高低差
+    // ============================================================
+    const { leftCol, rightCol } = useMemo(() => {
+        const left: { post: PostData; originalIndex: number }[] = [];
+        const right: { post: PostData; originalIndex: number }[] = [];
+        let leftHeight = 0;
+        let rightHeight = 0;
+
+        posts.forEach((post, idx) => {
+            // 估算卡片真实物理高度：封面图约 240px，摘要与标题约 130~170px
+            const hasCover = !!post.cover_image;
+            const textLen = typeof post.content === "string" ? post.content.length : 100;
+            const estimatedHeight = (hasCover ? 240 : 0) + (textLen > 80 ? 165 : 130);
+
+            if (leftHeight <= rightHeight) {
+                left.push({ post, originalIndex: idx });
+                leftHeight += estimatedHeight + 20; // 20 为 gap-5
+            } else {
+                right.push({ post, originalIndex: idx });
+                rightHeight += estimatedHeight + 20;
+            }
+        });
+
+        return { leftCol: left, rightCol: right };
+    }, [posts]);
+
+    // 渲染卡片单项封装
+    const renderCard = (post: PostData, index: number) => (
+        <motion.div
+            key={post.id}
+            custom={index}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            <PostCard
+                id={post.id}
+                author={{
+                    id: post.author.id,
+                    name: post.author.username || (isZh ? "学者" : "Scholar"),
+                    avatar: post.author.avatar_url,
+                    initials: (post.author.username || "?").slice(0, 2).toUpperCase(),
+                    special_title: post.author.special_title,
+                    badges: post.author.badges,
+                }}
+                title={post.title}
+                content={extractTextFromContent(post.content)}
+                coverImage={post.cover_image || undefined}
+                tags={post.tags}
+                createdAt={new Date(post.created_at)}
+                likes={post.like_count}
+                comments={post.comment_count}
+                isLiked={post.isLiked}
+                isBookmarked={post.isBookmarked}
+                isSolved={post.is_solved}
+                isHelpWanted={post.is_help_wanted}
+                authorVipLevel={post.authorVipLevel}
+                isPinned={post.is_pinned}
+                isLocked={post.is_locked}
+                collections={post.collections}
+            />
+        </motion.div>
+    );
+
     // ---- 加载态 ----
     if (isLoading || isPending) {
-        return <PostFeedSkeleton count={6} />;
+        return <PostFeedSkeleton count={4} />;
     }
 
     // ---- 空态 ----
@@ -228,69 +296,41 @@ export function PostFeed({ filter, initialPosts = [] }: PostFeedProps) {
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    {/* 瀑布流网格 Base-8: gap-5 */}
-                    <Masonry
-                        breakpointCols={breakpointColumnsObj}
-                        className="flex w-auto -ml-5"
-                        columnClassName="pl-5 bg-clip-padding space-y-5"
-                    >
-                        {posts.map((post, i) => (
-                            <motion.div
-                                key={post.id}
-                                custom={i % PAGE_SIZE}
-                                variants={cardVariants}
-                                initial="hidden"
-                                animate="visible"
-                            >
-                                <PostCard
-                                    id={post.id}
-                                    author={{
-                                        id: post.author.id,
-                                        name: post.author.username || (isZh ? "学者" : "Scholar"),
-                                        avatar: post.author.avatar_url,
-                                        initials: (post.author.username || "?").slice(0, 2).toUpperCase(),
-                                        special_title: post.author.special_title,
-                                        badges: post.author.badges,
-                                    }}
-                                    title={post.title}
-                                    content={extractTextFromContent(post.content)}
-                                    coverImage={post.cover_image || undefined}
-                                    tags={post.tags}
-                                    createdAt={new Date(post.created_at)}
-                                    likes={post.like_count}
-                                    comments={post.comment_count}
-                                    isLiked={post.isLiked}
-                                    isBookmarked={post.isBookmarked}
-                                    isSolved={post.is_solved}
-                                    isHelpWanted={post.is_help_wanted}
-                                    authorVipLevel={post.authorVipLevel}
-                                    isPinned={post.is_pinned}
-                                    isLocked={post.is_locked}
-                                    collections={post.collections}
-                                />
-                            </motion.div>
-                        ))}
-                    </Masonry>
+                    {isMobile ? (
+                        /* 移动端：单列线性时间流 */
+                        <div className="space-y-5">
+                            {posts.map((post, i) => renderCard(post, i))}
+                            {/* 骨架屏无缝作为末项，零空档 */}
+                            {isLoadingMore && <PostCardSkeletonCompact />}
+                        </div>
+                    ) : (
+                        /* 桌面端：智能平衡双列瀑布流 */
+                        <div className="flex gap-5 items-start">
+                            {/* 左列 */}
+                            <div className="flex-1 min-w-0 space-y-5">
+                                {leftCol.map(({ post, originalIndex }) => renderCard(post, originalIndex))}
+                                {/* 骨架屏直接挂载到列底部，绝对不会出现断档和悬空空洞 */}
+                                {isLoadingMore && <PostCardSkeletonCompact />}
+                            </div>
 
-                    {/* 加载更多触发区域 */}
-                    <div ref={loadMoreRef} className="mt-6 min-h-[20px]">
-                        {isLoadingMore && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="grid grid-cols-1 md:grid-cols-2 gap-5"
-                            >
-                                <PostCardSkeletonCompact />
-                                <PostCardSkeletonCompact />
-                            </motion.div>
-                        )}
-                        {!hasMore && posts.length >= PAGE_SIZE && (
-                            <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-8 font-medium tracking-wide">
-                                — {t.dashboardComponents.noMore} —
-                            </p>
-                        )}
-                    </div>
+                            {/* 右列 */}
+                            <div className="flex-1 min-w-0 space-y-5">
+                                {rightCol.map(({ post, originalIndex }) => renderCard(post, originalIndex))}
+                                {/* 骨架屏直接挂载到列底部，绝对不会出现断档和悬空空洞 */}
+                                {isLoadingMore && <PostCardSkeletonCompact />}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 加载更多触发哨兵（微高度，不产生视觉空白） */}
+                    <div ref={loadMoreRef} className="h-6 w-full -mt-2 pointer-events-none" />
+
+                    {/* 没有更多内容提示 */}
+                    {!hasMore && posts.length >= PAGE_SIZE && (
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center py-8 font-medium tracking-wide">
+                            — {t.dashboardComponents.noMore} —
+                        </p>
+                    )}
                 </motion.div>
             </AnimatePresence>
         </div>

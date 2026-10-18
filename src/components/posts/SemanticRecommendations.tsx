@@ -19,29 +19,57 @@ interface RecommendedPost {
 
 interface SemanticRecommendationsProps {
     postId: string;
+    excludePostIds?: string[];
+    crossAuthor?: boolean;
     className?: string;
 }
 
-export function SemanticRecommendations({ postId, className }: SemanticRecommendationsProps) {
+export function SemanticRecommendations({
+    postId,
+    excludePostIds = [],
+    crossAuthor = false,
+    className,
+}: SemanticRecommendationsProps) {
     const [recommendations, setRecommendations] = useState<RecommendedPost[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const excludeKey = excludePostIds.slice().sort().join(",");
+
     useEffect(() => {
+        let isMounted = true;
         async function fetchRecommendations() {
             try {
-                const res = await fetch(`/api/posts/${postId}/recommendations?t=${Date.now()}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setRecommendations(data);
+                const searchParams = new URLSearchParams();
+                searchParams.set("t", String(Date.now()));
+                if (excludePostIds.length > 0) {
+                    searchParams.set("exclude_ids", excludePostIds.join(","));
+                }
+                if (crossAuthor) {
+                    searchParams.set("cross_author", "true");
+                }
+
+                const res = await fetch(`/api/posts/${postId}/recommendations?${searchParams.toString()}`);
+                if (res.ok && isMounted) {
+                    const data: RecommendedPost[] = await res.json();
+                    // 前端严密第二道防线：剔除当前文章及所属专栏全部篇目
+                    const excludeSet = new Set([postId, ...excludePostIds]);
+                    const cleanData = (data || []).filter((r) => !excludeSet.has(r.id));
+                    setRecommendations(cleanData);
                 }
             } catch (err) {
                 console.error("Failed to fetch recommendations:", err);
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         }
         fetchRecommendations();
-    }, [postId]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [postId, excludeKey, crossAuthor]);
 
     if (loading) {
         return (

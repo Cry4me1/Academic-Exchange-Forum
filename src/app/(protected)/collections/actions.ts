@@ -12,6 +12,8 @@ export async function createCollection(data: {
     cover_url?: string | null;
     cover_style?: string;
     is_public?: boolean;
+    only_show_lead_post_in_feed?: boolean;
+    lead_post_id?: string | null;
 }) {
     const supabase = await createClient();
 
@@ -40,6 +42,8 @@ export async function createCollection(data: {
             cover_url: data.cover_url || null,
             cover_style: data.cover_style || "preset-academic",
             is_public: data.is_public ?? true,
+            only_show_lead_post_in_feed: data.only_show_lead_post_in_feed ?? false,
+            lead_post_id: data.lead_post_id || null,
         })
         .select("*")
         .single();
@@ -66,6 +70,8 @@ export async function updateCollection(
         cover_url?: string | null;
         cover_style?: string;
         is_public?: boolean;
+        only_show_lead_post_in_feed?: boolean;
+        lead_post_id?: string | null;
     }
 ) {
     const supabase = await createClient();
@@ -81,6 +87,8 @@ export async function updateCollection(
     if (data.cover_url !== undefined) updateData.cover_url = data.cover_url;
     if (data.cover_style !== undefined) updateData.cover_style = data.cover_style;
     if (data.is_public !== undefined) updateData.is_public = data.is_public;
+    if (data.only_show_lead_post_in_feed !== undefined) updateData.only_show_lead_post_in_feed = data.only_show_lead_post_in_feed;
+    if (data.lead_post_id !== undefined) updateData.lead_post_id = data.lead_post_id;
 
     const { error } = await supabase
         .from("collections")
@@ -95,6 +103,45 @@ export async function updateCollection(
 
     revalidatePath(`/collections/${collectionId}`);
     revalidatePath("/collections/manage");
+    revalidatePath("/dashboard");
+    return { success: true };
+}
+
+// ============================================
+// 设置/切换专栏导读文章
+// ============================================
+export async function setCollectionLeadPost(
+    collectionId: string,
+    postId: string | null,
+    enableFeedLimit: boolean = true
+) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: "请先登录" };
+    }
+
+    const { data, error } = await supabase.rpc("set_collection_lead_post", {
+        target_collection_id: collectionId,
+        target_post_id: postId,
+        enable_feed_limit: enableFeedLimit,
+    });
+
+    if (error) {
+        console.error("setCollectionLeadPost error:", error);
+        return { error: "设置专栏导读文章失败" };
+    }
+
+    // @ts-ignore
+    if (data && data.success === false) {
+        // @ts-ignore
+        return { error: data.error || "设置失败" };
+    }
+
+    revalidatePath(`/collections/${collectionId}`);
+    revalidatePath("/collections/manage");
+    revalidatePath("/dashboard");
     return { success: true };
 }
 
@@ -292,6 +339,8 @@ export async function getCollectionsByUser(userId: string) {
             cover_style,
             is_public,
             post_count,
+            only_show_lead_post_in_feed,
+            lead_post_id,
             created_at,
             updated_at,
             author:profiles!author_id (
@@ -324,7 +373,7 @@ export async function getMyCollections() {
 
     const { data: collections, error } = await supabase
         .from("collections")
-        .select("id, name, description, post_count, cover_style, cover_url, is_public, created_at, updated_at")
+        .select("id, name, description, post_count, cover_style, cover_url, is_public, only_show_lead_post_in_feed, lead_post_id, created_at, updated_at")
         .eq("author_id", user.id)
         .order("updated_at", { ascending: false });
 
@@ -357,7 +406,7 @@ export async function getPostCollections(postId: string) {
     // 2. 获取专栏主体信息
     const { data: collections, error } = await supabase
         .from("collections")
-        .select("id, name, description, cover_style, cover_url, is_public, post_count, follower_count, view_count")
+        .select("id, name, description, cover_style, cover_url, is_public, post_count, follower_count, view_count, only_show_lead_post_in_feed, lead_post_id")
         .in("id", collectionIds);
 
     if (error || !collections) {
@@ -387,6 +436,8 @@ export async function getCollectionWithPosts(collectionId: string) {
             post_count,
             follower_count,
             view_count,
+            only_show_lead_post_in_feed,
+            lead_post_id,
             created_at,
             updated_at,
             author_id,
@@ -439,15 +490,35 @@ export async function getCollectionWithPosts(collectionId: string) {
         return { collection, posts: [], error: null };
     }
 
-    const posts = (collectionPosts || [])
-        .filter((item: any) => item.post && item.post.is_published)
-        .map((item: any) => ({
-            ...item.post,
+    const rawPosts = (collectionPosts || [])
+        .filter((item: any) => item.post && (Array.isArray(item.post) ? item.post[0]?.is_published : item.post.is_published));
+
+    // 计算实际生效的导读文章 ID（优先指定的 lead_post_id，若未设置或已被移出专栏，则取排序第一篇）
+    const getPostId = (item: any) => Array.isArray(item?.post) ? item.post[0]?.id : item?.post?.id;
+    const firstPostId = rawPosts.length > 0 ? getPostId(rawPosts[0]) : null;
+
+    const effectiveLeadPostId = collection.lead_post_id && rawPosts.some((item: any) => getPostId(item) === collection.lead_post_id)
+        ? collection.lead_post_id
+        : firstPostId;
+
+    const posts = rawPosts.map((item: any) => {
+        const postObj = Array.isArray(item.post) ? item.post[0] : item.post;
+        return {
+            ...postObj,
             position: item.position,
             added_at: item.added_at,
-        }));
+            is_lead: postObj?.id === effectiveLeadPostId,
+        };
+    });
 
-    return { collection, posts, error: null };
+    return { 
+        collection: {
+            ...collection,
+            effective_lead_post_id: effectiveLeadPostId,
+        }, 
+        posts, 
+        error: null 
+    };
 }
 
 // ============================================

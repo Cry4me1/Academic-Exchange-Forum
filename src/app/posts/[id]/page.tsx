@@ -229,8 +229,8 @@ async function getComments(postId: string) {
     return topLevelComments?.map((c) => allCommentsMap.get(c.id)) || [];
 }
 
-// 获取作者其他文章
-async function getAuthorOtherPosts(authorId: string, currentPostId: string) {
+// 获取作者其他文章（自动过滤当前文章及同专栏篇目，避免重复渲染）
+async function getAuthorOtherPosts(authorId: string, currentPostId: string, excludePostIds: string[] = []) {
     const supabase = await createClient();
 
     const { data: posts } = await supabase
@@ -241,9 +241,12 @@ async function getAuthorOtherPosts(authorId: string, currentPostId: string) {
         .eq("is_hidden", false)
         .neq("id", currentPostId)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
-    return posts || [];
+    if (!posts) return [];
+
+    const excludeSet = new Set([currentPostId, ...excludePostIds]);
+    return posts.filter((p) => !excludeSet.has(p.id)).slice(0, 5);
 }
 
 // 获取帖子共创者
@@ -336,7 +339,7 @@ async function getPostCollections(postId: string) {
         // 2. 获取专栏详情（公开专栏或当前作者专栏）
         const { data: collections, error: collectionsError } = await supabase
             .from("collections")
-            .select("id, name, description, cover_url, cover_style, is_public, post_count, follower_count, view_count, author_id, created_at, updated_at")
+            .select("id, name, description, cover_url, cover_style, is_public, post_count, follower_count, view_count, author_id, only_show_lead_post_in_feed, lead_post_id, created_at, updated_at")
             .in("id", collectionIds);
 
         if (collectionsError || !collections || collections.length === 0) {
@@ -388,11 +391,31 @@ async function getPostCollections(postId: string) {
             post_count: col.post_count,
             follower_count: col.follower_count,
             view_count: col.view_count,
+            only_show_lead_post_in_feed: col.only_show_lead_post_in_feed,
+            lead_post_id: col.lead_post_id,
             posts: postsByCollectionId.get(col.id) || [],
         }));
     } catch (error) {
         console.error("Failed to load post collections:", error);
         return [];
+    }
+}
+
+// 获取关联的学术共创实验室
+async function getOriginLabRoom(post: any, coAuthors: any[]) {
+    const roomId = post.origin_lab_room_id || coAuthors.find((ca: any) => ca.lab_room_id)?.lab_room_id;
+    if (!roomId) return null;
+
+    try {
+        const supabase = await createClient();
+        const { data } = await supabase
+            .from("lab_rooms")
+            .select("id, name, room_type")
+            .eq("id", roomId)
+            .maybeSingle();
+        return data || null;
+    } catch {
+        return null;
     }
 }
 
@@ -436,30 +459,19 @@ export default async function PostDetailPage({ params }: PageProps) {
         ),
     ]);
 
-// 获取关联的学术共创实验室
-async function getOriginLabRoom(post: any, coAuthors: any[]) {
-    const roomId = post.origin_lab_room_id || coAuthors.find((ca) => ca.lab_room_id)?.lab_room_id;
-    if (!roomId) return null;
-
-    try {
-        const supabase = await createClient();
-        const { data } = await supabase
-            .from("lab_rooms")
-            .select("id, name, room_type")
-            .eq("id", roomId)
-            .maybeSingle();
-        return data || null;
-    } catch {
-        return null;
-    }
-}
-
     // 增加阅读量（非阻塞）
     incrementViewCount(id);
 
-    // 获取作者其他文章、共创者、反向引用以及行间学术批注
+    // 提取当前帖子所属专栏的所有篇目 ID，用于严格去重
+    const collectionPostIds = Array.from(
+        new Set(
+            collections.flatMap((col: any) => (col.posts || []).map((p: any) => p.id))
+        )
+    );
+
+    // 获取作者其他文章（过滤同专栏）、共创者、反向引用以及行间学术批注
     const [authorOtherPosts, coAuthors, backlinks, initialAnnotations] = await Promise.all([
-        getAuthorOtherPosts(post.author_id, id),
+        getAuthorOtherPosts(post.author_id, id, collectionPostIds),
         getCoAuthors(id),
         getBacklinks(id),
         getPostAnnotations(id).catch(e => {

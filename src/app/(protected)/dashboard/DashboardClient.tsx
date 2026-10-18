@@ -38,10 +38,15 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import {
+    BookMarked,
+    Bookmark,
     Coins,
+    Crown,
     LogOut,
+    MessageSquare,
     Settings,
-    User
+    User,
+    Zap
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -183,7 +188,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
         <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950/40 text-foreground antialiased selection:bg-zinc-900 selection:text-white dark:selection:bg-zinc-100 dark:selection:text-zinc-900">
             {/* 顶部导航栏 */}
             <header className="sticky top-0 z-50 border-0 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-[inset_0_-1px_0.5px_rgba(255,255,255,0.85),0_4px_24px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_-1px_0.5px_rgba(255,255,255,0.08),0_4px_24px_-2px_rgba(0,0,0,0.3)]">
-                <div className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10">
+                <div className="max-w-[1440px] xl:max-w-[1480px] 2xl:max-w-[1640px] 3xl:max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
                         <div className="flex items-center gap-3">
@@ -213,6 +218,27 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             <div className="hidden sm:block">
                                 <LanguageSwitcher variant="toggle" />
                             </div>
+
+                            {/* 私信入口 */}
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Link
+                                            href="/messages"
+                                            className="hidden sm:inline-flex items-center justify-center h-8.5 w-8.5 rounded-full border-0 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/70 dark:hover:bg-zinc-800/50 transition-all duration-150"
+                                        >
+                                            <MessageSquare className="h-4 w-4" strokeWidth={1.75} />
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                        side="bottom"
+                                        sideOffset={8}
+                                        className="text-xs border-0 rounded-2xl bg-white/90 dark:bg-zinc-900/90 text-zinc-800 dark:text-zinc-200 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_24px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-2px_rgba(0,0,0,0.4)] px-3 py-2 z-50 pointer-events-none"
+                                    >
+                                        {tNav.messages}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
 
                             {/* 通知中心 */}
                             <NotificationCenter currentUserId={currentUserId} />
@@ -270,6 +296,31 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
+                                        <Link href="/favorites" className="cursor-pointer">
+                                            <Bookmark className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
+                                            {tNav.favorites}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/collections/following" className="cursor-pointer">
+                                            <BookMarked className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
+                                            {tNav.collections}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/vip" className="cursor-pointer">
+                                            <Crown className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
+                                            {tNav.vip}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/updates" className="cursor-pointer">
+                                            <Zap className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
+                                            {tNav.updates}
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
                                         <Link href="/settings/profile" className="cursor-pointer">
                                             <Settings className="mr-2 h-3.5 w-3.5 text-zinc-500" strokeWidth={1.75} />
                                             {tNav.settings}
@@ -297,11 +348,11 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                 <CreditRechargeDialog isOpen={isRechargeOpen} onOpenChange={handleRechargeOpenChange} />
             </header>
 
-            {/* 主内容区域 - 移动端黄金首屏排版 */}
-            <main className="max-w-[1560px] mx-auto px-3 sm:px-8 lg:px-10 py-3.5 sm:py-8">
-                <div className="flex gap-8 items-start">
-                    {/* 左侧栏 - 桌面端固定吸顶，随滚动常驻 */}
-                    <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start">
+            {/* 主内容区域 - 放宽主容器宽度，优化侧边栏，将全部空间增量赋能中间内容流 */}
+            <main className="max-w-[1440px] xl:max-w-[1480px] 2xl:max-w-[1640px] 3xl:max-w-[1760px] mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-8">
+                <div className="flex gap-5 xl:gap-6 items-start">
+                    {/* 左侧栏 - 桌面端固定吸顶，宽度紧凑为 w-64，避免挤占核心内容 */}
+                    <aside className="hidden lg:block w-64 shrink-0 sticky top-24 self-start">
                         <motion.div
                             variants={slideInLeft}
                             initial="hidden"
@@ -313,19 +364,27 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                                 <MainNav />
                             </div>
 
-                            {/* 好友列表 */}
-                            <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-4 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
-                                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 mb-2.5 px-1 tracking-tight">
-                                    好友动态
-                                </h3>
-                                <Suspense fallback={<div className="h-28 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/40 animate-pulse border-0" />}>
+                            {/* 好友动态 */}
+                            <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-3.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
+                                <div className="flex items-center justify-between mb-2.5 px-1">
+                                    <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                                        好友动态
+                                    </h3>
+                                    <Link
+                                        href="/friends"
+                                        className="text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors font-medium"
+                                    >
+                                        全部
+                                    </Link>
+                                </div>
+                                <Suspense fallback={<div className="h-24 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/40 animate-pulse border-0" />}>
                                     <FriendsList currentUserId={currentUserId} />
                                 </Suspense>
                             </div>
                         </motion.div>
                     </aside>
 
-                    {/* 中间栏 - 主要信息流 */}
+                    {/* 中间栏 - 主要信息流（独享全部拓展空间，舒展承载两列卡片，彻底避免标题折行） */}
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
@@ -361,8 +420,8 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                         </motion.div>
                     </motion.div>
 
-                    {/* 右侧栏 - 桌面端固定吸顶，随滚动常驻 */}
-                    <aside className="hidden xl:block w-[340px] shrink-0 sticky top-24 self-start">
+                    {/* 右侧栏 - 桌面端固定吸顶，精简为 w-[300px]，既保持丰富内容又最大限度为中间流让路 */}
+                    <aside className="hidden xl:block w-[300px] shrink-0 sticky top-24 self-start">
                         <motion.div
                             variants={slideInRight}
                             initial="hidden"

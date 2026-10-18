@@ -281,6 +281,24 @@ export default function PostDetailClient({
         setCollectionsList(collections);
     }, [collections]);
 
+    // 判断是否属于专栏模式
+    const isInCollection = collectionsList.length > 0;
+
+    // 收集所有关联专栏内的篇目 ID，供去重与推荐过滤使用
+    const collectionPostIds = useMemo(() => {
+        const ids = new Set<string>();
+        collectionsList.forEach((col) => {
+            col.posts?.forEach((p) => ids.add(p.id));
+        });
+        return Array.from(ids);
+    }, [collectionsList]);
+
+    // 严格过滤后的作者其他文章（剔除当前文章及所属专栏全部篇目）
+    const filteredAuthorOtherPosts = useMemo(() => {
+        const excludeSet = new Set([post.id, ...collectionPostIds]);
+        return (authorOtherPosts || []).filter((p) => !excludeSet.has(p.id));
+    }, [authorOtherPosts, post.id, collectionPostIds]);
+
     const [activeDuel, setActiveDuel] = useState<any | null>(null);
     const [relatedDuels, setRelatedDuels] = useState<any[]>([]);
 
@@ -1158,8 +1176,8 @@ export default function PostDetailClient({
                             aria-hidden={isImmersive}
                         >
                             <div className="space-y-6 w-64 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none pb-8">
-                                {/* 作者其他文章 */}
-                                {authorOtherPosts.length > 0 && (
+                                {/* 作者其他文章：专栏模式下由右侧专栏目录导航，左栏隐藏以减负透气；非专栏模式下严格过滤同专栏 */}
+                                {!isInCollection && filteredAuthorOtherPosts.length > 0 && (
                                     <motion.div
                                         variants={itemVariants}
                                         className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
@@ -1169,7 +1187,7 @@ export default function PostDetailClient({
                                             作者的其他文章
                                         </h3>
                                         <ul className="space-y-2.5">
-                                            {authorOtherPosts.map((otherPost) => (
+                                            {filteredAuthorOtherPosts.map((otherPost) => (
                                                 <li key={otherPost.id}>
                                                     <Link
                                                         href={`/posts/${otherPost.id}`}
@@ -1183,8 +1201,12 @@ export default function PostDetailClient({
                                     </motion.div>
                                 )}
 
-                                {/* AI 语义推荐 */}
-                                <SemanticRecommendations postId={post.id} />
+                                {/* 学术关联与语义推荐：自动过滤同专栏篇目，专栏模式下优先跨作者推荐 */}
+                                <SemanticRecommendations
+                                    postId={post.id}
+                                    excludePostIds={collectionPostIds}
+                                    crossAuthor={isInCollection}
+                                />
                             </div>
                         </aside>
 
@@ -1774,14 +1796,14 @@ export default function PostDetailClient({
                                 )}
                                 aria-hidden={isImmersive}
                             >
-                                {authorOtherPosts.length > 0 && (
+                                {!isInCollection && filteredAuthorOtherPosts.length > 0 && (
                                     <div className="bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl border-0 rounded-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.05),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                         <h3 className="font-semibold text-xs text-foreground mb-3 flex items-center gap-1.5">
                                             <BookOpen className="w-3.5 h-3.5 text-blue-500" />
                                             作者的其他文章
                                         </h3>
                                         <ul className="space-y-2">
-                                            {authorOtherPosts.map((otherPost) => (
+                                            {filteredAuthorOtherPosts.map((otherPost) => (
                                                 <li key={otherPost.id}>
                                                     <Link
                                                         href={`/posts/${otherPost.id}`}
@@ -1794,7 +1816,11 @@ export default function PostDetailClient({
                                         </ul>
                                     </div>
                                 )}
-                                <SemanticRecommendations postId={post.id} />
+                                <SemanticRecommendations
+                                    postId={post.id}
+                                    excludePostIds={collectionPostIds}
+                                    crossAuthor={isInCollection}
+                                />
                             </div>
                         </main>
 

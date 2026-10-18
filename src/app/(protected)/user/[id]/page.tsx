@@ -43,6 +43,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MathText } from "@/components/ui/math-text";
 import { extractImageUrls } from "@/lib/moderation/utils";
+import { cleanSummaryText } from "@/lib/extract-text";
 
 interface UserProfile {
     id: string;
@@ -122,69 +123,10 @@ const genderLabels: Record<string, string> = {
 };
 
 /**
- * 深度清洗内容中的所有 Markdown / HTML / LaTeX 语法，提供干净整洁的纯文本摘要
+ * 深度清洗内容中的所有 Markdown / HTML / LaTeX 语法及裸露 URL，提供干净整洁的纯文本摘要
  */
 function cleanMarkdownText(content: string | object): string {
-    if (!content) return "";
-    let rawText = "";
-
-    if (typeof content === "object") {
-        try {
-            const extractFromNodes = (nodes: any[]): string[] => {
-                const results: string[] = [];
-                for (const node of nodes) {
-                    if (node.text) results.push(node.text);
-                    if (node.content && Array.isArray(node.content)) {
-                        results.push(...extractFromNodes(node.content));
-                    }
-                }
-                return results;
-            };
-            const jsonContent = content as { content?: any[] };
-            if (jsonContent.content && Array.isArray(jsonContent.content)) {
-                rawText = extractFromNodes(jsonContent.content).join(" ");
-            } else {
-                rawText = JSON.stringify(content);
-            }
-        } catch {
-            rawText = String(content);
-        }
-    } else {
-        rawText = String(content);
-    }
-
-    return rawText
-        // 去除 HTML 标签
-        .replace(/<[^>]*>/g, " ")
-        // 去除代码块
-        .replace(/```[\s\S]*?```/g, " ")
-        // 去除行内代码
-        .replace(/`([^`]+)`/g, "$1")
-        // 去除 LaTeX 块公式
-        .replace(/\$\$[\s\S]*?\$\$/g, " ")
-        .replace(/\\\[[\s\S]*?\\\]/g, " ")
-        // 去除 LaTeX 行内公式
-        .replace(/\$([^$]+)\$/g, "$1")
-        .replace(/\\\((.*?)\\\)/g, "$1")
-        // 去除图片和链接
-        .replace(/!\[(.*?)\]\([^)]*\)/g, "$1")
-        .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
-        // 去除 Markdown 标题
-        .replace(/^#{1,6}\s+/gm, "")
-        // 去除加粗、斜体与删除线
-        .replace(/(\*\*|__)(.*?)\1/g, "$2")
-        .replace(/(\*|_)(.*?)\1/g, "$2")
-        .replace(/~~(.*?)~~/g, "$1")
-        // 去除引用符
-        .replace(/^>\s+/gm, "")
-        // 去除列表标识符
-        .replace(/^[\s]*[-+*]\s+/gm, "")
-        .replace(/^[\s]*\d+\.\s+/gm, "")
-        // 去除分割线
-        .replace(/^[-*_]{3,}\s*$/gm, "")
-        // 压缩连续空格
-        .replace(/\s+/g, " ")
-        .trim();
+    return cleanSummaryText(content);
 }
 
 /**

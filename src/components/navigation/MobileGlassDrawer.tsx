@@ -74,19 +74,24 @@ export function MobileGlassDrawer({ isOpen, onClose, currentUserId }: MobileGlas
         };
     }, [isOpen]);
 
-    const navItems = [
+    // ── 社区探索 ──
+    const exploreItems = [
         { href: "/dashboard", label: tNav.home, icon: Home },
         { href: "/trending", label: tNav.trending, icon: Flame },
         { href: "/leaderboard", label: tNav.leaderboard, icon: Trophy },
         { href: "/duels", label: tNav.duels, icon: Swords },
         { href: "/lab", label: tNav.lab, icon: FlaskConical, isLab: true },
+    ];
+
+    // ── 我的空间 ──
+    const spaceItems = [
         { href: "/messages", label: tNav.messages, icon: MessageSquare },
         { href: "/friends", label: tNav.friends, icon: Users },
         { href: "/favorites", label: tNav.favorites, icon: Bookmark },
         { href: "/collections/following", label: tNav.collections, icon: BookMarked },
         { href: "/updates", label: tNav.updates, icon: Zap, isUpdateLog: true },
         { href: currentUserId ? `/user/${currentUserId}` : "/profile", label: tNav.profile, icon: User },
-        { href: "/vip", label: tNav.vip, icon: Crown, isVip: true },
+        { href: "/vip", label: tNav.vip, icon: Crown },
     ];
 
     const handleLogout = async () => {
@@ -94,6 +99,61 @@ export function MobileGlassDrawer({ isOpen, onClose, currentUserId }: MobileGlas
         await supabase.auth.signOut();
         router.push("/login");
         router.refresh();
+    };
+
+    const renderNavItem = (item: {
+        href: string;
+        label: string;
+        icon: typeof Home;
+        isLab?: boolean;
+        isUpdateLog?: boolean;
+    }) => {
+        const Icon = item.icon;
+        const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
+        const showUpdateDot = item.isUpdateLog && hasNewUpdate && isLoaded && !isActive;
+
+        return (
+            <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                    if (item.isUpdateLog && hasNewUpdate) {
+                        markAsRead();
+                    }
+                    onClose();
+                }}
+                className={cn(
+                    "flex items-center gap-3.5 px-3.5 py-2.5 rounded-full text-[13.5px] font-medium transition-all duration-200 border-0 select-none active:scale-[0.98]",
+                    isActive
+                        ? "bg-zinc-950/90 text-white dark:bg-white dark:text-zinc-950 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] dark:shadow-[0_4px_14px_-2px_rgba(255,255,255,0.2),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+                        : "text-zinc-700 dark:text-zinc-300 hover:bg-white/70 dark:hover:bg-zinc-800/60",
+                    // 仅「共创实验室」保留唯一特殊强调色
+                    item.isLab && !isActive && "text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
+                )}
+            >
+                <Icon
+                    className={cn(
+                        "h-4.5 w-4.5 shrink-0 transition-colors",
+                        isActive ? "text-white dark:text-zinc-950" : "text-zinc-400 dark:text-zinc-500",
+                        item.isLab && !isActive && "text-violet-500"
+                    )}
+                    strokeWidth={1.75}
+                />
+                <span className="truncate flex-1 tracking-tight">{item.label}</span>
+
+                {/* 更新日志新内容：克制的圆点 */}
+                {showUpdateDot && (
+                    <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100 animate-pulse shrink-0" />
+                )}
+
+                {/* 仅「共创实验室」保留徽标 */}
+                {item.isLab && (
+                    <span className="text-[10px] bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-2 py-0.5 rounded-full font-medium tracking-tight">
+                        实时
+                    </span>
+                )}
+            </Link>
+        );
     };
 
     return (
@@ -145,62 +205,25 @@ export function MobileGlassDrawer({ isOpen, onClose, currentUserId }: MobileGlas
                         <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent shrink-0" />
 
                         {/* 导航功能列表 */}
-                        <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1.5 scrollbar-none">
-                            {navItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
-                                const showHighlight = item.isUpdateLog && hasNewUpdate && isLoaded && !isActive;
+                        <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1 scrollbar-none">
+                            {/* 社区探索分组 */}
+                            <div className="px-2.5 pt-0.5 pb-1.5">
+                                <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-widest select-none">
+                                    社区探索
+                                </span>
+                            </div>
+                            {exploreItems.map(renderNavItem)}
 
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        onClick={() => {
-                                            if (item.isUpdateLog && hasNewUpdate) {
-                                                markAsRead();
-                                            }
-                                            onClose();
-                                        }}
-                                        className={cn(
-                                            "flex items-center gap-3.5 px-3.5 py-2.5 rounded-full text-[13.5px] font-medium transition-all duration-200 border-0 select-none active:scale-[0.98]",
-                                            isActive
-                                                ? "bg-zinc-950/90 text-white dark:bg-white dark:text-zinc-950 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.25),inset_0_1px_1px_rgba(255,255,255,0.4)] dark:shadow-[0_4px_14px_-2px_rgba(255,255,255,0.2),inset_0_1px_1px_rgba(255,255,255,0.9)]"
-                                                : "text-zinc-700 dark:text-zinc-300 hover:bg-white/70 dark:hover:bg-zinc-800/60",
-                                            item.isVip && !isActive && "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10",
-                                            (item as any).isLab && !isActive && "text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
-                                        )}
-                                    >
-                                        <Icon
-                                            className={cn(
-                                                "h-4.5 w-4.5 shrink-0 transition-colors",
-                                                isActive ? "text-white dark:text-zinc-950" : "text-zinc-400 dark:text-zinc-500",
-                                                item.isVip && !isActive && "text-amber-500",
-                                                (item as any).isLab && !isActive && "text-violet-500"
-                                            )}
-                                            strokeWidth={1.75}
-                                        />
-                                        <span className="truncate flex-1 tracking-tight">{item.label}</span>
+                            {/* 渐变消融分割微光缝 */}
+                            <div className="my-2.5 h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
 
-                                        {showHighlight && (
-                                            <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium shadow-xs">
-                                                新
-                                            </span>
-                                        )}
-
-                                        {(item as any).isLab && (
-                                            <span className="text-[10px] bg-violet-500/15 text-violet-700 dark:text-violet-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-2 py-0.5 rounded-full font-medium tracking-tight">
-                                                实时
-                                            </span>
-                                        )}
-
-                                        {item.isVip && (
-                                            <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] px-2 py-0.5 rounded-full font-medium tracking-wider">
-                                                VIP
-                                            </span>
-                                        )}
-                                    </Link>
-                                );
-                            })}
+                            {/* 我的空间分组 */}
+                            <div className="px-2.5 pb-1.5">
+                                <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-widest select-none">
+                                    我的空间
+                                </span>
+                            </div>
+                            {spaceItems.map(renderNavItem)}
                         </nav>
 
                         {/* 底部渐变消融微光缝 */}

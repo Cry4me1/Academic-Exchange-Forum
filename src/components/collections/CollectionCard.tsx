@@ -16,6 +16,7 @@ interface CollectionCardProps {
     coverStyle?: string;
     postCount: number;
     isPublic: boolean;
+    onlyShowLeadPostInFeed?: boolean;
     updatedAt?: string;
     authorName?: string;
     showAuthor?: boolean;
@@ -29,6 +30,7 @@ export function CollectionCard({
     coverStyle = "preset-academic",
     postCount,
     isPublic,
+    onlyShowLeadPostInFeed = false,
     updatedAt,
     authorName,
     showAuthor = false,
@@ -51,10 +53,15 @@ export function CollectionCard({
                             size="md"
                             className="group-hover:scale-[1.03] transition-transform duration-700 ease-out"
                         >
-                            {/* 私密状态胶囊徽标 */}
-                            <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+                            {/* 状态胶囊徽标 */}
+                            <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+                                {onlyShowLeadPostInFeed && (
+                                    <div className="bg-sky-500/80 backdrop-blur-xl px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium text-white border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
+                                        <span>导读聚合</span>
+                                    </div>
+                                )}
                                 {!isPublic && (
-                                    <div className="bg-black/50 backdrop-blur-xl px-2.5 py-1 rounded-full flex items-center gap-1.5 text-xs font-medium text-amber-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.25)]">
+                                    <div className="bg-black/50 backdrop-blur-xl px-2.5 py-0.5 rounded-full flex items-center gap-1.5 text-xs font-medium text-amber-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.25)]">
                                         <Lock className="w-3 h-3" />
                                         <span>私密</span>
                                     </div>

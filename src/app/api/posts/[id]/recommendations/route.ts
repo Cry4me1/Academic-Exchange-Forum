@@ -14,10 +14,10 @@ export async function GET(
 
         console.log(`🔍 [recommendations-api] 正在请求帖子 ${id} 的相似推荐...`);
 
-        // 1. 获取当前帖子的 embedding 向量与 tags 属性
+        // 1. 获取当前帖子的 embedding 向量、tags 及作者属性
         const { data: initialPost, error: postError } = await supabase
             .from("posts")
-            .select("id, title, embedding, tags")
+            .select("id, title, author_id, embedding, tags")
             .eq("id", id)
             .single();
 
@@ -45,7 +45,43 @@ export async function GET(
         }
 
         const currentTags = post.tags || [];
-        console.log(`[recommendations-api] 当前帖子标题: "${post.title}", 标签:`, currentTags);
+
+        // 1.2 自动获取当前帖子所属的所有专栏，以彻底排查并过滤同专栏的所有连载文章
+        const { data: colPosts } = await supabase
+            .from("collection_posts")
+            .select("collection_id")
+            .eq("post_id", id);
+
+        let collectionPostIds: string[] = [];
+        if (colPosts && colPosts.length > 0) {
+            const colIds = colPosts.map((cp: any) => cp.collection_id);
+            const { data: siblingPosts } = await supabase
+                .from("collection_posts")
+                .select("post_id")
+                .in("collection_id", colIds);
+            if (siblingPosts) {
+                collectionPostIds = siblingPosts.map((sp: any) => sp.post_id);
+            }
+        }
+
+        // 解析前端可选参数（排除 ID 与跨作者偏好）
+        const searchParams = request.nextUrl.searchParams;
+        const extraExcludes = (searchParams.get("exclude_ids") || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        const isCrossAuthorRequested = searchParams.get("cross_author") === "true";
+        const isInCollection = collectionPostIds.length > 0;
+        // 专栏模式下，强制优先跨作者推荐，避免本作者同系列文章霸占推荐位
+        const preferCrossAuthor = isCrossAuthorRequested || isInCollection;
+
+        const allExcludedPostIds = new Set<string>([
+            id,
+            ...collectionPostIds,
+            ...extraExcludes,
+        ]);
+
+        console.log(`[recommendations-api] 当前帖子所属专栏排除篇目数: ${collectionPostIds.length}, 优先跨作者模式: ${preferCrossAuthor}`);
 
         // 2. 进阶学术维度发现算法
         const extractCommonConcepts = (pTags: string[], pTitle: string) => {
@@ -54,7 +90,7 @@ export async function GET(
             
             // 2.2 若无重合标签，匹配标题中共同的核心学术短词
             if (common.length === 0) {
-                const keywords = ["数论", "图论", "算法", "求助", "Treap", "测试", "网络流", "平面图", "决斗", "编辑器", "指南", "性能", "卷积", "题解", "答案", "数学", "物理", "化学", "计算机"];
+                const keywords = ["数论", "图论", "算法", "求助", "Treap", "测试", "网络流", "平面图", "决斗", "编辑器", "指南", "性能", "卷积", "题解", "答案", "数学", "物理", "化学", "计算机", "Agent", "CLI", "架构"];
                 keywords.forEach(kw => {
                     if (post.title.includes(kw) && pTitle.includes(kw)) {
                         common.push(kw);
@@ -76,41 +112,114 @@ export async function GET(
             const { data: recPosts, error: recError } = await supabase.rpc("match_posts", {
                 query_embedding: embedding,
                 match_threshold: 0.25, // 适当平滑门限，提高学术语义覆盖范围
-                match_count: 5,
+                match_count: 15, // 增大抓取量，为同专栏与跨作者过滤留出充足候选空间
                 current_post_id: id,
             });
 
             if (!recError && recPosts && recPosts.length > 0) {
-                const formattedPosts = recPosts.map((p: any) => {
-                    const concepts = extractCommonConcepts(p.tags || [], p.title);
-                    console.log(`   ➡️ 匹配到帖子: "${p.title}" (相似度: ${Math.round(p.similarity * 100)}%), 提炼概念:`, concepts);
-                    return {
-                        ...p,
-                        similarity: p.similarity,
-                        is_tag_match: false,
-                        common_concepts: concepts,
-                    };
-                });
-                return NextResponse.json(formattedPosts);
+                // 3.1 过滤掉同专栏及黑名单内的文章
+                const unexcluded = recPosts.filter((p: any) => !allExcludedPostIds.has(p.id));
+
+                if (unexcluded.length > 0) {
+                    const postIds = unexcluded.map((p: any) => p.id);
+                    const { data: extraInfoList } = await supabase
+                        .from("posts")
+                        .select("id, author_id, tags")
+                        .in("id", postIds);
+
+                    const infoMap = new Map((extraInfoList || []).map((item: any) => [item.id, item]));
+
+                    // 3.2 跨作者分流：专栏模式下，优先推荐跨作者研究成果
+                    let selectedPosts: any[] = [];
+                    if (preferCrossAuthor) {
+                        const crossAuthorPosts = unexcluded.filter((p: any) => {
+                            const aId = infoMap.get(p.id)?.author_id;
+                            return aId && aId !== post.author_id;
+                        });
+                        const sameAuthorPosts = unexcluded.filter((p: any) => {
+                            const aId = infoMap.get(p.id)?.author_id;
+                            return !aId || aId === post.author_id;
+                        });
+                        selectedPosts = [...crossAuthorPosts, ...sameAuthorPosts].slice(0, 5);
+                    } else {
+                        selectedPosts = unexcluded.slice(0, 5);
+                    }
+
+                    const formattedPosts = selectedPosts.map((p: any) => {
+                        const tags = infoMap.get(p.id)?.tags || [];
+                        const concepts = extractCommonConcepts(tags, p.title);
+                        console.log(`   ➡️ 匹配到帖子: "${p.title}" (相似度: ${Math.round(p.similarity * 100)}%), 提炼概念:`, concepts);
+                        return {
+                            ...p,
+                            similarity: p.similarity,
+                            is_tag_match: false,
+                            common_concepts: concepts,
+                        };
+                    });
+
+                    if (formattedPosts.length > 0) {
+                        return NextResponse.json(formattedPosts);
+                    }
+                }
             }
             if (recError) {
                 console.error("[recommendations-api] 向量匹配 RPC 发生错误:", recError);
             }
         }
 
-        // 4. 降级方案：若无向量或向量匹配为空，优雅退回到本地标签交集匹配 (match_posts_by_tags)
-        console.log(`[recommendations-api] 降级至标签交集相似推荐模式...`);
-        const { data: backupPosts, error: backupError } = await supabase.rpc("match_posts_by_tags", {
-            current_post_id: id,
-            match_count: 5,
-        });
+        // 4. 降级方案：若无向量或向量匹配为空，优雅退回到标签交集及热门学术推荐模式
+        console.log(`[recommendations-api] 降级至标签相似与热门学术推荐模式...`);
+        let candidatePosts: any[] = [];
 
-        if (backupError) {
-            console.error("[recommendations-api] 标签匹配 RPC 降级失败:", backupError);
-            return NextResponse.json([]);
+        if (currentTags.length > 0) {
+            const { data: tagMatched } = await supabase
+                .from("posts")
+                .select("id, title, author_id, tags, view_count, like_count, comment_count")
+                .eq("is_published", true)
+                .eq("is_hidden", false)
+                .overlaps("tags", currentTags)
+                .neq("id", id)
+                .limit(20);
+
+            if (tagMatched && tagMatched.length > 0) {
+                candidatePosts = tagMatched;
+            }
         }
 
-        const formattedBackupPosts = (backupPosts || []).map((p: any, index: number) => {
+        if (candidatePosts.length < 10) {
+            const { data: popularPosts } = await supabase
+                .from("posts")
+                .select("id, title, author_id, tags, view_count, like_count, comment_count")
+                .eq("is_published", true)
+                .eq("is_hidden", false)
+                .neq("id", id)
+                .order("like_count", { ascending: false })
+                .limit(20);
+
+            if (popularPosts) {
+                const existingIds = new Set(candidatePosts.map((cp) => cp.id));
+                popularPosts.forEach((pp: any) => {
+                    if (!existingIds.has(pp.id)) {
+                        candidatePosts.push(pp);
+                    }
+                });
+            }
+        }
+
+        // 过滤排除名单（同专栏/自身）
+        const unexcludedCandidates = candidatePosts.filter((p: any) => !allExcludedPostIds.has(p.id));
+
+        // 跨作者优先分流
+        let chosenBackup: any[] = [];
+        if (preferCrossAuthor) {
+            const crossAuthor = unexcludedCandidates.filter((p: any) => p.author_id && p.author_id !== post.author_id);
+            const sameAuthor = unexcludedCandidates.filter((p: any) => !p.author_id || p.author_id === post.author_id);
+            chosenBackup = [...crossAuthor, ...sameAuthor].slice(0, 5);
+        } else {
+            chosenBackup = unexcludedCandidates.slice(0, 5);
+        }
+
+        const formattedBackupPosts = chosenBackup.map((p: any, index: number) => {
             const concepts = extractCommonConcepts(p.tags || [], p.title);
             
             // 动态计算真实的相关度比例，彻底根除固定 80% 的生硬体验

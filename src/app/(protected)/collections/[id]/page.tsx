@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
-import { getCollectionWithPosts, getCollectionFollowStatus, incrementCollectionViewCount } from "../actions";
+import { getCollectionWithPosts, getCollectionFollowStatus, incrementCollectionViewCount, setCollectionLeadPost } from "../actions";
 import { CollectionPostList, CreateCollectionDialog, FollowCollectionButton, CollectionCover, getCollectionCoverPreset } from "@/components/collections";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,6 +68,29 @@ export default function CollectionDetailPage() {
     }, [collectionId]);
 
     const isAuthor = currentUserId === collection?.author_id;
+
+    const handleSetLeadPost = async (postId: string) => {
+        try {
+            const res = await setCollectionLeadPost(collectionId, postId, true);
+            if (res.error) {
+                toast.error(res.error);
+            } else {
+                toast.success("已设为主页展示导读篇");
+                setCollection((prev: any) => ({
+                    ...prev,
+                    only_show_lead_post_in_feed: true,
+                    lead_post_id: postId,
+                    effective_lead_post_id: postId,
+                }));
+                setPosts((prev) => prev.map(p => ({
+                    ...p,
+                    is_lead: p.id === postId
+                })));
+            }
+        } catch {
+            toast.error("设置失败，请重试");
+        }
+    };
 
     const coverStyle = collection?.cover_style || "preset-academic";
     const preset = getCollectionCoverPreset(coverStyle);
@@ -133,15 +156,30 @@ export default function CollectionDetailPage() {
                     <div className="flex items-center gap-2">
                         <Badge 
                             variant="secondary" 
-                            className="bg-white/15 text-white backdrop-blur-xl border border-white/25 px-3.5 py-1 text-xs font-medium shadow-[0_4px_16px_rgba(0,0,0,0.3)] rounded-full flex items-center gap-1.5"
+                            className="bg-white/15 text-white backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.3)] px-3.5 py-1 text-xs font-medium rounded-full flex items-center gap-1.5"
                         >
                             <PresetIcon className="w-3.5 h-3.5" style={{ color: preset.accentColor }} />
                             <span>{preset.name}</span>
                         </Badge>
+                        {collection.only_show_lead_post_in_feed ? (
+                            <Badge 
+                                variant="secondary" 
+                                className="bg-sky-500/25 text-sky-100 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4),0_0_12px_rgba(14,165,233,0.3)] px-3 py-1 text-xs rounded-full font-medium"
+                            >
+                                主页仅展示导读篇
+                            </Badge>
+                        ) : (
+                            <Badge 
+                                variant="secondary" 
+                                className="bg-white/10 text-white/80 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)] px-3 py-1 text-xs rounded-full font-normal"
+                            >
+                                主页展示全部篇章
+                            </Badge>
+                        )}
                         {!collection.is_public && (
                             <Badge 
                                 variant="outline" 
-                                className="bg-amber-500/20 text-amber-200 border-amber-400/40 backdrop-blur-xl px-3 py-1 text-xs rounded-full shadow-sm"
+                                className="bg-amber-500/20 text-amber-200 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.3)] backdrop-blur-xl px-3 py-1 text-xs rounded-full"
                             >
                                 私密专栏
                             </Badge>
@@ -271,9 +309,11 @@ export default function CollectionDetailPage() {
                             collectionId={collectionId}
                             posts={posts}
                             isAuthor={isAuthor}
+                            onlyShowLeadPostInFeed={collection.only_show_lead_post_in_feed}
+                            onSetLeadPost={handleSetLeadPost}
                         />
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20 text-center bg-card rounded-xl border border-dashed border-border/60 shadow-sm">
+                        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border-0 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.06)]">
                             <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />
                             <h3 className="text-lg font-semibold text-foreground mb-1.5">暂无内容</h3>
                             <p className="text-sm text-muted-foreground max-w-sm">

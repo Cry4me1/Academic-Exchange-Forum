@@ -9,7 +9,7 @@ export default function DashboardLoading() {
     <div className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950/40 text-foreground antialiased">
       {/* 顶部导航栏骨架 */}
       <header className="sticky top-0 z-50 border-0 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-[inset_0_-1px_0.5px_rgba(255,255,255,0.85),0_4px_24px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_-1px_0.5px_rgba(255,255,255,0.08),0_4px_24px_-2px_rgba(0,0,0,0.3)]">
-        <div className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10">
+        <div className="max-w-[1440px] xl:max-w-[1480px] 2xl:max-w-[1640px] 3xl:max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Skeleton className="h-7.5 w-7.5 rounded-xl" />
@@ -26,10 +26,10 @@ export default function DashboardLoading() {
       </header>
 
       {/* 主内容区骨架 */}
-      <main className="max-w-[1560px] mx-auto px-4 sm:px-8 lg:px-10 py-8">
-        <div className="flex gap-8 items-start">
+      <main className="max-w-[1440px] xl:max-w-[1480px] 2xl:max-w-[1640px] 3xl:max-w-[1760px] mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-8">
+        <div className="flex gap-5 xl:gap-6 items-start">
           {/* 左侧栏骨架 */}
-          <aside className="hidden lg:block w-72 shrink-0 space-y-5">
+          <aside className="hidden lg:block w-64 shrink-0 space-y-5">
             <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)] space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-9 w-full rounded-full" />
@@ -85,7 +85,7 @@ export default function DashboardLoading() {
           </div>
 
           {/* 右侧栏骨架 */}
-          <aside className="hidden xl:block w-[340px] shrink-0 space-y-5">
+          <aside className="hidden xl:block w-[300px] shrink-0 space-y-5">
             <Skeleton className="h-10 w-full rounded-full" />
             <div className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl rounded-2xl border-0 p-4 space-y-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">
               <Skeleton className="h-4 w-16 rounded-full" />

@@ -33,26 +33,27 @@ export function Backlinks({ backlinks, className }: BacklinksProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-                "relative rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-muted/30 overflow-hidden",
+                "relative rounded-3xl border-0 bg-white/75 dark:bg-zinc-900/65 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.35)] overflow-hidden",
                 className
             )}
         >
-            {/* 顶部装饰线 */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/50 via-purple-500/50 to-pink-500/50" />
+            {/* 顶部消融光带 */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sky-500/50 to-transparent" />
 
             {/* 标题栏 */}
             <button
+                type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center justify-between w-full px-5 py-3.5 text-left hover:bg-muted/30 transition-colors"
+                className="flex items-center justify-between w-full px-5 py-3.5 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
             >
                 <div className="flex items-center gap-2.5">
-                    <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-blue-500/10">
-                        <Link2 className="h-4 w-4 text-blue-500" />
+                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-sky-500/10 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.1)]">
+                        <Link2 className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
                     </div>
                     <span className="font-semibold text-sm text-foreground">
                         反向引用
                     </span>
-                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-blue-500/10 text-blue-600 text-xs font-medium">
+                    <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-2 rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300 text-xs font-semibold shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.1)]">
                         {backlinks.length}
                     </span>
                 </div>
@@ -74,7 +75,7 @@ export function Backlinks({ backlinks, className }: BacklinksProps) {
                         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                         className="overflow-hidden"
                     >
-                        <div className="px-5 pb-4 space-y-1">
+                        <div className="px-4 pb-4 space-y-1">
                             {backlinks.map((link, index) => (
                                 <motion.div
                                     key={link.id}
@@ -88,7 +89,7 @@ export function Backlinks({ backlinks, className }: BacklinksProps) {
                                 >
                                     <Link
                                         href={`/posts/${link.id}`}
-                                        className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-all duration-200"
+                                        className="group flex items-center gap-3 px-3.5 py-2.5 rounded-2xl hover:bg-white/80 dark:hover:bg-zinc-800/60 shadow-none hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_8px_-2px_rgba(0,0,0,0.04)] dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-all duration-200 border-0"
                                     >
                                         <Avatar className="h-6 w-6 flex-shrink-0">
                                             <AvatarImage
@@ -100,7 +101,7 @@ export function Backlinks({ backlinks, className }: BacklinksProps) {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                                            <p className="text-sm font-medium text-foreground group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate">
                                                 {link.title}
                                             </p>
                                             <p className="text-xs text-muted-foreground">

@@ -99,12 +99,91 @@ export function extractTextFromContent(content: unknown): string {
     }
 }
 
+export interface CleanSummaryOptions {
+    /** 是否彻底去除 URL（替换为空格），默认为 false 即替换为简短平台标记 🔗 Badge */
+    stripUrls?: boolean;
+    /** 是否保留 LaTeX 数学公式标记 $（供富公式分享卡片使用），默认为 false */
+    preserveMath?: boolean;
+}
+
+/**
+ * 将裸露的长 URL 转换为语义化的简短文本标记（如 🔗 GitHub、🔗 arXiv 等）
+ * 消除长链接造成的异常断行、字符挤压以及视觉噪声
+ */
+export function formatUrlBadge(rawUrl: string): string {
+    let cleanUrl = rawUrl;
+    let leading = "";
+    let trailing = "";
+
+    // 剥离可能存在的开头括号或引号（若外部直接传入裸串）
+    const leadMatch = cleanUrl.match(/^([(\[{<“‘"']+)(.*)$/);
+    if (leadMatch) {
+        leading = leadMatch[1];
+        cleanUrl = leadMatch[2];
+    }
+
+    // 剥离常见的英文和中文尾部标点符号（如末尾句号、逗号、问号、感叹号、引号等）
+    const punctMatch = cleanUrl.match(/^(.*?)([.,:;!?'"”’，。！？]+)$/);
+    if (punctMatch) {
+        cleanUrl = punctMatch[1];
+        trailing = punctMatch[2] + trailing;
+    }
+
+    // 处理结尾括号：如果外部多了一个未匹配的闭括号，则剥离到 trailing
+    while (cleanUrl.endsWith(")") || cleanUrl.endsWith("）")) {
+        const openCount = (cleanUrl.match(/\(/g) || []).length;
+        const closeCount = (cleanUrl.match(/\)/g) || []).length;
+        if (closeCount > openCount || cleanUrl.endsWith("）")) {
+            trailing = cleanUrl.slice(-1) + trailing;
+            cleanUrl = cleanUrl.slice(0, -1);
+        } else {
+            break;
+        }
+    }
+
+    try {
+        const parsed = new URL(cleanUrl);
+        const host = parsed.hostname.toLowerCase();
+        let label = "网页链接";
+
+        if (host === "github.com" || host.endsWith(".github.com")) label = "GitHub";
+        else if (host === "arxiv.org" || host.endsWith(".arxiv.org")) label = "arXiv";
+        else if (host === "huggingface.co" || host.endsWith(".huggingface.co")) label = "Hugging Face";
+        else if (host === "bilibili.com" || host.endsWith(".bilibili.com")) label = "Bilibili";
+        else if (host === "zhihu.com" || host.endsWith(".zhihu.com")) label = "知乎";
+        else if (host === "luogu.com.cn" || host.endsWith(".luogu.com.cn")) label = "洛谷";
+        else if (host === "wikipedia.org" || host.endsWith(".wikipedia.org")) label = "维基百科";
+        else if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be") label = "YouTube";
+        else if (host === "x.com" || host === "twitter.com") label = "X";
+        else if (host === "gitlab.com" || host.endsWith(".gitlab.com")) label = "GitLab";
+        else if (host === "gitee.com" || host.endsWith(".gitee.com")) label = "Gitee";
+        else if (host === "scholar.google.com") label = "Google Scholar";
+        else if (host === "paperswithcode.com" || host.endsWith(".paperswithcode.com")) label = "Papers with Code";
+        else if (host === "openreview.net" || host.endsWith(".openreview.net")) label = "OpenReview";
+        else if (host === "doi.org" || host.endsWith(".doi.org")) label = "DOI";
+
+        return `${leading} 🔗 ${label} ${trailing}`;
+    } catch {
+        return `${leading} 🔗 链接 ${trailing}`;
+    }
+}
+
 /**
  * 清洗 Markdown / 富文本标记，生成干净无标记泄露的纯文本摘要
+ * - 过滤 HTML 标签、代码块、列表标记、标题符号等
+ * - 清洗裸露的 http/https 长链接，将其替换为优雅简短的平台文本标记（如 🔗 GitHub）
+ * - 支持字符串输入或 Novel/Tiptap JSONContent 对象
  */
-export function cleanSummaryText(rawText: string): string {
-    if (!rawText) return "";
-    let text = rawText;
+export function cleanSummaryText(
+    content: unknown,
+    options?: CleanSummaryOptions
+): string {
+    if (!content) return "";
+    let text = typeof content === "string" ? content : extractTextFromContent(content);
+
+    // 0. 将 Markdown 自动链接 <http...> 与方括号包裹的裸链接 [http...] 转换为普通 URL
+    text = text.replace(/<(https?:\/\/[^>]+)>/g, "$1");
+    text = text.replace(/\[(https?:\/\/[^\]]+)\]/g, "$1");
 
     // 1. 过滤 HTML 标签
     text = text.replace(/<[^>]+>/g, " ");
@@ -119,31 +198,41 @@ export function cleanSummaryText(rawText: string): string {
     text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, " ");
     text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
 
-    // 5. 过滤 Markdown 标题行前缀（如 ## Title -> Title）
+    // 5. 过滤或清洗裸露的 http/https 长链接
+    const urlRegex = /https?:\/\/[a-zA-Z0-9\-._~:/?#@!$&'()*+,;=%]+/g;
+    if (options?.stripUrls) {
+        text = text.replace(urlRegex, " ");
+    } else {
+        text = text.replace(urlRegex, (matched) => formatUrlBadge(matched));
+    }
+
+    // 6. 过滤 Markdown 标题行前缀（如 ## Title -> Title）
     text = text.replace(/^#+\s+/gm, "");
     text = text.replace(/\n#+\s+/g, " ");
 
-    // 6. 过滤引用符号 >
+    // 7. 过滤引用符号 >
     text = text.replace(/^>\s+/gm, "");
     text = text.replace(/\n>\s+/g, " ");
 
-    // 7. 过滤粗体、斜体、删除线 **text** -> text, *text* -> text, ~~text~~ -> text
+    // 8. 过滤粗体、斜体、删除线 **text** -> text, *text* -> text, ~~text~~ -> text
     text = text.replace(/(\*\*|__)(.*?)\1/g, "$2");
     text = text.replace(/(\*|_)(.*?)\1/g, "$2");
     text = text.replace(/~~(.*?)~~/g, "$1");
 
-    // 8. 过滤无序列表与有序列表标记 - item / 1. item
+    // 9. 过滤无序列表与有序列表标记 - item / 1. item
     text = text.replace(/^[\*\-\+]\s+/gm, "");
     text = text.replace(/^\d+\.\s+/gm, "");
 
-    // 9. 过滤水平分割线 --- / ***
+    // 10. 过滤水平分割线 --- / ***
     text = text.replace(/^[\*\-_]{3,}$/gm, " ");
 
-    // 10. 处理 LaTeX 块公式 $$...$$ 与行内公式 $...$
-    text = text.replace(/\$\$([\s\S]*?)\$\$/g, " $1 ");
-    text = text.replace(/\$([^\$]+)\$/g, " $1 ");
+    // 11. 处理 LaTeX 块公式 $$...$$ 与行内公式 $...$
+    if (!options?.preserveMath) {
+        text = text.replace(/\$\$([\s\S]*?)\$\$/g, " $1 ");
+        text = text.replace(/\$([^\$]+)\$/g, " $1 ");
+    }
 
-    // 11. 将多个换行符、制表符、连续空格压缩为单个空格
+    // 12. 将多个换行符、制表符、连续空格压缩为单个空格
     text = text.replace(/[\r\n\t]+/g, " ");
     text = text.replace(/\s{2,}/g, " ");
 

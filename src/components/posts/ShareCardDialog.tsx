@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { MathText } from "@/components/ui/math-text";
-import { extractTextFromContent } from "@/lib/extract-text";
+import { extractTextFromContent, cleanSummaryText } from "@/lib/extract-text";
 import { cn } from "@/lib/utils";
 import { toPng, toBlob } from "html-to-image";
 import {
@@ -162,7 +162,7 @@ const themeConfigs: Record<
  * 提取学术正文摘要，并确保数学公式不会在中间被切断
  */
 function extractAcademicSnippet(content: unknown, maxLength: number = 135): string {
-    const raw = extractTextFromContent(content);
+    const raw = cleanSummaryText(content, { preserveMath: true });
     if (!raw) return "探讨前沿学术命题，分享独到研究洞见。";
 
     const singleLine = raw.replace(/\r?\n+/g, " ").trim();

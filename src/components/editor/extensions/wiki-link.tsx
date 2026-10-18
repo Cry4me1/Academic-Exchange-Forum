@@ -12,6 +12,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { PluginKey } from "prosemirror-state";
+import { Paperclip } from "lucide-react";
 
 // ============================================================
 // 1. WikiLink Suggestion Plugin Key
@@ -46,7 +47,10 @@ export const WikiLink = Node.create({
             },
             title: {
                 default: null,
-                parseHTML: (element) => element.textContent?.trim() ?? "",
+                parseHTML: (element) => {
+                    const raw = element.textContent?.trim() ?? "";
+                    return raw.replace(/^[📎🔗\s]+/, "");
+                },
                 renderHTML: () => ({}),
             },
         };
@@ -162,6 +166,7 @@ export const WikiLink = Node.create({
 // ============================================================
 function WikiLinkNodeView({ node }: { node: any }) {
     const { postId, title } = node.attrs;
+    const cleanTitle = (title || "引用帖子").replace(/^[📎🔗\s]+/, "");
 
     const handleClick = useCallback(
         (e: React.MouseEvent) => {
@@ -172,22 +177,28 @@ function WikiLinkNodeView({ node }: { node: any }) {
     );
 
     return (
-        <NodeViewWrapper as="span" className="inline">
+        <NodeViewWrapper as="span" className="inline-block align-middle mx-1">
             <a
                 href={`/posts/${postId}`}
                 onClick={handleClick}
                 data-wiki-link=""
                 data-post-id={postId}
                 className={cn(
-                    "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5",
-                    "bg-primary/10 text-primary hover:bg-primary/20",
-                    "text-sm font-medium no-underline cursor-pointer",
-                    "transition-colors duration-150",
-                    "border border-primary/20",
+                    "group inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5",
+                    "text-xs font-medium no-underline cursor-pointer border-0",
+                    "bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700/90",
+                    "text-foreground/90 hover:text-primary backdrop-blur-xl",
+                    "shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.06)]",
+                    "dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.35)]",
+                    "hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_0_12px_rgba(14,165,233,0.18)]",
+                    "dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2),0_0_16px_rgba(14,165,233,0.25)]",
+                    "transition-all duration-200 active:scale-[0.98]"
                 )}
             >
-                <span className="text-xs">📎</span>
-                <span>{title}</span>
+                <span className="w-4 h-4 rounded-full bg-sky-500/10 dark:bg-sky-400/15 flex items-center justify-center shrink-0 text-sky-600 dark:text-sky-400 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.15)]">
+                    <Paperclip className="w-2.5 h-2.5" />
+                </span>
+                <span className="truncate max-w-[280px] sm:max-w-[360px]">{cleanTitle}</span>
             </a>
         </NodeViewWrapper>
     );
@@ -235,8 +246,8 @@ const WikiLinkList = forwardRef<any, any>((props, ref) => {
 
     if (props.items.length === 0) {
         return (
-            <div className="flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md p-2">
-                <span className="text-xs text-muted-foreground px-2 py-1">
+            <div className="flex flex-col overflow-hidden rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl text-popover-foreground shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_16px_48px_-4px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_16px_48px_-4px_rgba(0,0,0,0.5)] p-3">
+                <span className="text-xs text-muted-foreground px-2 py-1 font-medium">
                     输入关键词搜索帖子…
                 </span>
             </div>
@@ -244,20 +255,21 @@ const WikiLinkList = forwardRef<any, any>((props, ref) => {
     }
 
     return (
-        <div className="flex z-50 flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in zoom-in-95">
-            <div className="max-h-[300px] overflow-y-auto p-1">
+        <div className="flex z-50 flex-col overflow-hidden rounded-2xl border-0 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-2xl text-popover-foreground shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_16px_48px_-4px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_16px_48px_-4px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 p-1.5 min-w-[260px]">
+            <div className="max-h-[300px] overflow-y-auto p-1 space-y-0.5">
                 {props.items.map((item: WikiLinkItem, index: number) => (
                     <button
                         key={item.postId}
+                        type="button"
                         className={cn(
-                            "flex w-full select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                            "flex w-full select-none items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium outline-none transition-all duration-150 cursor-pointer border-0",
                             index === selectedIndex
-                                ? "bg-accent text-accent-foreground"
-                                : "hover:bg-accent hover:text-accent-foreground",
+                                ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_10px_rgba(14,165,233,0.15)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_0_12px_rgba(14,165,233,0.25)]"
+                                : "text-foreground/80 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60",
                         )}
                         onClick={() => selectItem(index)}
                     >
-                        <span className="text-base">📄</span>
+                        <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xs">📄</span>
                         <span className="truncate">{item.title}</span>
                     </button>
                 ))}
@@ -341,7 +353,10 @@ export const WikiLinkViewer = Node.create({
             },
             title: {
                 default: null,
-                parseHTML: (element) => element.textContent?.trim() ?? "",
+                parseHTML: (element) => {
+                    const raw = element.textContent?.trim() ?? "";
+                    return raw.replace(/^[📎🔗\s]+/, "");
+                },
                 renderHTML: () => ({}),
             },
         };
@@ -352,14 +367,41 @@ export const WikiLinkViewer = Node.create({
     },
 
     renderHTML({ node, HTMLAttributes }) {
+        const rawTitle = node.attrs.title || "引用帖子";
+        const title = rawTitle.replace(/^[📎🔗\s]+/, "");
         return [
             "a",
             mergeAttributes(HTMLAttributes, {
                 "data-wiki-link": "",
+                "data-post-id": node.attrs.postId,
                 href: `/posts/${node.attrs.postId}`,
-                class: "wiki-link",
+                class: cn(
+                    "wiki-link group inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5",
+                    "text-xs font-medium no-underline cursor-pointer border-0 align-middle mx-1",
+                    "bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-700/90",
+                    "text-foreground/90 hover:text-primary backdrop-blur-xl",
+                    "shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.06)]",
+                    "dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.35)]",
+                    "hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_0_12px_rgba(14,165,233,0.18)]",
+                    "dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2),0_0_16px_rgba(14,165,233,0.25)]",
+                    "transition-all duration-200 active:scale-[0.98]"
+                ),
+                target: "_blank",
+                rel: "noopener noreferrer",
             }),
-            node.attrs.title,
+            [
+                "span",
+                {
+                    class:
+                        "w-4 h-4 rounded-full bg-sky-500/10 dark:bg-sky-400/15 flex items-center justify-center shrink-0 text-[10px] text-sky-600 dark:text-sky-400 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.15)]",
+                },
+                "📎",
+            ],
+            [
+                "span",
+                { class: "truncate max-w-[280px] sm:max-w-[360px]" },
+                title,
+            ],
         ];
     },
 

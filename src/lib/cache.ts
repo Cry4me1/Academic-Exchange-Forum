@@ -11,7 +11,7 @@ export const getCachedTrendingPosts = unstable_cache(
 
     const orderColumn = sortBy === "likes" ? "like_count" : "view_count";
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("posts")
       .select(
         `
@@ -20,7 +20,20 @@ export const getCachedTrendingPosts = unstable_cache(
       `
       )
       .eq("is_published", true)
-      .eq("is_hidden", false)
+      .eq("is_hidden", false);
+
+    // 过滤专栏中设置“主页仅展示导读文章”的后续篇章
+    try {
+      const { data: excludedRows } = await supabase.rpc("get_feed_excluded_collection_post_ids");
+      const excludedIds = (excludedRows || []).map((r: any) => r.post_id).filter(Boolean);
+      if (excludedIds.length > 0) {
+        query = query.not("id", "in", `(${excludedIds.join(",")})`);
+      }
+    } catch {
+      // 容错降级
+    }
+
+    const { data, error } = await query
       .order(orderColumn, { ascending: false })
       .order("like_count", { ascending: false })
       .limit(limit);
@@ -59,7 +72,7 @@ export const getCachedLatestPosts = unstable_cache(
   async (limit: number = 20) => {
     const supabase = createPublicClient();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("posts")
       .select(
         `
@@ -69,7 +82,20 @@ export const getCachedLatestPosts = unstable_cache(
       `
       )
       .eq("is_published", true)
-      .eq("is_hidden", false)
+      .eq("is_hidden", false);
+
+    // 过滤专栏中设置“主页仅展示导读文章”的后续篇章
+    try {
+      const { data: excludedRows } = await supabase.rpc("get_feed_excluded_collection_post_ids");
+      const excludedIds = (excludedRows || []).map((r: any) => r.post_id).filter(Boolean);
+      if (excludedIds.length > 0) {
+        query = query.not("id", "in", `(${excludedIds.join(",")})`);
+      }
+    } catch {
+      // 容错降级
+    }
+
+    const { data, error } = await query
       .order("created_at", { ascending: false })
       .limit(limit);
 

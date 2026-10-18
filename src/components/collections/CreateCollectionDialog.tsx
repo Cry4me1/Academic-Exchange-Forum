@@ -1,6 +1,6 @@
 "use client";
 
-import { createCollection, updateCollection } from "@/app/(protected)/collections/actions";
+import { createCollection, getCollectionWithPosts, updateCollection } from "@/app/(protected)/collections/actions";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -35,6 +35,8 @@ interface CreateCollectionDialogProps {
         cover_url?: string | null;
         cover_style?: string;
         is_public: boolean;
+        only_show_lead_post_in_feed?: boolean;
+        lead_post_id?: string | null;
     } | null;
     onSuccess?: (collection?: any) => void;
 }
@@ -44,6 +46,9 @@ export function CreateCollectionDialog({ open, onOpenChange, editingCollection, 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isPublic, setIsPublic] = useState(true);
+    const [onlyShowLeadPostInFeed, setOnlyShowLeadPostInFeed] = useState(false);
+    const [leadPostId, setLeadPostId] = useState<string | null>(null);
+    const [collectionPosts, setCollectionPosts] = useState<Array<{ id: string; title: string }>>([]);
     const [coverTab, setCoverTab] = useState("preset");
     const [coverStyle, setCoverStyle] = useState(COLLECTION_COVER_PRESETS[0].id);
     const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -58,6 +63,16 @@ export function CreateCollectionDialog({ open, onOpenChange, editingCollection, 
                 setName(editingCollection.name);
                 setDescription(editingCollection.description || "");
                 setIsPublic(editingCollection.is_public);
+                setOnlyShowLeadPostInFeed(editingCollection.only_show_lead_post_in_feed ?? false);
+                setLeadPostId(editingCollection.lead_post_id || null);
+
+                // 若编辑模式，拉取专栏内文章用于指定导读篇
+                getCollectionWithPosts(editingCollection.id).then((res) => {
+                    if (res?.posts) {
+                        setCollectionPosts(res.posts.map(p => ({ id: p.id, title: p.title })));
+                    }
+                }).catch(() => {});
+
                 if (editingCollection.cover_url) {
                     setCoverUrl(editingCollection.cover_url);
                     setCoverTab("upload");
@@ -70,6 +85,9 @@ export function CreateCollectionDialog({ open, onOpenChange, editingCollection, 
                 setName("");
                 setDescription("");
                 setIsPublic(true);
+                setOnlyShowLeadPostInFeed(false);
+                setLeadPostId(null);
+                setCollectionPosts([]);
                 setCoverStyle(COLLECTION_COVER_PRESETS[0].id);
                 setCoverTab("preset");
                 setCoverUrl(null);
@@ -126,6 +144,8 @@ export function CreateCollectionDialog({ open, onOpenChange, editingCollection, 
                 name,
                 description,
                 is_public: isPublic,
+                only_show_lead_post_in_feed: onlyShowLeadPostInFeed,
+                lead_post_id: onlyShowLeadPostInFeed ? leadPostId : null,
                 cover_url: coverTab === "upload" ? coverUrl : null,
                 cover_style: coverTab === "preset" ? coverStyle : undefined,
             };
@@ -364,8 +384,55 @@ export function CreateCollectionDialog({ open, onOpenChange, editingCollection, 
                         <Switch
                             checked={isPublic}
                             onCheckedChange={setIsPublic}
-                            className="cursor-pointer"
+                            className="cursor-pointer shrink-0"
                         />
+                    </div>
+
+                    {/* 主页聚合展示与导读文章设置 */}
+                    <div className="rounded-2xl border-0 p-3.5 bg-zinc-200/35 hover:bg-zinc-200/50 dark:bg-white/[0.04] dark:hover:bg-white/[0.07] backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] transition-all space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5 pr-2">
+                                <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                    <span>主页仅展示导读文章</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 font-normal">专栏聚合</span>
+                                </Label>
+                                <div className="text-[11px] text-muted-foreground leading-relaxed">
+                                    开启后，本专栏在主页中仅展示一篇导读文章，其他文章通过该文章内的专栏目录进行阅读，避免多篇刷屏；作者亦可不开启，保持各篇独立展示。
+                                </div>
+                            </div>
+                            <Switch
+                                checked={onlyShowLeadPostInFeed}
+                                onCheckedChange={setOnlyShowLeadPostInFeed}
+                                className="cursor-pointer shrink-0"
+                            />
+                        </div>
+
+                        {/* 若开启了导读文章，提供指定导读文章选择器 */}
+                        {onlyShowLeadPostInFeed && (
+                            <div className="pt-2.5 border-t border-zinc-200/50 dark:border-zinc-800/50 space-y-1.5">
+                                <Label className="text-[11px] font-medium text-muted-foreground">
+                                    指定主页展示的导读文章
+                                </Label>
+                                {collectionPosts.length > 0 ? (
+                                    <select
+                                        value={leadPostId || ""}
+                                        onChange={(e) => setLeadPostId(e.target.value || null)}
+                                        className="w-full h-8 px-3 rounded-full text-xs font-medium bg-white/70 dark:bg-zinc-800/70 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                                    >
+                                        <option value="">专栏首篇（默认第一篇文章）</option>
+                                        {collectionPosts.map((p, idx) => (
+                                            <option key={p.id} value={p.id}>
+                                                第 {idx + 1} 篇: {p.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic">
+                                        专栏暂未收录文章。后续加入文章后，系统将默认以第一篇作为主页导读篇，亦可随时在此指定。
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

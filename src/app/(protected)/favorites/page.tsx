@@ -12,6 +12,7 @@ import { getFollowedCollections, toggleFollowCollection } from "@/app/(protected
 import { Loader2, ArrowLeft, Bookmark, BookMarked, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { cleanSummaryText } from "@/lib/extract-text";
 
 interface BookmarkedPost {
     id: string;
@@ -26,32 +27,6 @@ interface BookmarkedPost {
         avatar_url?: string;
     };
     bookmarked_at: string;
-}
-
-// 从 JSON 内容中提取文本
-function extractTextFromContent(content: string | object): string {
-    if (typeof content === "string") {
-        return content.replace(/<[^>]*>/g, "");
-    }
-    try {
-        const jsonContent = content as { content?: Array<{ content?: Array<{ text?: string }> }> };
-        if (jsonContent.content) {
-            const texts: string[] = [];
-            for (const node of jsonContent.content) {
-                if (node.content) {
-                    for (const child of node.content) {
-                        if (child.text) {
-                            texts.push(child.text);
-                        }
-                    }
-                }
-            }
-            return texts.join(" ").slice(0, 200);
-        }
-    } catch {
-        // ignore
-    }
-    return "";
 }
 
 export default function FavoritesPage() {
@@ -214,7 +189,7 @@ export default function FavoritesPage() {
                                                             </h3>
                                                         </Link>
                                                         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                            <MathText text={extractTextFromContent(post.content).substring(0, 150) + "..."} inlineOnly />
+                                                            <MathText text={cleanSummaryText(post.content).slice(0, 150) + "..."} inlineOnly />
                                                         </p>
                                                         <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                                                             <Link href={`/user/${post.author?.id}`} className="hover:text-foreground">

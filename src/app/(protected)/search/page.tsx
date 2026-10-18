@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { cleanSummaryText } from "@/lib/extract-text";
 
 interface SearchResultPost {
     id: string;
@@ -50,31 +51,7 @@ interface SearchResultUser {
     isFriendPending?: boolean;
 }
 
-// 从 JSON 内容中提取文本
-function extractTextFromContent(content: string | object): string {
-    if (typeof content === "string") {
-        return content.replace(/<[^>]*>/g, "");
-    }
-    try {
-        const jsonContent = content as { content?: Array<{ content?: Array<{ text?: string }> }> };
-        if (jsonContent.content) {
-            const texts: string[] = [];
-            for (const node of jsonContent.content) {
-                if (node.content) {
-                    for (const child of node.content) {
-                        if (child.text) {
-                            texts.push(child.text);
-                        }
-                    }
-                }
-            }
-            return texts.join(" ").slice(0, 200);
-        }
-    } catch {
-        // ignore
-    }
-    return "";
-}
+
 
 function SearchResultsContent() {
     const searchParams = useSearchParams();
@@ -406,7 +383,7 @@ function SearchResultsContent() {
                                                 </h3>
                                             </Link>
                                             <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
-                                                <MathText text={extractTextFromContent(post.content).substring(0, 150) + "..."} inlineOnly />
+                                                <MathText text={cleanSummaryText(post.content).slice(0, 150) + "..."} inlineOnly />
                                             </p>
 
                                             {/* 水平渐变消融微光缝 */}

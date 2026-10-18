@@ -164,6 +164,7 @@ export default function ManageCollectionsPage() {
                                         coverStyle={collection.cover_style}
                                         postCount={collection.post_count ?? 0}
                                         isPublic={collection.is_public ?? true}
+                                        onlyShowLeadPostInFeed={collection.only_show_lead_post_in_feed}
                                         updatedAt={collection.updated_at}
                                     />
                                     
