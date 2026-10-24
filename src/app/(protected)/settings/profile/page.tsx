@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Camera, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Save, Volume2, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +26,6 @@ import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { Locale } from "@/i18n/types";
 import { Switch } from "@/components/ui/switch";
 import { useMessageSound } from "@/hooks/useMessageSound";
-import { Volume2, Play } from "lucide-react";
 
 interface ProfileData {
     id: string;
@@ -40,6 +39,7 @@ interface ProfileData {
     timezone: string | null;
     banner_style: string | null;
     banner_url: string | null;
+    show_online_status?: boolean | null;
 }
 
 export default function ProfileSettingsPage() {
@@ -49,6 +49,7 @@ export default function ProfileSettingsPage() {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
     const { soundEnabled, setSoundEnabled, testSound } = useMessageSound();
+    const [showOnlineStatus, setShowOnlineStatus] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +86,7 @@ export default function ProfileSettingsPage() {
                 toast.error(tSettings.loadError);
             } else if (data) {
                 setProfile(data);
+                setShowOnlineStatus(data.show_online_status !== false);
                 setFormData({
                     username: data.username || "",
                     gender: data.gender || "",
@@ -98,6 +100,25 @@ export default function ProfileSettingsPage() {
         }
         loadProfile();
     }, [supabase, router, tSettings.loadError]);
+
+    // 切换在线状态隐私公开设置
+    const handleToggleOnlineStatus = async (checked: boolean) => {
+        if (!profile) return;
+        const previous = showOnlineStatus;
+        setShowOnlineStatus(checked);
+
+        const { error } = await supabase
+            .from("profiles")
+            .update({ show_online_status: checked })
+            .eq("id", profile.id);
+
+        if (error) {
+            setShowOnlineStatus(previous);
+            toast.error("更新在线状态设置失败，请先执行最新数据库迁移脚本");
+        } else {
+            toast.success(checked ? "已公开在线状态" : "已隐藏在线状态");
+        }
+    };
 
     // 语言变更联动
     const handleLanguageChange = (val: string) => {
@@ -217,14 +238,14 @@ export default function ProfileSettingsPage() {
                     <LanguageSwitcher variant="toggle" />
                 </div>
 
-                <Card className="shadow-lg border-border/30 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
+                <Card className="shadow-lg border-0 bg-white/80 dark:bg-card/80 backdrop-blur-xl rounded-3xl">
                     <CardHeader className="pb-4">
                         {/* 头像和基本信息 */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 {/* 头像 */}
                                 <div className="relative group">
-                                    <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
+                                    <Avatar className="h-20 w-20 border-0 ring-4 ring-white/90 dark:ring-zinc-900/90 shadow-lg">
                                         <AvatarImage src={profile?.avatar_url || ""} alt="头像" />
                                         <AvatarFallback className="text-2xl bg-gradient-to-br from-primary/30 to-primary/10 text-primary font-bold">
                                             {initials}
@@ -257,7 +278,7 @@ export default function ProfileSettingsPage() {
                                     <p className="text-sm text-muted-foreground">{profile?.email}</p>
                                 </div>
                             </div>
-                            <Button onClick={handleSave} disabled={saving}>
+                            <Button onClick={handleSave} disabled={saving} className="rounded-full border-0">
                                 {saving ? (
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                 ) : (
@@ -366,8 +387,9 @@ export default function ProfileSettingsPage() {
                         </div>
 
                         {/* 邮箱显示 */}
-                        <div className="pt-4 border-t border-border/50">
-                            <h3 className="text-sm font-semibold mb-3">{tSettings.emailTitle}</h3>
+                        <div className="pt-4 space-y-3">
+                            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+                            <h3 className="text-sm font-semibold">{tSettings.emailTitle}</h3>
                             <div className="flex items-center gap-3">
                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                                     <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -383,8 +405,8 @@ export default function ProfileSettingsPage() {
                     </CardContent>
                 </Card>
 
-                {/* 消息与提示音偏好 Card */}
-                <Card className="shadow-lg border-0 bg-white/80 dark:bg-card/80 backdrop-blur-sm rounded-2xl md:rounded-3xl overflow-hidden mt-6">
+                {/* 偏好与隐私设置 Card */}
+                <Card className="shadow-lg border-0 bg-white/80 dark:bg-card/80 backdrop-blur-xl rounded-2xl md:rounded-3xl overflow-hidden mt-6">
                     <CardHeader className="pb-3 border-0">
                         <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -392,16 +414,33 @@ export default function ProfileSettingsPage() {
                             </div>
                             <div>
                                 <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-                                    消息与提示音偏好
+                                    偏好与状态设置
                                 </h2>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                    管理即时聊天与站内消息的声音反馈
+                                    管理在线状态可见性与消息提示音
                                 </p>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-2 pb-6 space-y-4">
-                        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50/70 dark:bg-zinc-900/40 backdrop-blur-md">
+                    <CardContent className="pt-2 pb-6 space-y-3">
+                        {/* 展示在线状态开关 */}
+                        <div className="flex items-center justify-between p-3.5 rounded-2xl border-0 bg-zinc-50/70 dark:bg-zinc-900/40 backdrop-blur-md">
+                            <div className="space-y-0.5 pr-4">
+                                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                    展示在线状态
+                                </span>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    在个人主页显示在线状态与上次活跃时间
+                                </p>
+                            </div>
+                            <Switch
+                                checked={showOnlineStatus}
+                                onCheckedChange={handleToggleOnlineStatus}
+                            />
+                        </div>
+
+                        {/* 私信提示音开关 */}
+                        <div className="flex items-center justify-between p-3.5 rounded-2xl border-0 bg-zinc-50/70 dark:bg-zinc-900/40 backdrop-blur-md">
                             <div className="space-y-0.5 pr-4">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">

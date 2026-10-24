@@ -2043,3 +2043,20 @@ div[data-type="solid-geometry"].ProseMirror-selectednode,
 .animate-track-right {
   animation: smooth-marquee-right 60s linear infinite;
 }
+
+
+/* ============================================
+   Recharts Zero-Outline Override (Liquid Glass)
+   ============================================ */
+.recharts-responsive-container,
+.recharts-wrapper,
+.recharts-surface,
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}

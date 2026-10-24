@@ -12,6 +12,7 @@ interface PresenceUser {
 interface PresenceContextType {
     onlineUsers: Set<string>;
     isOnline: (userId: string) => boolean;
+    getRecentLastSeen: (userId: string) => string | null;
     isConnected: boolean;
     currentUserId: string | null;
 }
@@ -19,6 +20,7 @@ interface PresenceContextType {
 const PresenceContext = createContext<PresenceContextType | null>(null);
 
 const SCHOLARLY_AI_ID = "00000000-0000-0000-0000-0000000000a1";
+const HEARTBEAT_INTERVAL_MS = 4 * 60 * 1000;
 
 export function PresenceProvider({
     children,
@@ -28,6 +30,7 @@ export function PresenceProvider({
     currentUserId: string | null;
 }) {
     const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set([SCHOLARLY_AI_ID]));
+    const [recentLastSeenMap, setRecentLastSeenMap] = useState<Record<string, string>>({});
     const [isConnected, setIsConnected] = useState(false);
     const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -35,6 +38,11 @@ export function PresenceProvider({
         if (!currentUserId) return;
 
         const supabase = createClient();
+
+        const syncLastSeenSilently = () => {
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+            Promise.resolve(supabase.rpc("touch_user_last_seen")).catch(() => {});
+        };
 
         // 1. 若客户端中已存在该话题的旧频道（如 Fast Refresh、快速重挂载），先同步彻底移除，防止复用已 subscribe 的频道
         const existingChannel = supabase.getChannels().find(
@@ -74,9 +82,11 @@ export function PresenceProvider({
             setOnlineUsers((prev) => new Set([...prev, key, SCHOLARLY_AI_ID]));
         };
 
-        // 用户离开
+        // 用户离开：记录会话级离线时间快照
         const handleLeave = ({ key }: { key: string }) => {
             if (key === SCHOLARLY_AI_ID) return;
+            const leftIso = new Date().toISOString();
+            setRecentLastSeenMap((prev) => ({ ...prev, [key]: leftIso }));
             setOnlineUsers((prev) => {
                 const next = new Set(prev);
                 next.delete(key);
@@ -100,6 +110,7 @@ export function PresenceProvider({
             if (status === "SUBSCRIBED") {
                 isSubscribed = true;
                 setIsConnected(true);
+                syncLastSeenSilently();
                 // 追踪当前用户上线
                 await channel.track({
                     id: currentUserId,
@@ -113,6 +124,7 @@ export function PresenceProvider({
         // 页面可见性变化时更新状态
         const handleVisibilityChange = async () => {
             if (document.visibilityState === "visible" && channelRef.current && isSubscribed) {
+                syncLastSeenSilently();
                 await channelRef.current.track({
                     id: currentUserId,
                     online_at: new Date().toISOString(),
@@ -120,9 +132,11 @@ export function PresenceProvider({
             }
         };
 
+        const heartbeatTimer = window.setInterval(syncLastSeenSilently, HEARTBEAT_INTERVAL_MS);
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => {
+            window.clearInterval(heartbeatTimer);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             channelRef.current = null;
             // 立即同步从客户端频道池中移除，禁止 setTimeout 延迟，确保下一次挂载拿到全新频道
@@ -135,8 +149,13 @@ export function PresenceProvider({
         [onlineUsers]
     );
 
+    const getRecentLastSeen = useCallback(
+        (userId: string) => recentLastSeenMap[userId] || null,
+        [recentLastSeenMap]
+    );
+
     return (
-        <PresenceContext.Provider value={{ onlineUsers, isOnline, isConnected, currentUserId }}>
+        <PresenceContext.Provider value={{ onlineUsers, isOnline, getRecentLastSeen, isConnected, currentUserId }}>
             {children}
         </PresenceContext.Provider>
     );
@@ -149,6 +168,7 @@ export function usePresenceContext(): PresenceContextType {
         return {
             onlineUsers: new Set([SCHOLARLY_AI_ID]),
             isOnline: (userId: string) => userId === SCHOLARLY_AI_ID,
+            getRecentLastSeen: () => null,
             isConnected: false,
             currentUserId: null,
         };

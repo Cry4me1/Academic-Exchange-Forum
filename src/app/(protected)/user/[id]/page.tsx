@@ -3,14 +3,25 @@
 import { CollectionCard } from "@/components/collections";
 import { ReputationBadge } from "@/components/duel/ReputationBadge";
 import { VipBadge } from "@/components/payments/VipBadge";
+import {
+    AcademicHeatmapCard,
+    ActivityPulseCard,
+    DomainRadarCard,
+    OnlineStatusPill,
+    fetchScholarAnalytics,
+    type ScholarAnalyticsData,
+} from "@/components/profile/analytics";
 import { BannerSelector, bannerGradients } from "@/components/profile/banner-selector";
 import { FallingEffectController } from "@/components/profile/falling-effect-controller";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MathText } from "@/components/ui/math-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePresenceContext } from "@/contexts/PresenceContext";
 import { useFriends } from "@/hooks/useFriends";
+import { cleanSummaryText } from "@/lib/extract-text";
+import { extractImageUrls } from "@/lib/moderation/utils";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -35,15 +46,12 @@ import {
     Swords,
     UserCheck,
     UserPlus,
-    VolumeX
+    VolumeX,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { MathText } from "@/components/ui/math-text";
-import { extractImageUrls } from "@/lib/moderation/utils";
-import { cleanSummaryText } from "@/lib/extract-text";
 
 interface UserProfile {
     id: string;
@@ -69,6 +77,8 @@ interface UserProfile {
     special_title: string | null;
     badges: string[] | null;
     falling_effect: string | null;
+    last_seen_at?: string | null;
+    show_online_status?: boolean | null;
 }
 
 interface Post {
@@ -173,7 +183,7 @@ function PostCoverThumbnail({ src, alt }: { src: string; alt: string }) {
     }
 
     return (
-        <div className="relative shrink-0 block overflow-hidden rounded-xl border-0 bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)] group/cover w-24 h-20 sm:w-40 sm:h-26 md:w-48 md:h-30 aspect-[16/10]">
+        <div className="relative shrink-0 block overflow-hidden rounded-2xl border-0 bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_2px_8px_-2px_rgba(0,0,0,0.3)] group/cover w-24 h-20 sm:w-40 sm:h-26 md:w-48 md:h-30 aspect-[16/10]">
             <Image
                 src={src}
                 alt={alt}
@@ -185,7 +195,7 @@ function PostCoverThumbnail({ src, alt }: { src: string; alt: string }) {
                 onError={() => setHasError(true)}
             />
             {/* Apple 表面张力菲涅尔内高光 */}
-            <div className="absolute inset-0 pointer-events-none rounded-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15)]" />
+            <div className="absolute inset-0 pointer-events-none rounded-2xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15)]" />
         </div>
     );
 }
@@ -200,8 +210,11 @@ export default function UserProfilePage() {
     const [bookmarkedPosts, setBookmarkedPosts] = useState<BookmarkedPost[]>([]);
     const [collections, setCollections] = useState<UserCollection[]>([]);
     const [followedCollections, setFollowedCollections] = useState<any[]>([]);
+    const [analytics, setAnalytics] = useState<ScholarAnalyticsData | null>(null);
+    const [analyticsLoading, setAnalyticsLoading] = useState(true);
     const [loading, setLoading] = useState(true);
-    const { isOnline, currentUserId: contextUserId } = usePresenceContext();
+
+    const { isOnline, getRecentLastSeen, currentUserId: contextUserId } = usePresenceContext();
     const [currentUserId, setCurrentUserId] = useState<string | null>(contextUserId || null);
     const [isFriend, setIsFriend] = useState(false);
     const [friendRequestSent, setFriendRequestSent] = useState(false);
@@ -223,10 +236,12 @@ export default function UserProfilePage() {
         async function loadData() {
             if (!userId) {
                 setLoading(false);
+                setAnalyticsLoading(false);
                 return;
             }
 
             setLoading(true);
+            setAnalyticsLoading(true);
             let activeUserId = contextUserId;
             // 获取当前登录用户
             try {
@@ -287,6 +302,7 @@ export default function UserProfilePage() {
                 if (isMounted) {
                     setProfile(null);
                     setLoading(false);
+                    setAnalyticsLoading(false);
                 }
                 return;
             }
@@ -303,6 +319,19 @@ export default function UserProfilePage() {
 
             const targetUserId = profileData.id;
             const isOwner = Boolean(activeUserId && activeUserId === targetUserId);
+
+            // 并行加载多元活跃与领域数据（不阻塞主列表渲染）
+            fetchScholarAnalytics(supabase, targetUserId, isOwner)
+                .then((stats) => {
+                    if (isMounted) {
+                        setAnalytics(stats);
+                    }
+                })
+                .finally(() => {
+                    if (isMounted) {
+                        setAnalyticsLoading(false);
+                    }
+                });
 
             // 获取该用户发布的帖子（严格基于 targetUserId UUID）
             let postsQuery = supabase
@@ -553,7 +582,7 @@ export default function UserProfilePage() {
         return (
             <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3">
                 <Loader2 className="h-7 w-7 animate-spin text-zinc-500" />
-                <span className="text-xs text-zinc-400">正在加载学者主页...</span>
+                <span className="text-xs text-zinc-400">正在加载主页...</span>
             </div>
         );
     }
@@ -580,6 +609,16 @@ export default function UserProfilePage() {
     const isOwnProfile = Boolean(
         currentUserId && (currentUserId === userId || (profile && currentUserId === profile.id))
     );
+
+    const userIsOnline = isOnline(profile.id);
+    const canShowPresence =
+        isOwnProfile ||
+        (analytics ? analytics.showOnlineStatus : profile.show_online_status !== false);
+    const effectiveLastSeen =
+        getRecentLastSeen(profile.id) ||
+        analytics?.lastSeenAt ||
+        profile.last_seen_at ||
+        null;
 
     // 渲染帖子 Feed 卡片
     const renderPostCard = (post: Post, extraInfo?: { label: string; time: string }) => {
@@ -637,7 +676,7 @@ export default function UserProfilePage() {
 
                         {/* 隐藏原因与申诉提示条（仅作者本人在自己主页可见） */}
                         {isHidden && (
-                            <div className="p-3 rounded-xl bg-rose-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-rose-600 dark:text-rose-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div className="p-3 rounded-2xl bg-rose-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-rose-600 dark:text-rose-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                 <div className="flex items-start gap-2 flex-1">
                                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
                                     <div className="leading-relaxed">
@@ -663,7 +702,7 @@ export default function UserProfilePage() {
 
                         {/* 驳回原因提示条 */}
                         {isRejected && (
-                            <div className="p-3 rounded-xl bg-red-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-red-600 dark:text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div className="p-3 rounded-2xl bg-red-500/8 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-xs text-red-600 dark:text-red-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                 <div className="flex items-start gap-2 flex-1">
                                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
                                     <div className="leading-relaxed">
@@ -751,8 +790,8 @@ export default function UserProfilePage() {
                 <div className="absolute -top-32 right-1/4 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-3xl" />
             </div>
 
-            {/* 居中版心容器 (收敛至 max-w-4xl) */}
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
+            {/* 方案 A：舒展版心容器 (max-w-6xl 双栏非对称 Bento 布局) */}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
                 {/* 顶部轻量快捷返回与四季视效微光控制栏 */}
                 <div className="flex items-center justify-between gap-3">
                     <Link
@@ -846,20 +885,22 @@ export default function UserProfilePage() {
                                     </AvatarFallback>
                                 </Avatar>
 
-                                {/* 在线状态指示小圆点 */}
-                                <span
-                                    title={isOnline(profile.id) ? "当前在线" : "离线"}
-                                    className={cn(
-                                        "absolute -bottom-1 -right-1 z-20 rounded-full ring-3 ring-white dark:ring-zinc-900 transition-all",
-                                        isOnline(profile.id)
-                                            ? "h-5 w-5 bg-emerald-500 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                                            : "h-4 w-4 bg-zinc-400 dark:bg-zinc-500"
-                                    )}
-                                >
-                                    {isOnline(profile.id) && (
-                                        <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90 animate-pulse" />
-                                    )}
-                                </span>
+                                {/* 在线状态指示小圆点（严格联动隐私可见开关） */}
+                                {canShowPresence && (
+                                    <span
+                                        title={userIsOnline ? "在线" : "离线"}
+                                        className={cn(
+                                            "absolute -bottom-1 -right-1 z-20 rounded-full ring-3 ring-white dark:ring-zinc-900 transition-all",
+                                            userIsOnline
+                                                ? "h-5 w-5 bg-emerald-500 flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                                : "h-4 w-4 bg-zinc-400 dark:bg-zinc-500"
+                                        )}
+                                    >
+                                        {userIsOnline && (
+                                            <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90 animate-pulse" />
+                                        )}
+                                    </span>
+                                )}
                             </div>
 
                             {/* 交互操作区 */}
@@ -898,7 +939,7 @@ export default function UserProfilePage() {
                             </div>
                         </div>
 
-                        {/* 昵称与高权重 Badge */}
+                        {/* 昵称、高权重 Badge 与极简在线时间胶囊 */}
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-2 flex-wrap">
                                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -931,11 +972,19 @@ export default function UserProfilePage() {
                                         developerTitle={profile.developer_title || undefined}
                                     />
                                 )}
+
+                                {/* 实时在线 / 上次在线水滴胶囊 */}
+                                <OnlineStatusPill
+                                    isOnline={userIsOnline}
+                                    lastSeenAt={effectiveLastSeen}
+                                    showOnlineStatus={canShowPresence}
+                                    isOwnProfile={isOwnProfile}
+                                />
                             </div>
 
                             {/* 简介 (Bio) */}
                             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl pt-1">
-                                {profile.bio || "该学者潜心治学，暂未填写个性简介。"}
+                                {profile.bio || "暂未填写个人简介。"}
                             </p>
                         </div>
 
@@ -983,7 +1032,7 @@ export default function UserProfilePage() {
                                 {profile.badges.map((badge, idx) => (
                                     <span
                                         key={idx}
-                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-normal bg-zinc-100/80 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]"
+                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100/80 dark:bg-zinc-800/70 text-zinc-600 dark:text-zinc-400 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]"
                                     >
                                         {badge}
                                     </span>
@@ -993,191 +1042,133 @@ export default function UserProfilePage() {
                     </div>
                 </motion.div>
 
-                {/* 2. 现代化 Tabs 切换栏与 Post Feed 列表 */}
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: 0.1, ease: "easeOut" }}
-                    className="space-y-4"
-                >
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        {/* 现代化 TabsList 切换条 */}
-                        <div className="pb-2">
-                            <TabsList className="h-auto p-1.5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.2)] flex flex-wrap gap-1 w-full sm:w-auto justify-start">
-                                <TabsTrigger
-                                    value="posts"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <span>帖子</span>
-                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
-                                        {posts.length}
-                                    </span>
-                                </TabsTrigger>
+                {/* 2. 双栏非对称 Bento 主体区：左 8 列（热力图 + 内容流），右 4 列 Sticky（涉及领域 + 活跃概览） */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                    {/* 左侧主内容栏 (8 列) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, delay: 0.08, ease: "easeOut" }}
+                        className="lg:col-span-8 space-y-5 min-w-0"
+                    >
+                        {/* 热力图卡片 */}
+                        <AcademicHeatmapCard
+                            heatmapMap={analytics?.heatmapMap || {}}
+                            yearBreakdown={
+                                analytics?.yearBreakdown || {
+                                    total: 0,
+                                    posts: 0,
+                                    comments: 0,
+                                    others: 0,
+                                    activeDays: 0,
+                                }
+                            }
+                            loading={analyticsLoading}
+                        />
 
-                                <TabsTrigger
-                                    value="collections"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <BookOpen className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>专栏</span>
-                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
-                                        {collections.length}
-                                    </span>
-                                </TabsTrigger>
+                        {/* Tabs 切换栏与 Post Feed 列表 */}
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                            <div className="pb-2">
+                                <TabsList className="h-auto p-1.5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.2)] flex flex-wrap gap-1 w-full sm:w-auto justify-start">
+                                    <TabsTrigger
+                                        value="posts"
+                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <span>帖子</span>
+                                        <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium tabular-nums bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                            {posts.length}
+                                        </span>
+                                    </TabsTrigger>
 
-                                <TabsTrigger
-                                    value="likes"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <Heart className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span>点赞</span>
-                                    <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
-                                        {likedPosts.length}
-                                    </span>
-                                </TabsTrigger>
+                                    <TabsTrigger
+                                        value="collections"
+                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <BookOpen className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>专栏</span>
+                                        <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium tabular-nums bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                            {collections.length}
+                                        </span>
+                                    </TabsTrigger>
 
-                                {isOwnProfile && (
-                                    <>
-                                        <TabsTrigger
-                                            value="bookmarks"
-                                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
-                                            <span>收藏</span>
-                                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
-                                                {bookmarkedPosts.length}
-                                            </span>
-                                        </TabsTrigger>
+                                    <TabsTrigger
+                                        value="likes"
+                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <Heart className="h-3.5 w-3.5 text-zinc-400" />
+                                        <span>点赞</span>
+                                        <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium tabular-nums bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                            {likedPosts.length}
+                                        </span>
+                                    </TabsTrigger>
 
-                                        <TabsTrigger
-                                            value="followed_collections"
-                                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <BookMarked className="h-3.5 w-3.5 text-zinc-400" />
-                                            <span>关注专栏</span>
-                                            <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
-                                                {followedCollections.length}
-                                            </span>
-                                        </TabsTrigger>
-                                    </>
-                                )}
-                            </TabsList>
-                        </div>
-
-                        {/* 3. 帖子内容列表 */}
-                        <TabsContent value="posts" className="pt-2">
-                            {posts.length > 0 ? (
-                                <div className="space-y-3">
-                                    {posts.map((post) => renderPostCard(post))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
-                                    <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
-                                        <Pencil className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-xs text-zinc-500 font-medium">暂无发布的学术帖子</p>
                                     {isOwnProfile && (
-                                        <Link href="/posts/new">
-                                            <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
-                                                发布第一篇学术讨论
-                                            </Button>
-                                        </Link>
+                                        <>
+                                            <TabsTrigger
+                                                value="bookmarks"
+                                                className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
+                                                <span>收藏</span>
+                                                <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium tabular-nums bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                                    {bookmarkedPosts.length}
+                                                </span>
+                                            </TabsTrigger>
+
+                                            <TabsTrigger
+                                                value="followed_collections"
+                                                className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <BookMarked className="h-3.5 w-3.5 text-zinc-400" />
+                                                <span>关注专栏</span>
+                                                <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium tabular-nums bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
+                                                    {followedCollections.length}
+                                                </span>
+                                            </TabsTrigger>
+                                        </>
                                     )}
-                                </div>
-                            )}
-                        </TabsContent>
+                                </TabsList>
+                            </div>
 
-                        {/* 专栏列表 */}
-                        <TabsContent value="collections" className="pt-2">
-                            {collections.length > 0 ? (
-                                <div className="space-y-4">
-                                    {isOwnProfile && (
-                                        <div className="flex justify-end">
-                                            <Link href="/collections/manage">
-                                                <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
-                                                    <BookOpen className="h-3.5 w-3.5" />
-                                                    <span>管理我的专栏</span>
+                            {/* 帖子内容列表 */}
+                            <TabsContent value="posts" className="pt-2">
+                                {posts.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {posts.map((post) => renderPostCard(post))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
+                                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
+                                            <Pencil className="h-5 w-5" />
+                                        </div>
+                                        <p className="text-xs text-zinc-500 font-medium">暂无发布的帖子</p>
+                                        {isOwnProfile && (
+                                            <Link href="/posts/new">
+                                                <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
+                                                    发布第一篇帖子
                                                 </Button>
                                             </Link>
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                                        {collections.map((col) => (
-                                            <CollectionCard
-                                                key={col.id}
-                                                id={col.id}
-                                                name={col.name}
-                                                description={col.description}
-                                                coverUrl={col.cover_url}
-                                                coverStyle={col.cover_style}
-                                                postCount={col.post_count}
-                                                isPublic={col.is_public}
-                                                updatedAt={col.updated_at}
-                                            />
-                                        ))}
+                                        )}
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
-                                    <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
-                                        <BookOpen className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-xs text-zinc-500 font-medium">
-                                        {isOwnProfile ? "您还没有创建任何学术专栏" : "该学者暂未创建学术专栏"}
-                                    </p>
-                                    {isOwnProfile && (
-                                        <Link href="/collections/manage">
-                                            <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
-                                                创建第一个专栏
-                                            </Button>
-                                        </Link>
-                                    )}
-                                </div>
-                            )}
-                        </TabsContent>
+                                )}
+                            </TabsContent>
 
-                        {/* 点赞列表 */}
-                        <TabsContent value="likes" className="pt-2">
-                            {likedPosts.length > 0 ? (
-                                <div className="space-y-3">
-                                    {likedPosts.map((post) =>
-                                        renderPostCard(post, { label: "赞过", time: post.liked_at })
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
-                                    <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
-                                        <Heart className="h-5 w-5" />
-                                    </div>
-                                    <p className="text-xs text-zinc-500 font-medium">暂无点赞的帖子</p>
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        {/* 收藏列表 (本人) */}
-                        {isOwnProfile && (
-                            <>
-                                <TabsContent value="bookmarks" className="pt-2">
-                                    {bookmarkedPosts.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {bookmarkedPosts.map((post) =>
-                                                renderPostCard(post, { label: "收藏", time: post.bookmarked_at })
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
-                                            <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
-                                                <Bookmark className="h-5 w-5" />
+                            {/* 专栏列表 */}
+                            <TabsContent value="collections" className="pt-2">
+                                {collections.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {isOwnProfile && (
+                                            <div className="flex justify-end">
+                                                <Link href="/collections/manage">
+                                                    <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
+                                                        <BookOpen className="h-3.5 w-3.5" />
+                                                        <span>管理我的专栏</span>
+                                                    </Button>
+                                                </Link>
                                             </div>
-                                            <p className="text-xs text-zinc-500 font-medium">暂无收藏的帖子</p>
-                                        </div>
-                                    )}
-                                </TabsContent>
-
-                                <TabsContent value="followed_collections" className="pt-2">
-                                    {followedCollections.length > 0 ? (
+                                        )}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                                            {followedCollections.map((col) => (
+                                            {collections.map((col) => (
                                                 <CollectionCard
                                                     key={col.id}
                                                     id={col.id}
@@ -1188,29 +1179,133 @@ export default function UserProfilePage() {
                                                     postCount={col.post_count}
                                                     isPublic={col.is_public}
                                                     updatedAt={col.updated_at}
-                                                    authorName={col.author?.username || "未知学者"}
-                                                    showAuthor
                                                 />
                                             ))}
                                         </div>
-                                    ) : (
-                                        <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
-                                            <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
-                                                <BookMarked className="h-5 w-5" />
-                                            </div>
-                                            <p className="text-xs text-zinc-500 font-medium">还没有关注任何学术专栏</p>
-                                            <Link href="/trending">
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
+                                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
+                                            <BookOpen className="h-5 w-5" />
+                                        </div>
+                                        <p className="text-xs text-zinc-500 font-medium">
+                                            {isOwnProfile ? "暂无专栏" : "该学者暂未创建专栏"}
+                                        </p>
+                                        {isOwnProfile && (
+                                            <Link href="/collections/manage">
                                                 <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
-                                                    探索热门学术专栏
+                                                    创建第一个专栏
                                                 </Button>
                                             </Link>
+                                        )}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            {/* 点赞列表 */}
+                            <TabsContent value="likes" className="pt-2">
+                                {likedPosts.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {likedPosts.map((post) =>
+                                            renderPostCard(post, { label: "赞过", time: post.liked_at })
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
+                                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
+                                            <Heart className="h-5 w-5" />
                                         </div>
-                                    )}
-                                </TabsContent>
-                            </>
-                        )}
-                    </Tabs>
-                </motion.div>
+                                        <p className="text-xs text-zinc-500 font-medium">暂无点赞的帖子</p>
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            {/* 收藏列表 (本人) */}
+                            {isOwnProfile && (
+                                <>
+                                    <TabsContent value="bookmarks" className="pt-2">
+                                        {bookmarkedPosts.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {bookmarkedPosts.map((post) =>
+                                                    renderPostCard(post, { label: "收藏", time: post.bookmarked_at })
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
+                                                <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
+                                                    <Bookmark className="h-5 w-5" />
+                                                </div>
+                                                <p className="text-xs text-zinc-500 font-medium">暂无收藏的帖子</p>
+                                            </div>
+                                        )}
+                                    </TabsContent>
+
+                                    <TabsContent value="followed_collections" className="pt-2">
+                                        {followedCollections.length > 0 ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                                {followedCollections.map((col) => (
+                                                    <CollectionCard
+                                                        key={col.id}
+                                                        id={col.id}
+                                                        name={col.name}
+                                                        description={col.description}
+                                                        coverUrl={col.cover_url}
+                                                        coverStyle={col.cover_style}
+                                                        postCount={col.post_count}
+                                                        isPublic={col.is_public}
+                                                        updatedAt={col.updated_at}
+                                                        authorName={col.author?.username || "未知学者"}
+                                                        showAuthor
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-14 border-0 rounded-3xl bg-white/50 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_8px_32px_-4px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_8px_32px_-4px_rgba(0,0,0,0.2)]">
+                                                <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
+                                                    <BookMarked className="h-5 w-5" />
+                                                </div>
+                                                <p className="text-xs text-zinc-500 font-medium">暂无关注的专栏</p>
+                                                <Link href="/trending">
+                                                    <Button variant="outline" size="sm" className="mt-3 text-xs rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-1px_rgba(0,0,0,0.06)] px-4 py-1.5 font-medium cursor-pointer transition-all active:scale-[0.97]">
+                                                        探索热门专栏
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        )}
+                                    </TabsContent>
+                                </>
+                            )}
+                        </Tabs>
+                    </motion.div>
+
+                    {/* 右侧 Sticky 悬浮栏 (4 列)：涉及领域 + 连续活跃与时段 */}
+                    <motion.aside
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, delay: 0.14, ease: "easeOut" }}
+                        className="lg:col-span-4 space-y-5 lg:sticky lg:top-6 min-w-0"
+                    >
+                        <DomainRadarCard
+                            domains={analytics?.domains || []}
+                            hasDomainData={Boolean(analytics?.hasDomainData)}
+                            loading={analyticsLoading}
+                        />
+
+                        <ActivityPulseCard
+                            currentStreak={analytics?.currentStreak || 0}
+                            longestStreak={analytics?.longestStreak || 0}
+                            longestRangeLabel={analytics?.longestRangeLabel || null}
+                            activeDays={analytics?.yearBreakdown.activeDays || 0}
+                            hourlyCounts={analytics?.hourlyCounts || []}
+                            totalHourlyEvents={analytics?.totalHourlyEvents || 0}
+                            peakPeriodLabel={analytics?.peakPeriodLabel || null}
+                            personaLabel={analytics?.personaLabel || null}
+                            peakSharePercent={analytics?.peakSharePercent || 0}
+                            isNightPeak={Boolean(analytics?.isNightPeak)}
+                            loading={analyticsLoading}
+                        />
+                    </motion.aside>
+                </div>
             </div>
         </div>
     );
