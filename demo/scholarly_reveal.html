@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scholarly — 纯粹 · 严谨 · 灵动的学术殿堂 (Opus 5.5 Reveal)</title>
+
+  <!-- 优先加载项目本地 KaTeX，同时提供高速 CDN 兜底确保独立移动文件亦可渲染 -->
+  <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css"
+        onerror="this.onerror=null;this.href='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';" />
+
+  <style>
+    @font-face {
+      font-family: "GeistSans";
+      src: url("../src/app/fonts/GeistVF.woff2") format("woff2");
+      font-weight: 100 900;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "GeistMono";
+      src: url("../src/app/fonts/GeistMonoVF.woff2") format("woff2");
+      font-weight: 100 900;
+      font-display: block;
+    }
+
+    :root {
+      --bg-obsidian: #06080e;
+      --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+      --sans: "GeistSans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "GeistMono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --amber-glow: rgba(245, 158, 11, 0.22);
+      --sky-glow: rgba(56, 189, 248, 0.14);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-obsidian);
+      color: #f8fafc;
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    /* 导出模式自动隐藏交互 HUD */
+    body.export-mode .hud-only {
+      display: none !important;
+    }
+
+    /* Three.js 全屏三维数学流形背景 */
+    #webgl-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* 环境柔光晕层（纯单色温润光晕，遵循 UI-DESIGN-RULES） */
+    .ambient-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background:
+        radial-gradient(920px 540px at 50% 14%, rgba(245, 158, 11, 0.11), transparent 72%),
+        radial-gradient(700px 620px at 14% 72%, rgba(56, 189, 248, 0.07), transparent 70%),
+        radial-gradient(760px 580px at 86% 78%, rgba(245, 158, 11, 0.08), transparent 72%);
+    }
+
+    /* 电影暗角，凝聚视觉中心 */
+    .vignette-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background: radial-gradient(ellipse at center, transparent 48%, rgba(4, 5, 10, 0.72) 100%);
+    }
+
+    /* 1920x1080 恒定比例舞台：任何屏幕零折行、零溢出、像素级对齐 */
+    #stage {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 1920px;
+      height: 1080px;
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
+      z-index: 5;
+      perspective: 1600px;
+      transform-style: preserve-3d;
+    }
+
+    .act {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      will-change: transform, opacity, filter;
+    }
+
+    /* ============================================================
+     * Apple Liquid Glass 核心三层光学表面（严禁显式硬边框 border-0）
+     * ============================================================ */
+    .liquid-panel {
+      border: 0;
+      border-radius: 28px;
+      background: rgba(18, 21, 31, 0.62);
+      backdrop-filter: blur(28px) saturate(145%);
+      -webkit-backdrop-filter: blur(28px) saturate(145%);
+      box-shadow:
+        inset 0 1px 0.8px rgba(255, 255, 255, 0.30),
+        inset 0 0 28px rgba(255, 255, 255, 0.025),
+        0 24px 64px -12px rgba(0, 0, 0, 0.68);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 面板内部深邃磨砂凹槽 */
+    .liquid-well {
+      border: 0;
+      border-radius: 20px;
+      background: rgba(8, 10, 16, 0.68);
+      box-shadow:
+        inset 0 1px 0.6px rgba(255, 255, 255, 0.12),
+        0 8px 24px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 水滴流体胶囊 (rounded-full) */
+    .liquid-pill {
+      border: 0;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.075);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow:
+        inset 0 1px 0.5px rgba(255, 255, 255, 0.34),
+        0 8px 28px -4px rgba(0, 0, 0, 0.42);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .liquid-pill-amber {
+      border: 0;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.14);
+      box-shadow:
+        inset 0 1px 0.5px rgba(253, 230, 138, 0.42),
+        0 0 24px rgba(245, 158, 11, 0.18);
+      color: #fde68a;
+      font-weight: 500;
+    }
+
+    .liquid-pill-emerald {
+      border: 0;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.14);
+      box-shadow:
+        inset 0 1px 0.5px rgba(167, 243, 208, 0.38),
+        0 0 22px rgba(16, 185, 129, 0.16);
+      color: #a7f3d0;
+      font-weight: 500;
+    }
+
+    /* 白月光晶体核心行动点 (Dark Mode Primary CTA) */
+    .moonlight-cta {
+      border: 0;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.93);
+      color: #09090b;
+      font-weight: 500;
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 1),
+        0 8px 32px -4px rgba(255, 255, 255, 0.24),
+        0 0 40px rgba(245, 158, 11, 0.16);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 物理漫射光斑层（纯白环境反射） */
+    .reflex-sheen {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        420px circle at var(--rx, 50%) var(--ry, 0%),
+        rgba(255, 255, 255, 0.13),
+        transparent 72%
+      );
+      z-index: 2;
+    }
+
+    /* 渐变消融内部光缝（严禁实线 hr） */
+    .divider-h {
+      height: 1px;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.20), transparent);
+    }
+    .divider-v {
+      width: 1px;
+      height: 16px;
+      background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+     * ACT I: 思想奇点与公式觉醒 (0.00s - 2.55s)
+     * ============================================================ */
+    #act1-seam {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1160px;
+      height: 2px;
+      transform: translate(-50%, -50%) scaleX(0);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.92), rgba(251,191,36,0.9), rgba(255,255,255,0.92), transparent);
+      box-shadow: 0 0 36px 4px rgba(245, 158, 11, 0.55);
+    }
+
+    .formula-float {
+      position: absolute;
+      padding: 16px 26px;
+      border-radius: 24px;
+      background: rgba(18, 22, 34, 0.56);
+      backdrop-filter: blur(22px);
+      box-shadow:
+        inset 0 1px 0.8px rgba(255, 255, 255, 0.28),
+        0 18px 48px -8px rgba(0, 0, 0, 0.62);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .formula-float .f-tag {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: rgba(253, 230, 138, 0.85);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .formula-float .f-math {
+      font-size: 21px;
+      color: #f8fafc;
+    }
+
+    #act1-center {
+      text-align: center;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 26px;
+      padding: 44px 84px;
+      border-radius: 48px;
+      background: radial-gradient(ellipse at center, rgba(6, 8, 14, 0.72) 0%, rgba(6, 8, 14, 0.36) 56%, transparent 78%);
+    }
+
+    .act1-headline {
+      font-family: var(--serif);
+      font-size: 92px;
+      font-weight: 600;
+      line-height: 1.18;
+      letter-spacing: -0.015em;
+      color: #f8fafc;
+    }
+    .amber-text-accent {
+      position: relative;
+      display: inline-block;
+      background: linear-gradient(135deg, #fef3c7 10%, #fbbf24 52%, #f59e0b 95%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 32px rgba(245, 158, 11, 0.26));
+    }
+
+    /* ============================================================
+     * ACT II: 三大原生学术引擎 Bento 矩阵 (2.40s - 5.35s)
+     * ============================================================ */
+    #act2-wrap {
+      width: 1640px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 38px;
+    }
+
+    .act2-header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 64px;
+      border-radius: 36px;
+      background: radial-gradient(ellipse at center, rgba(6, 8, 14, 0.74) 0%, rgba(6, 8, 14, 0.34) 60%, transparent 82%);
+    }
+    .act2-title {
+      font-family: var(--serif);
+      font-size: 56px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+    }
+
+    .bento-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      perspective: 1400px;
+    }
+
+    .bento-card {
+      height: 520px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-style: preserve-3d;
+    }
+
+    .bento-card-head {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      z-index: 3;
+    }
+    .bento-card-title {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #f8fafc;
+    }
+    .bento-card-desc {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .bento-stage {
+      height: 256px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      z-index: 3;
+    }
+
+    .code-line {
+      font-family: var(--mono);
+      font-size: 14.5px;
+      line-height: 1.68;
+      color: #e2e8f0;
+      white-space: pre;
+    }
+    .tok-kw { color: #38bdf8; }
+    .tok-fn { color: #fbbf24; }
+    .tok-cm { color: #64748b; }
+    .tok-num { color: #34d399; }
+
+    /* ============================================================
+     * ACT III: Scholarly 旗舰社区全景界面揭示 (5.20s - 7.75s)
+     * ============================================================ */
+    #flagship-window {
+      width: 1520px;
+      height: 820px;
+      padding: 32px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-style: preserve-3d;
+      background: rgba(13, 16, 25, 0.72);
+      box-shadow:
+        inset 0 1.2px 1px rgba(255, 255, 255, 0.36),
+        inset 0 0 48px rgba(255, 255, 255, 0.025),
+        0 40px 100px -16px rgba(0, 0, 0, 0.82),
+        0 0 80px -20px rgba(245, 158, 11, 0.14);
+    }
+
+    .mock-navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 4;
+    }
+
+    .mock-hero-grid {
+      display: grid;
+      grid-template-columns: 1.12fr 0.88fr;
+      gap: 48px;
+      align-items: center;
+      flex: 1;
+      padding: 18px 8px;
+      position: relative;
+      z-index: 4;
+    }
+
+    .mock-hero-title {
+      font-family: var(--serif);
+      font-size: 68px;
+      font-weight: 600;
+      line-height: 1.18;
+      letter-spacing: -0.015em;
+      margin: 22px 0 20px;
+    }
+
+    .mock-hero-sub {
+      font-size: 18px;
+      line-height: 1.72;
+      color: #cbd5e1;
+      max-width: 640px;
+      margin-bottom: 30px;
+    }
+
+    #featured-3d-card {
+      padding: 32px;
+      border-radius: 28px;
+      background: rgba(24, 28, 42, 0.68);
+      backdrop-filter: blur(28px);
+      box-shadow:
+        inset 0 1px 0.9px rgba(255, 255, 255, 0.38),
+        0 24px 64px -10px rgba(0, 0, 0, 0.65);
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+    }
+
+    /* 模拟 120fps 精致矢量指针轨迹（绝不遮挡正文公式） */
+    #sim-cursor {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      pointer-events: none;
+      z-index: 20;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 14px rgba(251, 191, 36, 0.35));
+    }
+
+    /* ============================================================
+     * ACT IV: 图腾加冕 · 品牌终极定格 (7.55s - 10.00s)
+     * ============================================================ */
+    #act4-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 24px;
+      position: relative;
+      padding: 56px 110px;
+      border-radius: 56px;
+      background: radial-gradient(ellipse at center, rgba(6, 8, 14, 0.84) 0%, rgba(6, 8, 14, 0.56) 54%, transparent 78%);
+    }
+
+    .emblem-halo {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      width: 440px;
+      height: 440px;
+      transform: translate(-50%, -18%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.24) 0%, rgba(56, 189, 248, 0.08) 46%, transparent 72%);
+      filter: blur(28px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .brand-wordmark {
+      font-family: var(--sans);
+      font-size: 86px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.05;
+      z-index: 2;
+    }
+
+    .brand-slogan {
+      font-family: var(--serif);
+      font-size: 34px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      color: #fde68a;
+      z-index: 2;
+    }
+
+    /* ============================================================
+     * 浏览器预览交互胶囊 HUD（导出 MP4 时自动隐藏）
+     * ============================================================ */
+    .hud-bar {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hud-btn {
+      border: 0;
+      border-radius: 9999px;
+      padding: 11px 20px;
+      background: rgba(255, 255, 255, 0.10);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow:
+        inset 0 1px 0.6px rgba(255, 255, 255, 0.55),
+        0 10px 32px rgba(0, 0, 0, 0.45);
+      color: #f8fafc;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .hud-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: scale(1.03);
+    }
+    .hud-btn:active {
+      transform: scale(0.97);
+    }
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+    }
+
+    /* KaTeX 微调适配暗色高对比显示 */
+    .katex { font-size: 1.06em; color: #f8fafc; }
+    .amber-math .katex { color: #fde68a; }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="../node_modules/katex/dist/katex.min.js"
+          onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';document.head.appendChild(s);"></script>
+</head>
+<body>
+  <!-- Three.js WebGL 三维辛流形与深空星尘背景 -->
+  <div id="webgl-bg"></div>
+  <div class="ambient-layer"></div>
+  <div class="vignette-layer"></div>
+
+  <!-- 1920x1080 恒定比例主视觉舞台 -->
+  <div id="stage">
+
+    <!-- ==================== ACT I: 思想奇点与公式觉醒 (0.0s - 2.5s) ==================== -->
+    <section class="act" id="act1">
+      <div id="act1-seam"></div>
+
+      <!-- 四枚三维景深悬浮公式晶簇 -->
+      <div class="formula-float" id="f-card-1" style="top: 150px; left: 155px;">
+        <span class="f-tag"><span>◈</span> 弦论与全息时空重构</span>
+        <div class="f-math" data-latex="S_{\text{EE}} = \frac{\text{Area}(\gamma_A)}{4G_N}"></div>
+      </div>
+
+      <div class="formula-float" id="f-card-2" style="top: 165px; right: 155px;">
+        <span class="f-tag"><span>◈</span> 拓扑绝缘体量子霍尔效应</span>
+        <div class="f-math" data-latex="\sigma_{xy} = \frac{e^2}{h} \cdot \mathcal{C}"></div>
+      </div>
+
+      <div class="formula-float" id="f-card-3" style="bottom: 165px; left: 185px;">
+        <span class="f-tag"><span>◈</span> 微分流形全曲率积分</span>
+        <div class="f-math" data-latex="\chi(M) = \frac{1}{2\pi}\int_M K\,dA"></div>
+      </div>
+
+      <div class="formula-float" id="f-card-4" style="bottom: 155px; right: 175px;">
+        <span class="f-tag"><span>◈</span> 紧致辛流形弗洛尔同调</span>
+        <div class="f-math" data-latex="HF_*(L_0, L_1) \cong H_*(L_0 \cap L_1)"></div>
+      </div>
+
+      <!-- 中央序章宣言 -->
+      <div id="act1-center">
+        <div class="liquid-pill" id="act1-badge" style="padding: 10px 24px; font-size: 16px; color: #e2e8f0;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #10b981; box-shadow: 0 0 12px #10b981;"></span>
+          <span>面向全球研究者的下一代学术共识社区</span>
+        </div>
+        <h1 class="act1-headline" id="act1-title">
+          <span style="display: block;" id="act1-line1">当深邃思想</span>
+          <span class="amber-text-accent" id="act1-line2">遇见纯粹秩序</span>
+        </h1>
+      </div>
+    </section>
+
+    <!-- ==================== ACT II: 三大原生学术引擎解构 (2.4s - 5.3s) ==================== -->
+    <section class="act" id="act2">
+      <div id="act2-wrap">
+        <div class="act2-header" id="act2-header">
+          <div class="liquid-pill liquid-pill-amber" style="padding: 9px 22px; font-size: 15px;">
+            <span>✦</span>
+            <span>原生学术生产力引擎 · 三维一体</span>
+          </div>
+          <h2 class="act2-title">专为严谨推导与深度同行研讨而生</h2>
+        </div>
+
+        <div class="bento-grid">
+          <!-- 引擎 1: LaTeX 数学排版 -->
+          <div class="liquid-panel bento-card" id="bento-1">
+            <div class="reflex-sheen" id="sheen-1"></div>
+            <div class="bento-card-head">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="liquid-pill liquid-pill-amber" style="padding: 6px 15px; font-size: 13px;">∑ 毫秒级公式引擎</span>
+                <span style="font-family: var(--mono); font-size: 13px; color: #94a3b8;">KaTeX Native</span>
+              </div>
+              <div class="bento-card-title">原生 LaTeX 数学推导</div>
+              <div class="bento-card-desc">行内与跨行张量方程实时零延迟渲染，支持定理环境与 Nature 双栏出版级导出。</div>
+            </div>
+
+            <div class="liquid-well bento-stage">
+              <div style="font-family: var(--mono); font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden;">
+                <span style="color: #fbbf24;">$</span>
+                <span id="latex-typing-src" style="color: #e2e8f0;"></span>
+                <span id="latex-caret" style="display:inline-block; width:6px; height:14px; background:#fbbf24; flex-shrink:0;"></span>
+              </div>
+              <div class="divider-h"></div>
+              <div id="latex-rendered-main" class="amber-math" style="text-align: center; font-size: 23px; padding: 6px 0;"
+                   data-latex="\int_{\partial \Omega} \omega = \int_{\Omega} d\omega"></div>
+              <div style="text-align: center; font-size: 17px; opacity: 0.88;"
+                   data-latex="\nabla \times \mathbf{B} = \mu_0 \mathbf{J} + \mu_0 \varepsilon_0 \frac{\partial \mathbf{E}}{\partial t}"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; position: relative; z-index: 3;">
+              <span class="liquid-pill" style="padding: 6px 14px; font-size: 12.5px; color: #cbd5e1;">Nature 双栏排版</span>
+              <span class="liquid-pill" style="padding: 6px 14px; font-size: 12.5px; color: #cbd5e1;">安全公式截断</span>
+            </div>
+          </div>
+
+          <!-- 引擎 2: 50+ 语言算法高亮与沙盒 -->
+          <div class="liquid-panel bento-card" id="bento-2">
+            <div class="reflex-sheen" id="sheen-2"></div>
+            <div class="bento-card-head">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="liquid-pill liquid-pill-emerald" style="padding: 6px 15px; font-size: 13px;">{ } 算法计算沙盒</span>
+                <span style="font-family: var(--mono); font-size: 13px; color: #94a3b8;">50+ Languages</span>
+              </div>
+              <div class="bento-card-title">多语言高亮与在线运行</div>
+              <div class="bento-card-desc">内置 E2B 代码解释器沙盒与洛谷认证体系，数据结构与深度学习算子一键实测。</div>
+            </div>
+
+            <div class="liquid-well bento-stage">
+              <div class="code-line"><span class="tok-cm">// 重链剖分二次 DFS 路径投影</span>
+<span class="tok-kw">void</span> <span class="tok-fn">dfs2</span>(<span class="tok-kw">int</span> u, <span class="tok-kw">int</span> topf) {
+  dfn[u] = ++tot; top[u] = topf;
+  <span class="tok-kw">if</span> (son[u]) <span class="tok-fn">dfs2</span>(son[u], topf);
+  <span class="tok-kw">for</span> (<span class="tok-kw">int</span> v : G[u])
+    <span class="tok-kw">if</span> (v != fa[u] && v != son[u]) <span class="tok-fn">dfs2</span>(v, v);
+}</div>
+              <div>
+                <div style="height: 4px; width: 100%; border-radius: 9999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-bottom: 10px;">
+                  <div id="sandbox-bar" style="height: 100%; width: 0%; border-radius: 9999px; background: linear-gradient(90deg, #10b981, #38bdf8);"></div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12.5px;">
+                  <span id="sandbox-status" style="color: #34d399; font-weight: 500;">● 沙盒验证通过 · 12ms</span>
+                  <span style="font-family: var(--mono); color: #94a3b8;">O(log² n)</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; position: relative; z-index: 3;">
+              <span class="liquid-pill" style="padding: 6px 14px; font-size: 12.5px; color: #cbd5e1;">云端隔离执行</span>
+              <span class="liquid-pill" style="padding: 6px 14px; font-size: 12.5px; color: #cbd5e1;">洛谷 UID 荣誉认证</span>
+            </div>
+          </div>
+
+          <!-- 引擎 3: 双向引文网络与 AI 同行评审 -->
+          <div class="liquid-panel bento-card" id="bento-3">
+            <div class="reflex-sheen" id="sheen-3"></div>
+            <div class="bento-card-head">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="liquid-pill" style="padding: 6px 15px; font-size: 13px; color: #7dd3fc; background: rgba(56,189,248,0.14);">◈ 知识拓扑与评议</span>
+                <span style="font-family: var(--mono); font-size: 13px; color: #94a3b8;">Graph & AI</span>
+              </div>
+              <div class="bento-card-title">共引图谱与学术决斗场</div>
+              <div class="bento-card-desc">双向文献溯源自动编织学科脉络，配合 Reviewer #2 深度审稿与 1v1 学术切磋。</div>
+            </div>
+
+            <div class="liquid-well bento-stage" style="padding: 14px 18px; justify-content: center; align-items: center;">
+              <svg width="420" height="210" viewBox="0 0 420 210" style="overflow: visible;">
+                <defs>
+                  <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.75" />
+                    <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.85" />
+                  </linearGradient>
+                </defs>
+                <!-- 知识网络连线 -->
+                <path class="kg-edge" d="M 82 56 Q 150 92 210 105" fill="none" stroke="url(#edgeGrad)" stroke-width="2" />
+                <path class="kg-edge" d="M 82 158 Q 148 124 210 105" fill="none" stroke="url(#edgeGrad)" stroke-width="2" />
+                <path class="kg-edge" d="M 210 105 Q 278 72 340 52" fill="none" stroke="url(#edgeGrad)" stroke-width="2" />
+                <path class="kg-edge" d="M 210 105 Q 278 136 340 160" fill="none" stroke="url(#edgeGrad)" stroke-width="2" />
+                <path class="kg-edge" d="M 82 56 Q 210 18 340 52" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1.4" stroke-dasharray="4 4" />
+
+                <!-- 节点 -->
+                <g class="kg-node" transform="translate(82,56)">
+                  <circle r="11" fill="#0ea5e9" opacity="0.28" />
+                  <circle r="5.5" fill="#7dd3fc" />
+                  <text y="-16" text-anchor="middle" fill="#cbd5e1" font-size="12.5" font-weight="500">弦论全息</text>
+                </g>
+                <g class="kg-node" transform="translate(82,158)">
+                  <circle r="11" fill="#10b981" opacity="0.28" />
+                  <circle r="5.5" fill="#6ee7b7" />
+                  <text y="24" text-anchor="middle" fill="#cbd5e1" font-size="12.5" font-weight="500">注意力剪枝</text>
+                </g>
+                <g class="kg-node" transform="translate(210,105)">
+                  <circle id="kg-core-halo" r="22" fill="#f59e0b" opacity="0.24" />
+                  <circle r="9" fill="#fbbf24" />
+                  <text y="-26" text-anchor="middle" fill="#fde68a" font-size="13.5" font-weight="600">Scholarly 共引核</text>
+                </g>
+                <g class="kg-node" transform="translate(340,52)">
+                  <circle r="11" fill="#a855f7" opacity="0.28" />
+                  <circle r="5.5" fill="#d8b4fe" />
+                  <text y="-16" text-anchor="middle" fill="#cbd5e1" font-size="12.5" font-weight="500">辛流形拓扑</text>
+                </g>
+                <g class="kg-node" transform="translate(340,160)">
+                  <circle r="11" fill="#f43f5e" opacity="0.28" />
+                  <circle r="5.5" fill="#fda4af" />
+                  <text y="24" text-anchor="middle" fill="#cbd5e1" font-size="12.5" font-weight="500">量子霍尔物态</text>
+                </g>
+              </svg>
+            </div>
+
+            <div style="display: flex; gap: 10px; position: relative; z-index: 3;">
+              <span class="liquid-pill liquid-pill-amber" style="padding: 6px 14px; font-size: 12.5px;">✦ AI 同行审稿</span>
+              <span class="liquid-pill" style="padding: 6px 14px; font-size: 12.5px; color: #cbd5e1;">1v1 学术决斗场</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ACT III: 旗舰级社区全景界面揭示 (5.2s - 7.7s) ==================== -->
+    <section class="act" id="act3">
+      <div class="liquid-panel" id="flagship-window">
+        <div class="reflex-sheen" id="window-sheen"></div>
+
+        <!-- 顶部真实还原的 Apple Liquid Glass 双胶囊导航栏 -->
+        <div class="mock-navbar">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="liquid-pill" style="padding: 8px 20px 8px 10px;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.94); display: flex; align-items: center; justify-content: center;">
+                <!-- 迷你版品牌博士帽典籍徽标 -->
+                <svg width="22" height="22" viewBox="0 0 240 220">
+                  <path d="M120 26 L198 64 L120 102 L42 64 Z" fill="none" stroke="#0c233c" stroke-width="16" stroke-linejoin="round"/>
+                  <path d="M120 126 Q78 96 34 86 L34 176 Q80 182 120 202 Q160 182 206 176 L206 86 Q162 96 120 126 Z" fill="none" stroke="#0c233c" stroke-width="15" stroke-linejoin="round"/>
+                  <path d="M120 64 L162 86 L162 128 L88 188 M78 94 L78 128 L152 188" fill="none" stroke="#c89d46" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span style="font-size: 17px; font-weight: 600; color: #f8fafc;">Scholarly</span>
+            </div>
+
+            <div class="liquid-pill" style="padding: 6px 8px; gap: 4px; font-size: 14px; color: #cbd5e1;">
+              <span style="padding: 7px 16px; border-radius: 9999px; background: rgba(255,255,255,0.12); color: #fff;">热门学术</span>
+              <span style="padding: 7px 16px;">排行榜</span>
+              <span style="padding: 7px 16px;">决斗场</span>
+              <span style="padding: 7px 16px;">共创实验室</span>
+            </div>
+          </div>
+
+          <div class="liquid-pill" style="padding: 7px 10px 7px 20px; gap: 14px; font-size: 14px; color: #94a3b8;">
+            <span>搜索帖子、话题或学者...</span>
+            <span style="padding: 3px 10px; border-radius: 9999px; background: rgba(255,255,255,0.08); font-family: var(--mono); font-size: 12px; color: #cbd5e1;">⌘K</span>
+            <span class="divider-v"></span>
+            <span class="moonlight-cta" style="padding: 7px 18px; font-size: 13.5px;">进入仪表盘</span>
+          </div>
+        </div>
+
+        <!-- 主体双栏舞台 -->
+        <div class="mock-hero-grid">
+          <!-- 左栏：品牌价值主张 -->
+          <div>
+            <div class="liquid-pill" style="padding: 7px 10px 7px 18px; font-size: 14px; color: #cbd5e1;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 10px #10b981;"></span>
+              <span>汇聚前沿思想 · 已有 <strong style="color:#fff; font-weight:600;">1,280+</strong> 位学者在此研讨</span>
+              <span class="divider-v"></span>
+              <span class="liquid-pill-amber" style="padding: 5px 14px; font-size: 13px;">820 邀请码看板 →</span>
+            </div>
+
+            <div class="mock-hero-title">
+              <div style="color: #f8fafc;">纯粹 · 严谨 · 灵动</div>
+              <div class="amber-text-accent" style="margin-top: 4px;">学术殿堂</div>
+            </div>
+
+            <p class="mock-hero-sub">
+              专为研究者与学者打造的下一代学术交流平台。原生支持 LaTeX 深度数学排版、多语言算法高亮与 Mermaid 拓扑图谱，让思想的深邃自由绽放。
+            </p>
+
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 30px;">
+              <span class="moonlight-cta" style="padding: 14px 30px; font-size: 16px;">
+                <span>开启学术探索</span>
+                <span>→</span>
+              </span>
+              <span class="liquid-pill" style="padding: 14px 28px; font-size: 16px; color: #e2e8f0;">
+                浏览前沿讨论
+              </span>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <span class="liquid-pill" style="padding: 8px 16px; font-size: 13.5px; color: #cbd5e1;">∑ LaTeX 原生排版</span>
+              <span class="liquid-pill" style="padding: 8px 16px; font-size: 13.5px; color: #cbd5e1;">◈ Mermaid 拓扑图谱</span>
+              <span class="liquid-pill" style="padding: 8px 16px; font-size: 13.5px; color: #cbd5e1;">{ } 多语言代码高亮</span>
+            </div>
+          </div>
+
+          <!-- 右栏：3D 视差精选研讨卡片 + 120fps 光随鼠动物理漫射演示 -->
+          <div style="position: relative;">
+            <div id="sim-cursor">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <path d="M4.5 3.2L19.2 10.8L12.1 12.9L9.4 19.8L4.5 3.2Z" fill="#ffffff" stroke="rgba(15,23,42,0.75)" stroke-width="1.4" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div id="featured-3d-card">
+              <div class="reflex-sheen" id="featured-card-sheen"></div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; position: relative; z-index: 3;">
+                <span class="liquid-pill liquid-pill-amber" style="padding: 6px 16px; font-size: 13px;">✦ 前沿学术精选</span>
+                <span style="font-size: 13px; color: #94a3b8;">高能物理研究所 · 同行评议认证</span>
+              </div>
+
+              <h3 style="font-family: var(--serif); font-size: 27px; font-weight: 600; line-height: 1.4; color: #f8fafc; margin-bottom: 16px; position: relative; z-index: 3;">
+                量子纠缠的引力对偶与全息时空重构
+              </h3>
+
+              <p style="font-size: 15.5px; line-height: 1.72; color: #cbd5e1; margin-bottom: 20px; position: relative; z-index: 3;">
+                通过 Ryu-Takayanagi 极小曲面面积严格刻画边界共形场论纠缠熵，确立弯曲时空几何演化的微观量子信息机制：
+              </p>
+
+              <div class="liquid-well amber-math" style="padding: 18px; text-align: center; font-size: 22px; margin-bottom: 22px; position: relative; z-index: 3;"
+                   data-latex="S_{\text{EE}}(A) = \frac{\text{Area}(\gamma_A)}{4 G_N^{(d+2)}} + S_{\text{bulk}}"></div>
+
+              <div class="divider-h" style="margin-bottom: 18px;"></div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 3;">
+                <div style="display: flex; gap: 8px;">
+                  <span class="liquid-pill" style="padding: 5px 13px; font-size: 12.5px; color: #e2e8f0;">理论物理</span>
+                  <span class="liquid-pill" style="padding: 5px 13px; font-size: 12.5px; color: #e2e8f0;">弦论与全息</span>
+                  <span class="liquid-pill" style="padding: 5px 13px; font-size: 12.5px; color: #e2e8f0;">微分几何</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px; font-size: 13.5px; color: #fde68a; font-weight: 500;">
+                  <span style="color: #94a3b8;">赞同 128 · 评议 32</span>
+                  <span>研读全文 →</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部渐变消融光缝与统计栏 -->
+        <div>
+          <div class="divider-h" style="margin-bottom: 16px;"></div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13.5px; color: #94a3b8;">
+            <span>Scholarly Academic Community · 无边框液态光学界面 (Apple Liquid Glass)</span>
+            <span>高可用实时协作 · Supabase & Next.js 驱动</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ACT IV: 品牌图腾加冕终章 (7.55s - 10.00s) ==================== -->
+    <section class="act" id="act4">
+      <div id="act4-center">
+        <div class="emblem-halo" id="act4-halo"></div>
+
+        <!-- 1:1 复刻本站 logo.png 的高精度几何博士帽 × 展开典籍 × 琥珀金绶带矢量图腾 -->
+        <svg id="brand-emblem" width="230" height="210" viewBox="0 0 240 220" style="overflow: visible; z-index: 2;">
+          <defs>
+            <linearGradient id="platinumStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="60%" stop-color="#e2e8f0" />
+              <stop offset="100%" stop-color="#94a3b8" />
+            </linearGradient>
+            <linearGradient id="champagneGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fef3c7" />
+              <stop offset="48%" stop-color="#fbbf24" />
+              <stop offset="100%" stop-color="#d97706" />
+            </linearGradient>
+            <filter id="goldGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- 外层底座书框 -->
+          <path class="emblem-path" d="M 42 104 L 22 104 L 22 192 L 106 192 L 120 204 L 134 192 L 218 192 L 218 104 L 198 104"
+                fill="none" stroke="url(#platinumStroke)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round" />
+
+          <!-- 展开的学术典籍左右书页与中缝 -->
+          <path class="emblem-path" d="M 120 202 L 120 124 Q 82 94 42 84 L 42 170 Q 84 176 120 202 Z"
+                fill="none" stroke="url(#platinumStroke)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path class="emblem-path" d="M 120 202 L 120 124 Q 158 94 198 84 L 198 170 Q 156 176 120 202 Z"
+                fill="none" stroke="url(#platinumStroke)" stroke-width="9.5" stroke-linecap="round" stroke-linejoin="round" />
+
+          <!-- 顶部学术方帽菱形冠冕 -->
+          <path class="emblem-path" d="M 120 22 L 204 62 L 120 102 L 36 62 Z"
+                fill="none" stroke="url(#platinumStroke)" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+
+          <!-- 琥珀流金交织绶带与外侧金页边 (核心点睛) -->
+          <path class="emblem-path-gold" filter="url(#goldGlow)"
+                d="M 120 62 L 166 84 L 166 128 L 90 190"
+                fill="none" stroke="url(#champagneGold)" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path class="emblem-path-gold" filter="url(#goldGlow)"
+                d="M 74 82 L 74 128 L 150 190"
+                fill="none" stroke="url(#champagneGold)" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path class="emblem-path-gold" filter="url(#goldGlow)"
+                d="M 56 88 L 56 160 Q 90 168 120 194 Q 150 168 184 160 L 184 88"
+                fill="none" stroke="url(#champagneGold)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+
+        <div class="brand-wordmark" id="act4-wordmark">Scholarly</div>
+
+        <div class="divider-h" id="act4-divider" style="width: 480px;"></div>
+
+        <div class="brand-slogan" id="act4-slogan">纯粹 · 严谨 · 灵动的学术殿堂</div>
+
+        <div id="act4-pillars" style="display: flex; align-items: center; gap: 14px; margin-top: 4px; z-index: 2;">
+          <span class="liquid-pill" style="padding: 9px 24px; font-size: 15px; color: #f1f5f9; background: rgba(14, 18, 28, 0.80);">学术自由</span>
+          <span class="liquid-pill" style="padding: 9px 24px; font-size: 15px; color: #f1f5f9; background: rgba(14, 18, 28, 0.80);">理性质疑</span>
+          <span class="liquid-pill" style="padding: 9px 24px; font-size: 15px; color: #f1f5f9; background: rgba(14, 18, 28, 0.80);">互信共进</span>
+        </div>
+
+        <div id="act4-cta" style="margin-top: 12px; z-index: 2;">
+          <span class="moonlight-cta" style="padding: 15px 38px; font-size: 17px;">
+            <span>开启学术探索</span>
+            <span>→</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 浏览器预览交互胶囊控制栏（导出 MP4 时由 export-mode 自动隐藏） -->
+  <div class="hud-bar hud-only">
+    <button class="hud-btn" id="replay-btn">↺ 重新播放</button>
+    <button class="hud-btn" id="audio-btn">🔊 开启音效重播</button>
+    <button class="hud-btn" id="record-btn">
+      <span class="rec-dot"></span>
+      <span id="record-label">录制 10秒 视频</span>
+    </button>
+  </div>
+
+  <script>
+    // ============================================================
+    // 0. 环境识别与恒定 1920x1080 舞台自适应缩放
+    // ============================================================
+    const params = new URLSearchParams(window.location.search);
+    const IS_EXPORT = params.get("export") === "1";
+    if (IS_EXPORT) {
+      document.body.classList.add("export-mode");
+    }
+
+    const stageEl = document.getElementById("stage");
+    function fitStage() {
+      const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      stageEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+    fitStage();
+    window.addEventListener("resize", fitStage);
+
+    // ============================================================
+    // 1. 渲染页面所有 KaTeX 学术公式
+    // ============================================================
+    function renderAllMath() {
+      if (typeof window.katex === "undefined") return false;
+      document.querySelectorAll("[data-latex]").forEach((el) => {
+        const tex = el.getAttribute("data-latex");
+        window.katex.render(tex, el, {
+          displayMode: true,
+          throwOnError: false,
+          strict: false
+        });
+      });
+      return true;
+    }
+
+    // ============================================================
+    // 2. Three.js 三维辛流形 (Symplectic Manifold) 与柔光散景粒子场
+    // ============================================================
+    const webglContainer = document.getElementById("webgl-bg");
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x06080e, 0.0016);
+
+    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 2600);
+    camera.position.set(0, 0, 520);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+      preserveDrawingBuffer: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(IS_EXPORT ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x06080e, 1);
+    webglContainer.appendChild(renderer.domElement);
+
+    // 生成柔和圆形发光散景贴图（彻底告别粗糙方块像素点）
+    function createSoftGlowTexture() {
+      const c = document.createElement("canvas");
+      c.width = 64;
+      c.height = 64;
+      const ctx = c.getContext("2d");
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0.0, "rgba(255,255,255,1)");
+      grad.addColorStop(0.28, "rgba(255,248,225,0.75)");
+      grad.addColorStop(0.65, "rgba(245,158,11,0.18)");
+      grad.addColorStop(1.0, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
+      return new THREE.CanvasTexture(c);
+    }
+    const glowTex = createSoftGlowTexture();
+
+    // 确定性伪随机生成器（保证每次导出每一颗星尘轨迹 100% 一致）
+    let rngSeed = 20260820;
+    function seededRandom() {
+      rngSeed = (rngSeed * 1664525 + 1013904223) >>> 0;
+      return rngSeed / 4294967296;
+    }
+
+    // 2A. 三维高阶辛流形环面点阵与测地线丝网 (TorusKnot Manifold)
+    const manifoldGroup = new THREE.Group();
+    scene.add(manifoldGroup);
+
+    const knotGeo = new THREE.TorusKnotGeometry(135, 36, 260, 28, 2, 3);
+    const knotWireMat = new THREE.MeshBasicMaterial({
+      color: 0xf59e0b,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.085,
+      blending: THREE.AdditiveBlending
+    });
+    const knotWire = new THREE.Mesh(knotGeo, knotWireMat);
+    manifoldGroup.add(knotWire);
+
+    const knotPointsMat = new THREE.PointsMaterial({
+      size: 4.2,
+      map: glowTex,
+      color: 0xfde68a,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const knotPoints = new THREE.Points(knotGeo, knotPointsMat);
+    manifoldGroup.add(knotPoints);
+
+    // 外层天青色测地线球壳
+    const icoGeo = new THREE.IcosahedronGeometry(265, 2);
+    const icoMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.045,
+      blending: THREE.AdditiveBlending
+    });
+    const icoMesh = new THREE.Mesh(icoGeo, icoMat);
+    manifoldGroup.add(icoMesh);
+
+    // 2B. 3200 颗深空学术星尘粒子
+    const STAR_COUNT = 3200;
+    const starGeo = new THREE.BufferGeometry();
+    const starBasePos = new Float32Array(STAR_COUNT * 3);
+    const starLivePos = new Float32Array(STAR_COUNT * 3);
+    const starColors = new Float32Array(STAR_COUNT * 3);
+
+    const colAmber = new THREE.Color(0xfbbf24);
+    const colIvory = new THREE.Color(0xf8fafc);
+    const colSky = new THREE.Color(0x38bdf8);
+
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const angle = seededRandom() * Math.PI * 2;
+      const radius = 90 + Math.pow(seededRandom(), 1.45) * 950;
+      const z = (seededRandom() - 0.5) * 1800;
+
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius * 0.72;
+
+      starBasePos[i * 3] = x;
+      starBasePos[i * 3 + 1] = y;
+      starBasePos[i * 3 + 2] = z;
+
+      starLivePos[i * 3] = x;
+      starLivePos[i * 3 + 1] = y;
+      starLivePos[i * 3 + 2] = z;
+
+      const rMix = seededRandom();
+      const c = rMix < 0.52 ? colIvory.clone().lerp(colAmber, seededRandom() * 0.65)
+                            : colIvory.clone().lerp(colSky, seededRandom() * 0.6);
+      starColors[i * 3] = c.r;
+      starColors[i * 3 + 1] = c.g;
+      starColors[i * 3 + 2] = c.b;
+    }
+
+    starGeo.setAttribute("position", new THREE.BufferAttribute(starLivePos, 3));
+    starGeo.setAttribute("color", new THREE.BufferAttribute(starColors, 3));
+
+    const starMat = new THREE.PointsMaterial({
+      size: 6.5,
+      map: glowTex,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.78,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const starField = new THREE.Points(starGeo, starMat);
+    scene.add(starField);
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ============================================================
+    // 3. SVG 路径初始化（知识图谱连线 & 品牌徽标一笔一划绘制）
+    // ============================================================
+    const kgEdges = document.querySelectorAll(".kg-edge");
+    kgEdges.forEach((path) => {
+      if (!path.getAttribute("stroke-dasharray")) {
+        const len = path.getTotalLength();
+        path.style.strokeDasharray = `${len}`;
+        path.style.strokeDashoffset = `${len}`;
+      }
+    });
+
+    const emblemPaths = document.querySelectorAll(".emblem-path, .emblem-path-gold");
+    emblemPaths.forEach((path) => {
+      const len = path.getTotalLength();
+      path.style.strokeDasharray = `${len}`;
+      path.style.strokeDashoffset = `${len}`;
+    });
+
+    // ============================================================
+    // 4. 构建 10.00 秒精确到帧的主时间轴 (GSAP Master Timeline)
+    // ============================================================
+    const LATEX_SOURCE_STR = "\\int_{\\partial \\Omega} \\omega = \\int_{\\Omega} d\\omega";
+    const typingEl = document.getElementById("latex-typing-src");
+    const caretEl = document.getElementById("latex-caret");
+
+    const proxy = {
+      typeProgress: 0,
+      sheenSweep: 0,
+      cursorProgress: 0
+    };
+
+    const masterTl = gsap.timeline({ paused: true });
+
+    // ---------- ACT I: 0.00s -> 2.55s ----------
+    masterTl.set("#act1", { opacity: 1 }, 0);
+    masterTl.fromTo("#act1-seam",
+      { scaleX: 0, opacity: 0 },
+      { scaleX: 1, opacity: 1, duration: 0.55, ease: "expo.out" }, 0.04
+    );
+    masterTl.to("#act1-seam",
+      { opacity: 0.16, height: "1px", duration: 0.65, ease: "power2.out" }, 0.55
+    );
+
+    // 序章胶囊与大标题浮现
+    masterTl.fromTo("#act1-badge",
+      { y: 24, opacity: 0, scale: 0.94 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.65, ease: "expo.out" }, 0.22
+    );
+    masterTl.fromTo("#act1-line1",
+      { y: 38, opacity: 0, filter: "blur(10px)" },
+      { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.78, ease: "expo.out" }, 0.34
+    );
+    masterTl.fromTo("#act1-line2",
+      { y: 42, opacity: 0, filter: "blur(12px)" },
+      { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.85, ease: "expo.out" }, 0.52
+    );
+
+    // 四枚公式晶簇错落浮现
+    const fCards = ["#f-card-1", "#f-card-2", "#f-card-3", "#f-card-4"];
+    fCards.forEach((sel, idx) => {
+      masterTl.fromTo(sel,
+        { y: 36, opacity: 0, scale: 0.88 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.75, ease: "expo.out" },
+        0.38 + idx * 0.16
+      );
+    });
+
+    // Act I 穿梭退场 (2.15s -> 2.55s)
+    masterTl.to("#act1",
+      { scale: 1.18, opacity: 0, filter: "blur(14px)", duration: 0.42, ease: "power3.in" },
+      2.15
+    );
+
+    // ---------- ACT II: 2.40s -> 5.35s ----------
+    masterTl.set("#act2", { opacity: 1 }, 2.38);
+    masterTl.fromTo("#act2-header",
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.65, ease: "expo.out" },
+      2.42
+    );
+
+    ["#bento-1", "#bento-2", "#bento-3"].forEach((sel, idx) => {
+      masterTl.fromTo(sel,
+        { y: 64, opacity: 0, rotateX: 14, scale: 0.94 },
+        { y: 0, opacity: 1, rotateX: 0, scale: 1, duration: 0.78, ease: "expo.out" },
+        2.54 + idx * 0.14
+      );
+    });
+
+    // Card 1: 实时敲入 LaTeX 源码并点亮渲染公式
+    masterTl.fromTo(proxy,
+      { typeProgress: 0 },
+      { typeProgress: 1, duration: 0.95, ease: "none" },
+      2.72
+    );
+    masterTl.fromTo("#latex-rendered-main",
+      { scale: 0.90, opacity: 0.35 },
+      { scale: 1.04, opacity: 1, duration: 0.45, ease: "back.out(2)" },
+      3.55
+    );
+
+    // Card 2: 沙盒运行进度条充满
+    masterTl.fromTo("#sandbox-bar",
+      { width: "0%" },
+      { width: "100%", duration: 0.85, ease: "power2.inOut" },
+      2.85
+    );
+    masterTl.fromTo("#sandbox-status",
+      { opacity: 0.35 },
+      { opacity: 1, duration: 0.35, ease: "power2.out" },
+      3.55
+    );
+
+    // Card 3: 知识图谱脉冲连线生长
+    masterTl.to(".kg-edge",
+      { strokeDashoffset: 0, duration: 0.95, stagger: 0.10, ease: "power2.out" },
+      2.85
+    );
+    masterTl.fromTo(".kg-node",
+      { scale: 0.5, opacity: 0, transformOrigin: "center center" },
+      { scale: 1, opacity: 1, duration: 0.55, stagger: 0.08, ease: "back.out(1.8)" },
+      2.78
+    );
+
+    // 三张卡片表面纯白菲涅尔流光扫掠
+    masterTl.fromTo(proxy,
+      { sheenSweep: 0 },
+      { sheenSweep: 1, duration: 2.2, ease: "sine.inOut" },
+      2.80
+    );
+
+    // Act II 优雅收拢退场 (4.95s -> 5.35s)
+    masterTl.to("#act2",
+      { scale: 0.92, opacity: 0, filter: "blur(12px)", duration: 0.40, ease: "power3.in" },
+      4.95
+    );
+
+    // ---------- ACT III: 5.20s -> 7.72s ----------
+    masterTl.set("#act3", { opacity: 1 }, 5.18);
+    masterTl.fromTo("#flagship-window",
+      { y: 56, opacity: 0, scale: 0.90, rotateX: 9, rotateY: -6 },
+      { y: 0, opacity: 1, scale: 1, rotateX: 1.5, rotateY: -1.5, duration: 0.85, ease: "expo.out" },
+      5.20
+    );
+    masterTl.to("#flagship-window",
+      { rotateX: -1, rotateY: 2, duration: 1.65, ease: "sine.inOut" },
+      6.05
+    );
+
+    // 模拟 120fps 光标掠过右侧精选卡片，触发真实物理漫反射与 3D 微倾
+    masterTl.fromTo(proxy,
+      { cursorProgress: 0 },
+      { cursorProgress: 1, duration: 1.85, ease: "sine.inOut" },
+      5.55
+    );
+
+    // Act III 升维化光退场 (7.32s -> 7.72s)
+    masterTl.to("#act3",
+      { scale: 1.08, opacity: 0, filter: "blur(14px)", duration: 0.40, ease: "power3.in" },
+      7.32
+    );
+
+    // ---------- ACT IV: 7.55s -> 10.00s ----------
+    masterTl.set("#act4", { opacity: 1 }, 7.55);
+    masterTl.fromTo("#act4-halo",
+      { scale: 0.5, opacity: 0 },
+      { scale: 1.12, opacity: 1, duration: 1.25, ease: "expo.out" },
+      7.58
+    );
+
+    // SVG 博士帽 × 典籍 × 琥珀金绶带一笔一划现场勾勒
+    masterTl.to(".emblem-path",
+      { strokeDashoffset: 0, duration: 0.95, stagger: 0.08, ease: "power2.inOut" },
+      7.60
+    );
+    masterTl.to(".emblem-path-gold",
+      { strokeDashoffset: 0, duration: 0.92, stagger: 0.10, ease: "power2.out" },
+      7.78
+    );
+    masterTl.fromTo("#brand-emblem",
+      { scale: 0.86, y: 16 },
+      { scale: 1, y: 0, duration: 1.15, ease: "expo.out" },
+      7.60
+    );
+
+    // Scholarly 字标、消融光缝、殿堂Slogan、精神胶囊与白月光晶体 CTA 依次定格
+    masterTl.fromTo("#act4-wordmark",
+      { y: 26, opacity: 0, filter: "blur(8px)" },
+      { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.72, ease: "expo.out" },
+      8.02
+    );
+    masterTl.fromTo("#act4-divider",
+      { scaleX: 0, opacity: 0 },
+      { scaleX: 1, opacity: 1, duration: 0.65, ease: "expo.out" },
+      8.18
+    );
+    masterTl.fromTo("#act4-slogan",
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.70, ease: "expo.out" },
+      8.26
+    );
+    masterTl.fromTo("#act4-pillars",
+      { y: 18, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.68, ease: "expo.out" },
+      8.42
+    );
+    masterTl.fromTo("#act4-cta",
+      { y: 18, opacity: 0, scale: 0.94 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.72, ease: "back.out(1.7)" },
+      8.58
+    );
+
+    // 填充至精确 10.00s 保持余韵定格
+    masterTl.to("#act4-halo", { scale: 1.18, duration: 0.70, ease: "sine.inOut" }, 9.30);
+
+    // ============================================================
+    // 5. 100% 确定性状态同步函数 updateSceneAtTime(t)
+    // ============================================================
+    const sheen1 = document.getElementById("sheen-1");
+    const sheen2 = document.getElementById("sheen-2");
+    const sheen3 = document.getElementById("sheen-3");
+    const windowSheen = document.getElementById("window-sheen");
+    const featuredCard = document.getElementById("featured-3d-card");
+    const featuredSheen = document.getElementById("featured-card-sheen");
+    const simCursor = document.getElementById("sim-cursor");
+    const kgCoreHalo = document.getElementById("kg-core-halo");
+
+    function smoothstep(e0, e1, x) {
+      const k = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+      return k * k * (3 - 2 * k);
+    }
+
+    function updateSceneAtTime(t) {
+      const clampedT = Math.max(0, Math.min(10.0, t));
+      masterTl.seek(clampedT, false);
+
+      // 5A. 更新 Card 1 打字机源码与光标闪烁
+      const chars = Math.round(proxy.typeProgress * LATEX_SOURCE_STR.length);
+      typingEl.textContent = LATEX_SOURCE_STR.slice(0, chars);
+      caretEl.style.opacity = Math.sin(clampedT * 18) > 0 ? "1" : "0.15";
+
+      // 5B. 更新 Bento 玻璃面板菲涅尔反射光斑
+      const rx1 = -10 + proxy.sheenSweep * 120;
+      sheen1.style.setProperty("--rx", `${rx1}%`);
+      sheen1.style.setProperty("--ry", `18%`);
+      sheen2.style.setProperty("--rx", `${rx1 - 18}%`);
+      sheen2.style.setProperty("--ry", `22%`);
+      sheen3.style.setProperty("--rx", `${rx1 - 36}%`);
+      sheen3.style.setProperty("--ry", `18%`);
+
+      // 知识核心呼吸光晕
+      if (kgCoreHalo) {
+        kgCoreHalo.setAttribute("r", String(20 + Math.sin(clampedT * 5.0) * 4));
+      }
+
+      // 5C. 更新 Act III 模拟 120fps 光标移动与 3D 视差卡片物理漫射（沿卡片边缘优雅滑向“研读全文 →”，不遮挡公式）
+      const cp = proxy.cursorProgress;
+      const curX = 140 + cp * 380;
+      const curY = 48 + Math.pow(cp, 1.35) * 355;
+      simCursor.style.left = `${curX}px`;
+      simCursor.style.top = `${curY}px`;
+      simCursor.style.opacity = clampedT >= 5.45 && clampedT <= 7.35 ? "0.96" : "0";
+
+      featuredSheen.style.setProperty("--rx", `${(curX / 580) * 100}%`);
+      featuredSheen.style.setProperty("--ry", `${(curY / 460) * 100}%`);
+      windowSheen.style.setProperty("--rx", `${30 + cp * 45}%`);
+      windowSheen.style.setProperty("--ry", `12%`);
+
+      const tiltY = (cp - 0.5) * 7.5;
+      const tiltX = -Math.sin(cp * Math.PI) * 3.5;
+      featuredCard.style.transform = `perspective(1200px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+
+      // 5D. 更新 Three.js 三维辛流形与深空摄像机运镜轨迹
+      manifoldGroup.rotation.y = clampedT * 0.34;
+      manifoldGroup.rotation.x = Math.sin(clampedT * 0.45) * 0.28;
+      icoMesh.rotation.y = -clampedT * 0.18;
+      icoMesh.rotation.z = clampedT * 0.12;
+
+      // 分幕三维景深相机调度
+      const warp1 = smoothstep(2.05, 2.65, clampedT);
+      const warp2 = smoothstep(5.05, 5.55, clampedT);
+      const finaleConverge = smoothstep(7.45, 9.20, clampedT);
+
+      let camZ = 520 - clampedT * 26 - warp1 * 95 + warp2 * 55 + finaleConverge * 90;
+      let camX = Math.sin(clampedT * 0.55) * 28 * (1 - finaleConverge * 0.7);
+      let camY = Math.cos(clampedT * 0.42) * 18 * (1 - finaleConverge * 0.7);
+
+      camera.position.set(camX, camY, camZ);
+      camera.lookAt(0, 0, 0);
+
+      // Act II & III 期间适度降低背景流形线框亮度以突出前景毛玻璃可读性；Act IV 重新绽放作为皇冠背光
+      const midDim = smoothstep(2.35, 2.75, clampedT) * (1 - smoothstep(7.45, 7.95, clampedT));
+      knotWireMat.opacity = 0.095 - midDim * 0.055 + finaleConverge * 0.03;
+      knotPointsMat.opacity = 0.58 - midDim * 0.30 + finaleConverge * 0.15;
+
+      // 更新 3200 颗星尘向前推进与终章向心回旋凝聚
+      const posArr = starGeo.attributes.position.array;
+      for (let i = 0; i < STAR_COUNT; i++) {
+        const bx = starBasePos[i * 3];
+        const by = starBasePos[i * 3 + 1];
+        const bz = starBasePos[i * 3 + 2];
+
+        // 沿 Z 轴循环流动
+        let zMove = ((bz + clampedT * 135 + 900) % 1800) - 900;
+
+        // 终章向心微旋光环
+        const spin = finaleConverge * 0.55;
+        const cosS = Math.cos(spin);
+        const sinS = Math.sin(spin);
+        const rx = bx * cosS - by * sinS;
+        const ry = bx * sinS + by * cosS;
+        const shrink = 1 - finaleConverge * 0.28;
+
+        posArr[i * 3] = rx * shrink;
+        posArr[i * 3 + 1] = ry * shrink;
+        posArr[i * 3 + 2] = zMove;
+      }
+      starGeo.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+
+    // 暴露给 Playwright 无头逐帧直出管线
+    window.__RENDER_FRAME__ = function (timeSec) {
+      updateSceneAtTime(timeSec);
+    };
+
+    window.__WAIT_READY__ = function () {
+      return new Promise((resolve) => {
+        const check = () => {
+          if (renderAllMath()) {
+            updateSceneAtTime(0);
+            resolve(true);
+          } else {
+            setTimeout(check, 50);
+          }
+        };
+        check();
+      });
+    };
+
+    // ============================================================
+    // 6. 浏览器实时预览播放、Web Audio 合成音效与一键前端录制
+    // ============================================================
+    let startTimestamp = performance.now();
+    let rafId = null;
+
+    function browserTick(now) {
+      const elapsed = ((now - startTimestamp) / 1000) % 10.0;
+      updateSceneAtTime(elapsed);
+      rafId = requestAnimationFrame(browserTick);
+    }
+
+    window.addEventListener("load", async () => {
+      await window.__WAIT_READY__();
+      if (!IS_EXPORT) {
+        startTimestamp = performance.now();
+        rafId = requestAnimationFrame(browserTick);
+      }
+    });
+
+    // Web Audio API 轻量实时和弦合成（供浏览器内点击“开启音效重播”直接聆听）
+    function playBrowserPreviewAudio() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      function bell(timeOffset, freq, gainVal, dur) {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + timeOffset);
+        g.gain.setValueAtTime(0.0001, now + timeOffset);
+        g.gain.linearRampToValueAtTime(gainVal, now + timeOffset + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + timeOffset + dur);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(now + timeOffset);
+        osc.stop(now + timeOffset + dur + 0.05);
+      }
+
+      // 四幕标志性和弦提示音
+      [293.66, 369.99, 440, 554.37, 659.25].forEach((f, i) => bell(0.08 + i * 0.18, f, 0.045, 2.2));
+      [440, 554.37, 659.25].forEach((f, i) => bell(2.60 + i * 0.15, f, 0.05, 1.5));
+      [392.0, 493.88, 587.33, 739.99].forEach((f, i) => bell(5.25 + i * 0.14, f, 0.045, 2.0));
+      [146.83, 293.66, 440.0, 587.33, 739.99, 880.0, 1174.66].forEach((f, i) =>
+        bell(7.62 + i * 0.09, f, 0.05, 2.2)
+      );
+    }
+
+    document.getElementById("replay-btn")?.addEventListener("click", () => {
+      startTimestamp = performance.now();
+    });
+
+    document.getElementById("audio-btn")?.addEventListener("click", () => {
+      startTimestamp = performance.now();
+      playBrowserPreviewAudio();
+    });
+
+    // 前端网页内录制提示与导出
+    const recBtn = document.getElementById("record-btn");
+    const recLabel = document.getElementById("record-label");
+    let recording = false;
+
+    recBtn?.addEventListener("click", async () => {
+      if (recording) return;
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: 60 },
+          audio: false
+        });
+        recording = true;
+        startTimestamp = performance.now();
+        recLabel.textContent = "正在录制 10秒...";
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType: "video/webm;codecs=vp9",
+          videoBitsPerSecond: 12000000
+        });
+        const chunks = [];
+        recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+        recorder.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(chunks, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `scholarly_opus_reveal_${Date.now()}.webm`;
+          a.click();
+          URL.revokeObjectURL(url);
+          recLabel.textContent = "已下载！点击可重录";
+          recording = false;
+        };
+        recorder.start();
+        setTimeout(() => {
+          if (recorder.state !== "inactive") recorder.stop();
+        }, 10000);
+      } catch {
+        recLabel.textContent = "推荐使用 CLI 无损直出 MP4";
+        setTimeout(() => { recLabel.textContent = "录制 10秒 视频"; }, 2500);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -2013,4 +2013,33 @@ div[data-type="solid-geometry"].ProseMirror-selectednode,
 
 
 
-
+
+
+/* ============================================
+   Landing Page Dual-Row Smooth Marquee (GPU)
+   ============================================ */
+@keyframes smooth-marquee-left {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-33.3333%, 0, 0);
+  }
+}
+
+@keyframes smooth-marquee-right {
+  0% {
+    transform: translate3d(-33.3333%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-track-left {
+  animation: smooth-marquee-left 56s linear infinite;
+}
+
+.animate-track-right {
+  animation: smooth-marquee-right 60s linear infinite;
+}

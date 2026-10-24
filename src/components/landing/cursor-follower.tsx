@@ -2,206 +2,220 @@
 
 import { useEffect, useRef } from "react";
 
+const INTERACTIVE_SELECTOR =
+    "a, button, [role='button'], input, textarea, select, summary, label, .cursor-pointer";
+
+const REST_SHADOW = [
+    "inset 0 1.5px 2px rgba(255, 255, 255, 0.98)",
+    "inset 0 0 0 1px rgba(255, 255, 255, 0.72)",
+    "inset 0 -2px 5px rgba(245, 158, 11, 0.24)",
+    "0 8px 24px -3px rgba(15, 23, 42, 0.12)",
+    "0 4px 14px -2px rgba(245, 158, 11, 0.18)",
+].join(", ");
+
+const HOVER_SHADOW = [
+    "inset 0 1.5px 2.5px rgba(255, 255, 255, 1)",
+    "inset 0 0 0 1px rgba(255, 255, 255, 0.86)",
+    "inset 0 -2.5px 6px rgba(245, 158, 11, 0.34)",
+    "0 12px 30px -4px rgba(245, 158, 11, 0.28)",
+    "0 6px 18px -3px rgba(15, 23, 42, 0.12)",
+].join(", ");
+
+/**
+ * Apple Liquid Glass 液态光学水滴跟随器
+ * - 三层无边框光学体积：柔和琥珀环境晕 + 折射弯月面液态水滴 + 琥珀珠光微核
+ * - 兼容浅色（#fafafc）与深色（#07090e）双主题对比度，不依赖系统动效开关拦截
+ * - 纯 GPU transform 合成，静止自动休眠 rAF，移动即刻唤醒
+ */
 export function CursorFollower() {
     const dotRef = useRef<HTMLDivElement | null>(null);
-    const fluidBlobRef = useRef<HTMLDivElement | null>(null);
-    const haloRef = useRef<HTMLDivElement | null>(null);
+    const dropletRef = useRef<HTMLDivElement | null>(null);
+    const auraRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const dot = dotRef.current;
-        const fluidBlob = fluidBlobRef.current;
-        const halo = haloRef.current;
-        if (!dot || !fluidBlob || !halo) return;
+        const droplet = dropletRef.current;
+        const aura = auraRef.current;
+        if (!dot || !droplet || !aura) return;
 
-        // 鼠标目标坐标
         let mouseX = -100;
         let mouseY = -100;
         let prevMouseX = -100;
         let prevMouseY = -100;
 
-        // 水流质心平滑阻尼坐标 (超大流动惯性)
         let blobX = -100;
         let blobY = -100;
-
-        // 运动学与水波状态
         let currentAngle = 0;
+        let currentHoverScale = 1;
+
         let isHovered = false;
         let isVisible = false;
+        let isInitialized = false;
         let rafId: number | null = null;
         let isDestroyed = false;
 
-        // 超大水动力学能量池与复合水波相位
-        let waterEnergy = 0;
-        let wavePhase1 = 0;
-        let wavePhase2 = 0;
+        // 表面张力动能与双频水波相位
+        let energy = 0;
+        let phase1 = 0;
+        let phase2 = 0;
 
-        // 8 维圆角水滴超大幅度动态形变值与速度
-        let tl_x = 50, tr_x = 50, br_x = 50, bl_x = 50;
-        let tl_y = 50, tr_y = 50, br_y = 50, bl_y = 50;
+        // 8 维有机圆角弹簧状态
+        let tlX = 50, trX = 50, brX = 50, blX = 50;
+        let tlY = 50, trY = 50, brY = 50, blY = 50;
+        let vTlX = 0, vTrX = 0, vBrX = 0, vBlX = 0;
+        let vTlY = 0, vTrY = 0, vBrY = 0, vBlY = 0;
 
-        let v_tl_x = 0, v_tr_x = 0, v_br_x = 0, v_bl_x = 0;
-        let v_tl_y = 0, v_tr_y = 0, v_br_y = 0, v_bl_y = 0;
-
-        const onMouseMove = (e: MouseEvent) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-
+        const applyHoverVisuals = (hovered: boolean) => {
             if (!isVisible) {
-                isVisible = true;
-                if (dot) dot.style.opacity = "1";
-                if (fluidBlob) fluidBlob.style.opacity = "1";
-                if (halo) halo.style.opacity = "1";
+                dot.style.opacity = "0";
+                droplet.style.opacity = "0";
+                aura.style.opacity = "0";
+                return;
             }
+            dot.style.opacity = hovered ? "0.5" : "1";
+            droplet.style.opacity = "1";
+            aura.style.opacity = hovered ? "1" : "0.85";
+            droplet.style.boxShadow = hovered ? HOVER_SHADOW : REST_SHADOW;
+        };
 
-            // 核心准心点：1:1 绝对实时硬件同步，零延迟
-            if (dot) {
-                dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0px) translate(-50%, -50%)`;
+        const wakeRenderLoop = () => {
+            if (rafId === null && !isDestroyed) {
+                rafId = requestAnimationFrame(render);
             }
-
-            // 悬停交互检测
-            const target = e.target as HTMLElement | null;
-            const interactive = Boolean(
-                target && (
-                    target.closest("button") ||
-                    target.closest("a") ||
-                    target.closest("[role='button']") ||
-                    target.closest("input") ||
-                    target.closest(".cursor-pointer") ||
-                    target.closest(".group")
-                )
-            );
-
-            isHovered = interactive;
         };
 
-        const onMouseLeave = () => {
-            isVisible = false;
-            if (dot) dot.style.opacity = "0";
-            if (fluidBlob) fluidBlob.style.opacity = "0";
-            if (halo) halo.style.opacity = "0";
-        };
-
-        const onMouseEnter = () => {
-            isVisible = true;
-            if (dot) dot.style.opacity = "1";
-            if (fluidBlob) fluidBlob.style.opacity = "1";
-            if (halo) halo.style.opacity = "1";
-        };
-
-        window.addEventListener("mousemove", onMouseMove, { passive: true });
-        document.addEventListener("mouseleave", onMouseLeave);
-        document.addEventListener("mouseenter", onMouseEnter);
-
-        // 超大水流动力学循环 (High-amplitude Liquid Deformation)
         const render = () => {
+            rafId = null;
             if (isDestroyed) return;
 
-            // 1. 水流质心跟随鼠标 (0.08 带来如长水银拖尾般的滞后感)
-            blobX += (mouseX - blobX) * 0.08;
-            blobY += (mouseY - blobY) * 0.08;
+            // 1. 液态质心平滑阻尼跟随（0.10 呈现清晰可见的丝滑拖尾惯性）
+            const dx = mouseX - blobX;
+            const dy = mouseY - blobY;
+            blobX += dx * 0.1;
+            blobY += dy * 0.1;
 
-            // 2. 即时物理速度
-            const deltaX = mouseX - prevMouseX;
-            const deltaY = mouseY - prevMouseY;
-            const speed = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY), 110);
-
+            // 2. 瞬时指针速度与切向旋转
+            const stepX = mouseX - prevMouseX;
+            const stepY = mouseY - prevMouseY;
+            const speed = Math.min(Math.hypot(stepX, stepY), 100);
             prevMouseX = mouseX;
             prevMouseY = mouseY;
 
-            // 3. 运动方向柔顺旋转 (高速流动时跟随切线)
             if (speed > 0.5) {
-                const targetAngle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+                const targetAngle = Math.atan2(stepY, stepX) * (180 / Math.PI);
                 let diff = (targetAngle - currentAngle) % 360;
                 if (diff < -180) diff += 360;
                 if (diff > 180) diff -= 360;
                 currentAngle += diff * 0.18;
             }
 
-            // 4. 水流动能激发 (无封顶强力激发)
-            waterEnergy = waterEnergy * 0.95 + speed * 0.11;
-            wavePhase1 += 0.16;
-            wavePhase2 += 0.26;
+            // 3. 水滴层流拉伸与悬停缩放（纯 GPU scale 驱动）
+            energy = energy * 0.93 + speed * 0.1;
+            phase1 += 0.15;
+            phase2 += 0.24;
 
-            // 5. 尺寸与超大幅度水滴流线型拉伸 (最高拉长 2.6 倍！)
-            const targetSize = isHovered ? 76 : 56;
-            const haloSize = isHovered ? 165 : 135;
+            const targetHoverScale = isHovered ? 1.34 : 1;
+            currentHoverScale += (targetHoverScale - currentHoverScale) * 0.14;
 
-            // 彻底放开拉伸上限：scaleX 显著拉长，scaleY 剧烈收窄
-            const streamSquish = Math.min(waterEnergy * 0.016, 1.25);
-            const scaleX = 1 + streamSquish * 1.5;
-            const scaleY = Math.max(0.38, 1 - streamSquish * 0.52);
+            const stretch = Math.min(energy * 0.015, 0.85);
+            const scaleX = currentHoverScale * (1 + stretch);
+            const scaleY = currentHoverScale * Math.max(0.56, 1 - stretch * 0.48);
 
-            // 6. 8 维圆角超大有机波浪形变 (deform 上限拉至 95，波浪振幅拉满)
-            const deform = Math.min(waterEnergy * 1.8, 95);
-            const wave1 = Math.sin(wavePhase1) * Math.min(waterEnergy * 0.8, 36);
-            const wave2 = Math.cos(wavePhase2) * Math.min(waterEnergy * 0.6, 26);
-            const combinedWave = wave1 + wave2;
+            // 4. 8 维圆角表面张力弹性形变（停下后优雅荡漾收敛为正圆）
+            const deform = Math.min(energy * 1.35, 58);
+            const w1 = Math.sin(phase1) * Math.min(energy * 0.55, 22);
+            const w2 = Math.cos(phase2) * Math.min(energy * 0.42, 16);
+            const wSum = w1 + w2;
 
-            // 极度明显的水滴流线型 (前端饱满大圆头，尾端收尖长拖尾)
-            const target_tl_x = 50 + deform * 1.8 + combinedWave;
-            const target_tr_x = 50 - deform * 1.4 - wave1;
-            const target_br_x = 50 + deform * 1.6 - combinedWave;
-            const target_bl_x = 50 - deform * 1.7 + wave2;
+            const k = 0.06;
+            const damp = 0.84;
 
-            const target_tl_y = 50 - deform * 1.6 - wave2;
-            const target_tr_y = 50 + deform * 1.7 + combinedWave;
-            const target_br_y = 50 - deform * 1.8 - wave1;
-            const target_bl_y = 50 + deform * 1.5 + combinedWave;
+            vTlX = (vTlX + (50 + deform * 1.4 + wSum - tlX) * k) * damp;
+            vTrX = (vTrX + (50 - deform * 1.1 - w1 - trX) * k) * damp;
+            vBrX = (vBrX + (50 + deform * 1.25 - wSum - brX) * k) * damp;
+            vBlX = (vBlX + (50 - deform * 1.3 + w2 - blX) * k) * damp;
 
-            // 柔性表面张力弹簧系统 (停下后优雅荡漾收缩为圆)
-            const kWaterSpring = 0.05;
-            const waterDamping = 0.85;
+            vTlY = (vTlY + (50 - deform * 1.25 - w2 - tlY) * k) * damp;
+            vTrY = (vTrY + (50 + deform * 1.3 + wSum - trY) * k) * damp;
+            vBrY = (vBrY + (50 - deform * 1.4 - w1 - brY) * k) * damp;
+            vBlY = (vBlY + (50 + deform * 1.15 + wSum - blY) * k) * damp;
 
-            v_tl_x = (v_tl_x + (target_tl_x - tl_x) * kWaterSpring) * waterDamping;
-            v_tr_x = (v_tr_x + (target_tr_x - tr_x) * kWaterSpring) * waterDamping;
-            v_br_x = (v_br_x + (target_br_x - br_x) * kWaterSpring) * waterDamping;
-            v_bl_x = (v_bl_x + (target_bl_x - bl_x) * kWaterSpring) * waterDamping;
+            tlX += vTlX; trX += vTrX; brX += vBrX; blX += vBlX;
+            tlY += vTlY; trY += vTrY; brY += vBrY; blY += vBlY;
 
-            v_tl_y = (v_tl_y + (target_tl_y - tl_y) * kWaterSpring) * waterDamping;
-            v_tr_y = (v_tr_y + (target_tr_y - tr_y) * kWaterSpring) * waterDamping;
-            v_br_y = (v_br_y + (target_br_y - br_y) * kWaterSpring) * waterDamping;
-            v_bl_y = (v_bl_y + (target_bl_y - bl_y) * kWaterSpring) * waterDamping;
+            const clampR = (v: number) => Math.max(16, Math.min(84, v)).toFixed(1);
 
-            tl_x += v_tl_x;
-            tr_x += v_tr_x;
-            br_x += v_br_x;
-            bl_x += v_bl_x;
+            droplet.style.borderRadius =
+                `${clampR(tlX)}% ${clampR(trX)}% ${clampR(brX)}% ${clampR(blX)}% / ` +
+                `${clampR(tlY)}% ${clampR(trY)}% ${clampR(brY)}% ${clampR(blY)}%`;
+            droplet.style.transform =
+                `translate3d(${blobX.toFixed(2)}px, ${blobY.toFixed(2)}px, 0) ` +
+                `translate(-50%, -50%) rotate(${currentAngle.toFixed(1)}deg) ` +
+                `scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)})`;
 
-            tl_y += v_tl_y;
-            tr_y += v_tr_y;
-            br_y += v_br_y;
-            bl_y += v_bl_y;
+            const auraScale = isHovered ? 1.22 : 1;
+            aura.style.transform =
+                `translate3d(${blobX.toFixed(2)}px, ${blobY.toFixed(2)}px, 0) ` +
+                `translate(-50%, -50%) scale(${auraScale})`;
 
-            // 7. GPU 合成层满帧渲染
-            if (fluidBlob) {
-                fluidBlob.style.width = `${targetSize}px`;
-                fluidBlob.style.height = `${targetSize}px`;
-                fluidBlob.style.borderRadius = `${Math.max(10, Math.min(90, tl_x)).toFixed(1)}% ${Math.max(10, Math.min(90, tr_x)).toFixed(1)}% ${Math.max(10, Math.min(90, br_x)).toFixed(1)}% ${Math.max(10, Math.min(90, bl_x)).toFixed(1)}% / ${Math.max(10, Math.min(90, tl_y)).toFixed(1)}% ${Math.max(10, Math.min(90, tr_y)).toFixed(1)}% ${Math.max(10, Math.min(90, br_y)).toFixed(1)}% ${Math.max(10, Math.min(90, bl_y)).toFixed(1)}%`;
-                fluidBlob.style.transform = `
-                    translate3d(${blobX}px, ${blobY}px, 0px)
-                    translate(-50%, -50%)
-                    rotate(${currentAngle.toFixed(1)}deg)
-                    scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)})
-                `;
+            // 5. 静止自动休眠：动能与位移完全收敛后暂停 rAF，下次移动即刻唤醒
+            const unsettled =
+                Math.hypot(dx, dy) > 0.12 ||
+                energy > 0.04 ||
+                Math.abs(targetHoverScale - currentHoverScale) > 0.004 ||
+                Math.abs(tlX - 50) > 0.12;
+
+            if (unsettled && isVisible) {
+                rafId = requestAnimationFrame(render);
             }
-
-            // 8. 最外围柔和浅橙光晕
-            if (halo) {
-                halo.style.width = `${haloSize}px`;
-                halo.style.height = `${haloSize}px`;
-                halo.style.transform = `translate3d(${blobX}px, ${blobY}px, 0px) translate(-50%, -50%)`;
-            }
-
-            rafId = requestAnimationFrame(render);
         };
 
-        rafId = requestAnimationFrame(render);
+        const onMouseMove = (e: MouseEvent) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            if (!isInitialized) {
+                isInitialized = true;
+                prevMouseX = mouseX;
+                prevMouseY = mouseY;
+                blobX = mouseX;
+                blobY = mouseY;
+            }
+
+            const target = e.target instanceof Element ? e.target : null;
+            const nextHovered = Boolean(target?.closest(INTERACTIVE_SELECTOR));
+
+            if (!isVisible || nextHovered !== isHovered) {
+                isVisible = true;
+                isHovered = nextHovered;
+                applyHoverVisuals(isHovered);
+            }
+
+            const dotScale = isHovered ? 0.75 : 1;
+            dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%) scale(${dotScale})`;
+
+            wakeRenderLoop();
+        };
+
+        const onMouseLeave = () => {
+            isVisible = false;
+            applyHoverVisuals(false);
+        };
+
+        const onMouseEnter = () => {
+            if (!isInitialized) return;
+            isVisible = true;
+            applyHoverVisuals(isHovered);
+            wakeRenderLoop();
+        };
+
+        window.addEventListener("mousemove", onMouseMove, { passive: true });
+        document.addEventListener("mouseleave", onMouseLeave);
+        document.addEventListener("mouseenter", onMouseEnter);
 
         return () => {
             isDestroyed = true;
-            if (rafId !== null) {
-                cancelAnimationFrame(rafId);
-            }
+            if (rafId !== null) cancelAnimationFrame(rafId);
             window.removeEventListener("mousemove", onMouseMove);
             document.removeEventListener("mouseleave", onMouseLeave);
             document.removeEventListener("mouseenter", onMouseEnter);
@@ -209,59 +223,59 @@ export function CursorFollower() {
     }, []);
 
     return (
-        <div className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden select-none">
-            {/* === 1. 最外围：浅橙色柔和漫射环境光晕 === */}
+        <div
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden select-none"
+        >
+            {/* 1. 外围温润琥珀漫射微光晕 */}
             <div
-                ref={haloRef}
-                className="absolute rounded-full pointer-events-none opacity-0 transition-[width,height] duration-200 ease-out"
+                ref={auraRef}
+                className="pointer-events-none absolute left-0 top-0 h-36 w-36 rounded-full border-0 opacity-0 transition-opacity duration-300 ease-out"
                 style={{
-                    willChange: "transform, width, height",
-                    background: "radial-gradient(circle, rgba(251, 146, 60, 0.32) 0%, rgba(249, 115, 22, 0.12) 45%, rgba(254, 215, 170, 0.04) 65%, transparent 75%)",
-                    filter: "blur(18px)",
+                    willChange: "transform, opacity",
+                    background:
+                        "radial-gradient(circle, rgba(245, 158, 11, 0.26) 0%, rgba(251, 146, 60, 0.11) 45%, rgba(254, 215, 170, 0.03) 68%, transparent 76%)",
+                    filter: "blur(16px)",
                 }}
             />
 
-            {/* === 2. 中间层：超大幅度剧烈流动水滴 (High-amplitude Liquid Glass) === */}
+            {/* 2. 中层液态玻璃水滴：折射滤镜 + 菲涅尔内高光 + 次表面琥珀焦散阴影 */}
             <div
-                ref={fluidBlobRef}
-                className="absolute pointer-events-none opacity-0 transition-[width,height] duration-200 ease-out flex items-center justify-center overflow-hidden"
+                ref={dropletRef}
+                className="pointer-events-none absolute left-0 top-0 h-12 w-12 overflow-hidden border-0 opacity-0 transition-[opacity,box-shadow] duration-200 ease-out"
                 style={{
                     willChange: "transform, border-radius",
-                    backdropFilter: "blur(6px) saturate(190%) contrast(104%)",
-                    WebkitBackdropFilter: "blur(6px) saturate(190%) contrast(104%)",
-                    background: "linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(251, 146, 60, 0.12) 100%)",
-                    boxShadow: `
-                        inset 0 1.5px 2px 0px rgba(255, 255, 255, 0.95),
-                        inset 0 0 0 1px rgba(255, 255, 255, 0.6),
-                        inset 0 -2px 5px 0px rgba(249, 115, 22, 0.25),
-                        0 8px 24px -2px rgba(249, 115, 22, 0.18)
-                    `,
+                    backdropFilter: "blur(4px) saturate(180%) contrast(105%)",
+                    WebkitBackdropFilter: "blur(4px) saturate(180%) contrast(105%)",
+                    background:
+                        "linear-gradient(135deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.08) 48%, rgba(245, 158, 11, 0.14) 100%)",
+                    boxShadow: REST_SHADOW,
                 }}
             >
-                {/* 顶部高光弧面 */}
-                <div 
-                    className="absolute inset-x-0 top-0 h-[48%] pointer-events-none"
+                {/* 顶部菲涅尔镜面弧形高光 */}
+                <div
+                    className="pointer-events-none absolute inset-x-0 top-0 h-[46%]"
                     style={{
-                        background: "radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.22) 45%, transparent 75%)",
+                        background:
+                            "radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.2) 48%, transparent 76%)",
                     }}
                 />
 
-                {/* 底部次表面暖橙反光 */}
-                <div 
-                    className="absolute inset-x-2 bottom-0 h-[32%] pointer-events-none opacity-75"
+                {/* 底部次表面温润琥珀反光 */}
+                <div
+                    className="pointer-events-none absolute inset-x-2 bottom-0 h-[30%] opacity-80"
                     style={{
-                        background: "radial-gradient(ellipse at 50% 100%, rgba(251, 146, 60, 0.4) 0%, transparent 80%)",
+                        background:
+                            "radial-gradient(ellipse at 50% 100%, rgba(245, 158, 11, 0.34) 0%, transparent 78%)",
                     }}
                 />
             </div>
 
-            {/* === 3. 核心准心：纯白微核 + 橙色发光光环 (White & Orange Core Dot) === */}
+            {/* 3. 核心琥珀珠光微点（无硬线框，浅色/深色背景均清晰可见） */}
             <div
                 ref={dotRef}
-                className="absolute w-2 h-2 rounded-full bg-white ring-2 ring-orange-500 pointer-events-none opacity-0 transition-opacity duration-150 shadow-[0_0_10px_rgba(249,115,22,1)]"
-                style={{
-                    willChange: "transform",
-                }}
+                className="pointer-events-none absolute left-0 top-0 h-2 w-2 rounded-full border-0 bg-gradient-to-br from-white via-amber-300 to-amber-500 opacity-0 transition-opacity duration-150 shadow-[0_0_10px_rgba(245,158,11,0.8),0_1px_3px_rgba(15,23,42,0.25),inset_0_1px_0.5px_rgba(255,255,255,0.95)]"
+                style={{ willChange: "transform, opacity" }}
             />
         </div>
     );

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opus 5.5 - Quantum Vortex 60FPS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #030308; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+    
+    /* 标题层 */
+    .overlay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; pointer-events: none; z-index: 10;
+    }
+    .title {
+      font-size: clamp(32px, 6vw, 72px); font-weight: 800; letter-spacing: 0.15em;
+      color: #ffffff; text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 20%, #38bdf8 60%, #c084fc 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 40px rgba(56, 189, 248, 0.4);
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      font-size: clamp(12px, 1.5vw, 18px); font-weight: 500; letter-spacing: 0.4em;
+      color: rgba(255, 255, 255, 0.7); text-transform: uppercase;
+    }
+
+    /* Apple Liquid Glass 录制胶囊 */
+    .record-pill {
+      position: fixed; top: 24px; right: 24px; z-index: 9999;
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 22px; border-radius: 9999px; border: 0;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.7), 0 12px 36px rgba(0, 0, 0, 0.4);
+      color: #ffffff; font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
+      cursor: pointer; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .record-pill:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.04);
+      box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.9), 0 16px 48px rgba(56, 189, 248, 0.3);
+    }
+    .record-pill:active { transform: scale(0.96); }
+    .rec-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: #ef4444;
+      box-shadow: 0 0 10px #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div class="overlay">
+    <h1 class="title" id="hero-title">Opus 5.5 Visuals</h1>
+    <p class="subtitle" id="hero-sub">Deterministic 60FPS Code-to-Video</p>
+  </div>
+
+  <button id="record-btn" class="record-pill">
+    <span class="rec-dot"></span>
+    <span id="btn-label">录制 8秒 MP4</span>
+  </button>
+
+  <script>
+    // --- 1. Three.js 场景初始化 ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x030308, 0.0018);
+
+    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 3000);
+    camera.position.z = 800;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x030308, 1);
+    container.appendChild(renderer.domElement);
+
+    // --- 2. 创建 8000 个量子星云粒子 ---
+    const particleCount = 8000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+
+    const c1 = new THREE.Color(0x38bdf8); // 天青
+    const c2 = new THREE.Color(0xc084fc); // 霓紫
+    const c3 = new THREE.Color(0xf43f5e); // 绯红
+
+    for (let i = 0; i < particleCount; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const radius = 80 + Math.pow(Math.random(), 2) * 900;
+      const z = (Math.random() - 0.5) * 2000;
+
+      positions[i * 3] = Math.cos(theta) * radius;
+      positions[i * 3 + 1] = Math.sin(theta) * radius;
+      positions[i * 3 + 2] = z;
+
+      const mixedColor = c1.clone().lerp(c2, Math.random()).lerp(c3, Math.random() * 0.4);
+      colors[i * 3] = mixedColor.r;
+      colors[i * 3 + 1] = mixedColor.g;
+      colors[i * 3 + 2] = mixedColor.b;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    // 粒子发光材质
+    const material = new THREE.PointsMaterial({
+      size: 4.5,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      opacity: 0.85
+    });
+
+    const particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+
+    // 中心奇点引力环
+    const ringGeo = new THREE.TorusGeometry(120, 2, 32, 100);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.35 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    scene.add(ring);
+
+    // --- 3. 严格 60FPS 时间轴驱动渲染 ---
+    let clock = new THREE.Clock();
+
+    function renderLoop() {
+      requestAnimationFrame(renderLoop);
+      const time = clock.getElapsedTime();
+
+      // 整体星旋与引力向前穿梭
+      particles.rotation.z = time * 0.15;
+      particles.rotation.y = Math.sin(time * 0.2) * 0.1;
+      
+      ring.rotation.x = time * 0.4;
+      ring.rotation.y = time * 0.3;
+      ring.scale.setScalar(1 + Math.sin(time * 2) * 0.08);
+
+      const pos = geometry.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        pos[i * 3 + 2] += 4; // 向镜头推进
+        if (pos[i * 3 + 2] > 1000) {
+          pos[i * 3 + 2] = -1000;
+        }
+      }
+      geometry.attributes.position.needsUpdate = true;
+
+      camera.position.x = Math.sin(time * 0.4) * 40;
+      camera.position.y = Math.cos(time * 0.3) * 30;
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    }
+    renderLoop();
+
+    // 窗口尺寸自适应
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- 4. 浏览器一键导出视频 (MediaRecorder) ---
+    const recordBtn = document.getElementById('record-btn');
+    const btnLabel = document.getElementById('btn-label');
+    let isRecording = false;
+
+    recordBtn.addEventListener('click', async () => {
+      if (isRecording) return;
+      isRecording = true;
+      btnLabel.textContent = "录制中 (8秒)...";
+      recordBtn.style.opacity = "0.7";
+
+      const stream = renderer.domElement.captureStream(60);
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm; codecs=vp9',
+        videoBitsPerSecond: 10000000 // 10 Mbps 超高清
+      });
+
+      const chunks = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `opus_5.5_quantum_vortex_${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        btnLabel.textContent = "录制完成！已下载";
+        setTimeout(() => {
+          btnLabel.textContent = "录制 8秒 MP4";
+          isRecording = false;
+          recordBtn.style.opacity = "1";
+        }, 3000);
+      };
+
+      recorder.start();
+      setTimeout(() => recorder.stop(), 8000);
+    });
+  </script>
+</body>
+</html>

@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-    Sparkles, 
-    ArrowUpRight, 
-    Quote
-} from "lucide-react";
+import { Sparkles, ArrowUpRight } from "lucide-react";
 import { MathText } from "@/components/ui/math-text";
 import { useI18n } from "@/i18n/context";
+import { cn } from "@/lib/utils";
+import { DIVIDER_H, EASE_OUT_EXPO, GLASS, SERIF_STACK, trackPointer } from "./liquid-glass";
 
 interface ShowcaseItem {
     id: string;
@@ -21,9 +19,7 @@ interface ShowcaseItem {
     author: {
         name: string;
         institution: string;
-        avatarGrad: string;
     };
-    accentColor: string;
 }
 
 // 第一排卡片（前沿数学、理论物理与核心理论）
@@ -35,12 +31,7 @@ const TOP_ITEMS: ShowcaseItem[] = [
         highlight: "纠缠熵的几何测度确立了弯曲时空的微观引力机制",
         latex: "$$S_{\\text{EE}} = \\frac{\\text{Area}(\\gamma_A)}{4G_N}$$",
         symbol: "\\hbar",
-        author: {
-            name: "沈知远 教授",
-            institution: "高能物理研究所",
-            avatarGrad: "from-amber-400 to-orange-600",
-        },
-        accentColor: "#f59e0b",
+        author: { name: "沈知远 教授", institution: "高能物理研究所" },
     },
     {
         id: "c-top-2",
@@ -49,12 +40,7 @@ const TOP_ITEMS: ShowcaseItem[] = [
         highlight: "通过 DFS 序将树上任意路径投影为 O(log n) 段连续区间",
         codeSnippet: "// 重链剖分二次 DFS 确定轻重链与新线段树标号\nvoid dfs2(int u, int t) {\n    dfn[u] = ++tot, top[u] = t;\n    if (son[u]) dfs2(son[u], t);\n    for (int v : G[u]) if (v != son[u]) dfs2(v, v);\n}",
         symbol: "\\mathcal{O}",
-        author: {
-            name: "李承风 算法导师",
-            institution: "算法竞赛研学实验室",
-            avatarGrad: "from-emerald-400 to-teal-600",
-        },
-        accentColor: "#10b981",
+        author: { name: "李承风 算法导师", institution: "算法竞赛研学实验室" },
     },
     {
         id: "c-top-3",
@@ -63,12 +49,7 @@ const TOP_ITEMS: ShowcaseItem[] = [
         highlight: "辛拓扑不变量揭示了高维哈密顿系统周期轨道的守恒规律",
         latex: "$$HF_*(L_0, L_1) \\cong H_*(L_0 \\cap L_1)$$",
         symbol: "\\Sigma",
-        author: {
-            name: "林承宇 博士",
-            institution: "应用数学国际中心",
-            avatarGrad: "from-cyan-400 to-blue-600",
-        },
-        accentColor: "#06b6d4",
+        author: { name: "林承宇 博士", institution: "应用数学国际中心" },
     },
     {
         id: "c-top-4",
@@ -77,12 +58,7 @@ const TOP_ITEMS: ShowcaseItem[] = [
         highlight: "无外加磁场条件下实现精确量子化霍尔电阻平台的突破",
         latex: "$$\\sigma_{xy} = \\frac{e^2}{h} \\cdot \\mathcal{C}$$",
         symbol: "\\Omega",
-        author: {
-            name: "顾怀安 教授",
-            institution: "量子科学国家重点实验室",
-            avatarGrad: "from-purple-400 to-indigo-600",
-        },
-        accentColor: "#a855f7",
+        author: { name: "顾怀安 教授", institution: "量子科学国家重点实验室" },
     },
     {
         id: "c-top-5",
@@ -91,12 +67,7 @@ const TOP_ITEMS: ShowcaseItem[] = [
         highlight: "稀疏注意力掩码在保持困惑度不变的前提下降低 70% 显存消耗",
         codeSnippet: "scores = (Q @ K.T) * (d_k ** -0.5)\nmask_attn = sparse_topk(scores, k=64)\ncontext = softmax(mask_attn, dim=-1) @ V",
         symbol: "\\otimes",
-        author: {
-            name: "Dr. Elena Rostova",
-            institution: "Scholarly 智能实验室",
-            avatarGrad: "from-rose-400 to-pink-600",
-        },
-        accentColor: "#f43f5e",
+        author: { name: "Dr. Elena Rostova", institution: "Scholarly 智能实验室" },
     },
 ];
 
@@ -109,12 +80,7 @@ const BOTTOM_ITEMS: ShowcaseItem[] = [
         highlight: "支持行内与跨行张量公式无缝排版，数学推导清晰可辨",
         latex: "$$\\nabla \\times \\mathbf{B} = \\mu_0 \\mathbf{J} + \\mu_0 \\varepsilon_0 \\frac{\\partial \\mathbf{E}}{\\partial t}$$",
         symbol: "\\nabla",
-        author: {
-            name: "KaTeX 核心系统",
-            institution: "Scholarly 排版架构",
-            avatarGrad: "from-amber-400 to-yellow-600",
-        },
-        accentColor: "#f59e0b",
+        author: { name: "KaTeX 核心系统", institution: "Scholarly 排版架构" },
     },
     {
         id: "c-bot-2",
@@ -123,12 +89,7 @@ const BOTTOM_ITEMS: ShowcaseItem[] = [
         highlight: "通过数值相对论波形库校准引力辐射各向异性能量损耗",
         latex: "$$h_+(t) - i h_\\times(t) = \\sum_{l,m} h_{lm}(t)\\,_{-2}Y_{lm}$$",
         symbol: "\\Psi",
-        author: {
-            name: "Marcus Vance",
-            institution: "天体物理观测中心",
-            avatarGrad: "from-rose-400 to-red-600",
-        },
-        accentColor: "#ef4444",
+        author: { name: "Marcus Vance", institution: "天体物理观测中心" },
     },
     {
         id: "c-bot-3",
@@ -137,12 +98,7 @@ const BOTTOM_ITEMS: ShowcaseItem[] = [
         highlight: "自动构建跨论文与研讨的学科关联图谱，追溯知识衍生脉络",
         latex: "$$\\text{Similarity}(u, v) = \\frac{|\\Gamma(u) \\cap \\Gamma(v)|}{\\sqrt{|\\Gamma(u)| \\cdot |\\Gamma(v)|}}$$",
         symbol: "\\Delta",
-        author: {
-            name: "知识图谱服务",
-            institution: "Scholarly Graph",
-            avatarGrad: "from-cyan-400 to-indigo-600",
-        },
-        accentColor: "#06b6d4",
+        author: { name: "知识图谱服务", institution: "Scholarly Graph" },
     },
     {
         id: "c-bot-4",
@@ -151,12 +107,7 @@ const BOTTOM_ITEMS: ShowcaseItem[] = [
         highlight: "One Dark 现代暗黑主题与行号对齐，专为算法交流打造",
         codeSnippet: "def kl_divergence(p, q):\n    return torch.sum(p * torch.log(p / (q + 1e-9)), dim=-1)",
         symbol: "\\lambda",
-        author: {
-            name: "算法沙盒团队",
-            institution: "Scholarly Sandbox",
-            avatarGrad: "from-emerald-400 to-green-600",
-        },
-        accentColor: "#10b981",
+        author: { name: "算法沙盒团队", institution: "Scholarly Sandbox" },
     },
     {
         id: "c-bot-5",
@@ -165,117 +116,116 @@ const BOTTOM_ITEMS: ShowcaseItem[] = [
         highlight: "以严肃学术评价取代娱乐点赞，打造高质量研究者殿堂",
         latex: "$$\\mathcal{R}_{u} = \\sum_{p \\in \\mathcal{P}_u} \\alpha_p \\cdot \\log(1 + \\text{Citations}_p)$$",
         symbol: "\\alpha",
-        author: {
-            name: "同行评审仲裁组",
-            institution: "Scholarly Trust",
-            avatarGrad: "from-purple-400 to-amber-500",
-        },
-        accentColor: "#a855f7",
+        author: { name: "同行评审仲裁组", institution: "Scholarly Trust" },
     },
 ];
 
-// 单个高端学术展示卡片 (Showcase Card)
+// 单个学术展示卡片（Liquid Glass 面板 + 鼠标物理漫射）
 function AcademicShowcaseCard({ item }: { item: ShowcaseItem }) {
     return (
-        <div className="relative group shrink-0 w-[290px] sm:w-[330px] h-[370px] rounded-2xl p-5 sm:p-6 flex flex-col justify-between overflow-hidden bg-white/90 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200/80 dark:border-white/10 hover:border-orange-500/80 dark:hover:border-amber-400/80 shadow-lg dark:shadow-2xl dark:shadow-black/70 transition-all duration-300 select-none hover:-translate-y-1.5 hover:shadow-xl hover:shadow-orange-500/10">
-            {/* 顶角弱光晕 */}
+        <article
+            onMouseMove={trackPointer}
+            className={cn(
+                GLASS,
+                "group relative flex h-[380px] w-[290px] sm:w-[330px] shrink-0 select-none flex-col overflow-hidden rounded-3xl p-6",
+                "transition-[transform,box-shadow] duration-500 ease-out hover:-translate-y-1.5",
+                "hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_20px_48px_-12px_rgba(0,0,0,0.12),0_0_32px_-6px_rgba(245,158,11,0.22)]",
+                "dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_20px_48px_-12px_rgba(0,0,0,0.7),0_0_32px_-6px_rgba(245,158,11,0.18)]"
+            )}
+        >
+            {/* 鼠标跟随的无色镜面反射 */}
             <div
-                className="absolute -top-16 -right-16 w-36 h-36 rounded-full blur-3xl opacity-15 dark:opacity-25 group-hover:opacity-35 transition-opacity duration-300 pointer-events-none"
-                style={{ backgroundColor: item.accentColor }}
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:group-hover:opacity-25"
+                style={{
+                    background:
+                        "radial-gradient(360px circle at var(--mouse-x, 50%) var(--mouse-y, 0%), rgba(255,255,255,0.7), transparent 45%)",
+                }}
             />
 
-            {/* 卡片头部：学科分类胶囊 + 学术符号徽标 */}
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono font-bold text-orange-600 dark:text-amber-300 px-2.5 py-1 rounded-full bg-orange-50 dark:bg-amber-400/10 border border-orange-200/80 dark:border-amber-400/20 shadow-2xs">
-                        {item.tag}
-                    </span>
-                    {/* 学术符号徽标 */}
-                    <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center border border-zinc-200/80 dark:border-white/10 text-zinc-800 dark:text-amber-300 group-hover:scale-105 transition-transform shadow-2xs font-serif font-bold text-sm">
-                        <MathText text={`$${item.symbol}$`} />
-                    </div>
+            {/* 头部：学科胶囊 + 符号徽标 */}
+            <div className="relative z-10 flex items-center justify-between gap-3">
+                <span className="truncate rounded-full px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.10)]">
+                    {item.tag}
+                </span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] text-sm text-zinc-700 dark:text-amber-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-transform duration-300 group-hover:scale-105">
+                    <MathText text={`$${item.symbol}$`} />
                 </div>
-
-                {/* 卡片标题：加粗学术议题，限定 2 行 */}
-                <h4 className="text-base sm:text-lg font-black text-zinc-900 dark:text-zinc-50 leading-snug tracking-tight group-hover:text-orange-600 dark:group-hover:text-amber-300 transition-colors line-clamp-2">
-                    {item.title}
-                </h4>
             </div>
 
-            {/* 核心内容展示区（LaTeX 公式盒 vs 代码沙盒） */}
-            <div className="relative z-10 my-auto py-1">
+            {/* 标题 + 导语（固定行数槽位） */}
+            <div className="relative z-10 mt-4 space-y-1.5">
+                <h4
+                    style={{ fontFamily: SERIF_STACK }}
+                    className="line-clamp-2 min-h-[2.8em] text-[17px] font-semibold leading-[1.4] tracking-tight text-zinc-900 dark:text-zinc-50"
+                >
+                    {item.title}
+                </h4>
+                <p className="line-clamp-2 min-h-[2.9em] text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    {item.highlight}
+                </p>
+            </div>
+
+            {/* 核心内容：LaTeX 公式井 / 代码沙盒 */}
+            <div className="relative z-10 flex flex-1 items-center py-4">
                 {item.latex && (
-                    <div className="py-3 px-2 rounded-xl bg-zinc-50 dark:bg-zinc-950/80 border border-zinc-200/80 dark:border-white/10 text-center text-zinc-900 dark:text-zinc-50 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden my-1 shadow-inner flex items-center justify-center">
-                        <MathText text={item.latex} className="text-xs sm:text-sm text-zinc-900 dark:text-amber-200 font-serif font-bold max-w-full" />
+                    <div className="flex min-h-[92px] w-full items-center justify-center overflow-x-auto rounded-2xl px-3 py-4 bg-zinc-900/[0.03] dark:bg-white/[0.04] shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <MathText
+                            text={item.latex}
+                            className="max-w-full text-xs sm:text-sm text-zinc-800 dark:text-amber-100"
+                        />
                     </div>
                 )}
 
                 {item.codeSnippet && (
-                    <div className="p-3 rounded-xl bg-zinc-950 text-zinc-200 border border-zinc-800 font-mono text-[11px] leading-relaxed overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden my-1 shadow-inner">
-                        <pre className="whitespace-pre-wrap font-medium text-emerald-400">{item.codeSnippet}</pre>
-                    </div>
-                )}
-
-                {!item.latex && !item.codeSnippet && (
-                    <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200/80 dark:border-white/10 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed my-1 font-normal">
-                        <Quote className="w-3.5 h-3.5 text-orange-500 dark:text-amber-400 inline mr-1 opacity-80" />
-                        {item.highlight}
+                    <div className="w-full overflow-hidden rounded-2xl p-3.5 bg-zinc-950/90 dark:bg-black/50 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-8px_rgba(0,0,0,0.35)]">
+                        <pre className="max-h-[96px] overflow-hidden whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-zinc-300">
+                            {item.codeSnippet}
+                        </pre>
                     </div>
                 )}
             </div>
 
-            {/* 卡片底部：学者/实验室署名与跳转箭头 */}
-            <div className="relative z-10 pt-3 border-t border-zinc-200/80 dark:border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${item.author.avatarGrad} flex items-center justify-center text-white font-extrabold text-xs ring-2 ring-orange-400/30 shrink-0 shadow-xs`}>
-                        {item.author.name.slice(0, 1)}
-                    </div>
-                    <div className="min-w-0">
-                        <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-orange-600 dark:group-hover:text-amber-300 transition-colors truncate">
-                            {item.author.name}
+            {/* 底部：署名 + 跳转 */}
+            <div className="relative z-10">
+                <div className={DIVIDER_H} />
+                <div className="flex items-center justify-between pt-4">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_2px_8px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
+                            {item.author.name.slice(0, 1)}
                         </div>
-                        <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium truncate">
-                            {item.author.institution}
+                        <div className="min-w-0">
+                            <div className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                                {item.author.name}
+                            </div>
+                            <div className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                                {item.author.institution}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-600 dark:text-amber-300 group-hover:bg-orange-500 group-hover:text-white dark:group-hover:bg-amber-400 dark:group-hover:text-zinc-950 transition-all duration-200 shrink-0 ml-2">
-                    <ArrowUpRight className="w-3.5 h-3.5" />
+                    <div className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] text-zinc-500 dark:text-zinc-300 transition-colors duration-300 group-hover:bg-zinc-950/85 group-hover:text-white group-hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:group-hover:bg-white/90 dark:group-hover:text-zinc-950">
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                    </div>
                 </div>
             </div>
-        </div>
+        </article>
     );
 }
 
-// 具有轻柔雾透渐隐意境的学术打字机组件
+// 雾透渐隐学术打字机（预留最大宽度，切换词语时零布局跳动）
 function MistTypewriter() {
     const { isZh } = useI18n();
 
-    const wordsZh = [
-        "探索真理",
-        "沉淀思想",
-        "推导本质",
-        "重构认知",
-        "启迪智慧",
-        "见证突破",
-        "溯源求索",
-        "叩问未知",
-    ];
-
-    const wordsEn = [
-        "Rigorous Proof",
-        "Deep Insights",
-        "First Principles",
-        "Breakthroughs",
-        "Pure Reasoning",
-        "Illuminating Wisdom",
-        "Exploring Unknowns",
-    ];
-
-    const words = isZh ? wordsZh : wordsEn;
+    const words = isZh
+        ? ["探索真理", "沉淀思想", "推导本质", "重构认知", "启迪智慧", "见证突破", "溯源求索", "叩问未知"]
+        : ["Rigorous Proof", "Deep Insights", "First Principles", "Breakthroughs", "Pure Reasoning", "Illuminating Wisdom", "Exploring Unknowns"];
 
     const [index, setIndex] = useState(0);
+
+    useEffect(() => {
+        setIndex(0);
+    }, [isZh]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -287,162 +237,128 @@ function MistTypewriter() {
     const currentWord = words[index] || words[0];
 
     return (
-        <span className="inline-flex items-center text-left">
-            <AnimatePresence mode="wait">
-                <motion.span
-                    key={currentWord}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    variants={{
-                        hidden: {},
-                        visible: {
-                            transition: {
-                                staggerChildren: 0.08,
+        <span className="relative ml-2 inline-grid justify-items-start align-baseline">
+            {/* 隐形占位：所有候选词叠放于同一格，撑出最大宽度 */}
+            {words.map((w) => (
+                <span key={w} aria-hidden className="invisible col-start-1 row-start-1 whitespace-nowrap">
+                    {w}
+                </span>
+            ))}
+
+            {/* 琥珀微光晕 */}
+            <span
+                aria-hidden
+                className="pointer-events-none col-start-1 row-start-1 self-end mb-[8%] h-[34%] w-full rounded-full bg-[rgba(245,158,11,0.22)] blur-2xl"
+            />
+
+            <span className="col-start-1 row-start-1 whitespace-nowrap text-amber-600 dark:text-amber-300">
+                <AnimatePresence mode="wait" initial={false}>
+                    <motion.span
+                        key={currentWord}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={{
+                            hidden: {},
+                            visible: { transition: { staggerChildren: 0.07 } },
+                            exit: {
+                                opacity: 0,
+                                filter: "blur(10px)",
+                                y: -6,
+                                transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1] },
                             },
-                        },
-                        exit: {
-                            opacity: 0,
-                            filter: "blur(12px)",
-                            y: -8,
-                            scale: 1.04,
-                            transition: {
-                                duration: 0.55,
-                                ease: [0.4, 0, 0.2, 1],
-                            },
-                        },
-                    }}
-                    className="bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-amber-500 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-400 inline-block font-black ml-2"
-                >
-                    {currentWord.split("").map((char, i) => (
-                        <motion.span
-                            key={i}
-                            variants={{
-                                hidden: {
-                                    opacity: 0,
-                                    filter: "blur(8px)",
-                                    y: 8,
-                                    scale: 0.92,
-                                },
-                                visible: {
-                                    opacity: 1,
-                                    filter: "blur(0px)",
-                                    y: 0,
-                                    scale: 1,
-                                    transition: {
-                                        duration: 0.45,
-                                        ease: [0.22, 1, 0.36, 1],
+                        }}
+                        className="inline-block"
+                    >
+                        {currentWord.split("").map((char, i) => (
+                            <motion.span
+                                key={i}
+                                variants={{
+                                    hidden: { opacity: 0, filter: "blur(8px)", y: 8 },
+                                    visible: {
+                                        opacity: 1,
+                                        filter: "blur(0px)",
+                                        y: 0,
+                                        transition: { duration: 0.45, ease: EASE_OUT_EXPO },
                                     },
-                                },
-                            }}
-                            className="inline-block"
-                        >
-                            {char}
-                        </motion.span>
-                    ))}
-                </motion.span>
-            </AnimatePresence>
+                                }}
+                                className="inline-block whitespace-pre"
+                            >
+                                {char}
+                            </motion.span>
+                        ))}
+                    </motion.span>
+                </AnimatePresence>
+            </span>
         </span>
+    );
+}
+
+// 跑马灯行：每项使用右侧 padding 代替 gap，保证 -33.333% 位移首尾精确衔接无跳帧
+function MarqueeRow({ items, direction }: { items: ShowcaseItem[]; direction: "left" | "right" }) {
+    const list = [...items, ...items, ...items];
+    return (
+        <div
+            className={cn(
+                "flex w-max py-4 will-change-transform hover:[animation-play-state:paused]",
+                direction === "left" ? "animate-track-left" : "animate-track-right"
+            )}
+        >
+            {list.map((item, idx) => (
+                <div key={`${direction}-${item.id}-${idx}`} className="pr-5 sm:pr-6" aria-hidden={idx >= items.length}>
+                    <AcademicShowcaseCard item={item} />
+                </div>
+            ))}
+        </div>
     );
 }
 
 export function Features() {
     const { t } = useI18n();
-    const topRowList = [...TOP_ITEMS, ...TOP_ITEMS, ...TOP_ITEMS];
-    const bottomRowList = [...BOTTOM_ITEMS, ...BOTTOM_ITEMS, ...BOTTOM_ITEMS];
 
     return (
-        <section className="relative py-24 sm:py-28 overflow-hidden bg-[#fafafc] dark:bg-[#07090e] text-zinc-900 dark:text-zinc-50 transition-colors duration-700">
-            {/* === 1. 多层环境光晕 === */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-amber-500/10 via-purple-500/10 to-transparent blur-[140px] rounded-full dark:from-amber-400/10 dark:via-purple-600/10" />
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-600/10 blur-[150px] rounded-full" />
-                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-amber-500/10 dark:bg-orange-600/10 blur-[150px] rounded-full" />
+        <section className="relative overflow-hidden bg-[#fafafc] py-24 sm:py-32 text-zinc-900 dark:bg-[#07090e] dark:text-zinc-50 transition-colors duration-700">
+            {/* 柔和环境光晕（低饱和单色） */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -top-32 left-1/2 h-[480px] w-[960px] -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-400/[0.10] via-amber-200/[0.04] to-transparent blur-[140px] dark:from-amber-400/[0.08]" />
+                <div className="absolute bottom-0 -left-[10%] h-[480px] w-[480px] rounded-full bg-sky-400/[0.06] blur-[160px] dark:bg-sky-500/[0.05]" />
+                <div className="absolute bottom-0 -right-[10%] h-[480px] w-[480px] rounded-full bg-amber-400/[0.07] blur-[160px] dark:bg-orange-500/[0.05]" />
             </div>
 
-            {/* === 2. 精细微网格线 === */}
-            <div
-                className="absolute inset-0 opacity-[0.03] dark:opacity-[0.04] pointer-events-none"
-                style={{
-                    backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
-                    backgroundSize: "40px 40px",
-                }}
-            />
+            {/* 顶部消融光缝：与 Hero 的视觉分隔 */}
+            <div className="absolute inset-x-0 top-0 mx-auto max-w-5xl px-6">
+                <div className={DIVIDER_H} />
+            </div>
 
-            {/* === 3. 标题区 === */}
+            {/* 标题区 */}
             <motion.div
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="relative z-10 max-w-5xl mx-auto px-6 text-center mb-14"
+                transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
+                className="relative z-10 mx-auto mb-14 max-w-5xl px-6 text-center"
             >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/90 dark:bg-zinc-900/80 text-orange-600 dark:text-amber-300 border border-zinc-200/80 dark:border-white/10 mb-4 shadow-2xs">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <div className={cn(GLASS, "mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300")}>
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                     {t.landing.panoramaBadge}
                 </div>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-4 text-zinc-900 dark:text-zinc-50 flex flex-wrap items-center justify-center">
+                <h2
+                    style={{ fontFamily: SERIF_STACK }}
+                    className="mb-5 flex flex-wrap items-center justify-center text-3xl font-semibold leading-[1.25] tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl md:text-5xl"
+                >
                     <span>{t.landing.evolutionTitle}</span>
                     <MistTypewriter />
                 </h2>
-                <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed font-normal">
+                <p className="mx-auto max-w-2xl text-base leading-relaxed text-zinc-500 dark:text-zinc-400 sm:text-lg text-pretty">
                     {t.landing.evolutionSubtitle}
                 </p>
             </motion.div>
 
-            {/* === 4. 双行错向无限跑马灯 (Dual-row Infinite Marquee) === */}
-            <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-                {/* 左右两侧渐变羽化遮罩 (兜底) */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 sm:w-40 bg-gradient-to-r from-[#fafafc] dark:from-[#07090e] to-transparent z-20" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 sm:w-40 bg-gradient-to-l from-[#fafafc] dark:from-[#07090e] to-transparent z-20" />
-
-                {/* 第一行：向左滚动 */}
-                <div className="flex gap-5 sm:gap-6 py-2.5 w-max animate-track-left hover:[animation-play-state:paused] will-change-transform">
-                    {topRowList.map((item, idx) => (
-                        <div key={`top-${item.id}-${idx}`}>
-                            <AcademicShowcaseCard item={item} />
-                        </div>
-                    ))}
-                </div>
-
-                {/* 第二行：向右滚动 */}
-                <div className="flex gap-5 sm:gap-6 py-2.5 w-max animate-track-right hover:[animation-play-state:paused] will-change-transform mt-3">
-                    {bottomRowList.map((item, idx) => (
-                        <div key={`bot-${item.id}-${idx}`}>
-                            <AcademicShowcaseCard item={item} />
-                        </div>
-                    ))}
-                </div>
+            {/* 双行错向无限跑马灯（两端羽化遮罩） */}
+            <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+                <MarqueeRow items={TOP_ITEMS} direction="left" />
+                <MarqueeRow items={BOTTOM_ITEMS} direction="right" />
             </div>
-
-            {/* === 5. GPU 加速关键帧定义 === */}
-            <style jsx>{`
-                @keyframes smooth-marquee-left {
-                    0% {
-                        transform: translate3d(0, 0, 0);
-                    }
-                    100% {
-                        transform: translate3d(-33.333%, 0, 0);
-                    }
-                }
-
-                @keyframes smooth-marquee-right {
-                    0% {
-                        transform: translate3d(-33.333%, 0, 0);
-                    }
-                    100% {
-                        transform: translate3d(0, 0, 0);
-                    }
-                }
-
-                .animate-track-left {
-                    animation: smooth-marquee-left 48s linear infinite;
-                }
-
-                .animate-track-right {
-                    animation: smooth-marquee-right 52s linear infinite;
-                }
-            `}</style>
         </section>
     );
 }

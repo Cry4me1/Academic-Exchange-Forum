@@ -106,16 +106,30 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        // 静态资源长缓存
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+      ...(process.env.NODE_ENV === "production"
+        ? [
+            {
+              // 静态资源长缓存（仅生产环境；开发环境 chunk 无哈希，immutable 会锁死旧缓存导致 Hydration 报错）
+              source: "/_next/static/:path*",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "public, max-age=31536000, immutable",
+                },
+              ],
+            },
+          ]
+        : [
+            {
+              source: "/_next/static/:path*",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "no-store, must-revalidate",
+                },
+              ],
+            },
+          ]),
     ];
   },
 };

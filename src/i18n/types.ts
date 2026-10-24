@@ -260,6 +260,14 @@ export interface TranslationDictionary {
         readFullPost: string;
         defaultAuthor: string;
         defaultTitle: string;
+        titleLead: string;
+        titleAccent: string;
+        featuredHeader: string;
+        capLatex: string;
+        capMermaid: string;
+        capCode: string;
+        navExplore: string;
+        navLogin: string;
     };
     landing: {
         panoramaBadge: string;
