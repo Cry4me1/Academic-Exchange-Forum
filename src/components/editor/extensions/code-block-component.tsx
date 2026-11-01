@@ -2,9 +2,7 @@
 
 import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
-  Check,
   ChevronDown,
-  Copy,
   Play,
   RotateCcw,
   Terminal,
@@ -12,6 +10,9 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { CopyMorphButton } from "@/components/ui/copy-morph-button";
+import { MOTION_EASINGS } from "@/lib/motion-tokens";
 
 // 常用编程语言列表
 const LANGUAGES = [
@@ -63,13 +64,14 @@ export function CodeBlockComponent({
   updateAttributes,
   extension,
 }: NodeViewProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [copied, setCopied] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 快照与执行状态
   const [hasCachedSnapshot, setHasCachedSnapshot] = useState(false);
-  const [snapshotMeta, setSnapshotMeta] = useState<{
+  const [, setSnapshotMeta] = useState<{
     first_run_user_name?: string;
     execution_time_ms?: number;
   } | null>(null);
@@ -214,17 +216,15 @@ export function CodeBlockComponent({
 
   return (
     <NodeViewWrapper className="code-block-wrapper relative group my-6 rounded-2xl overflow-hidden border-0 bg-[#0c0d0e] shadow-[0_8px_30px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
-      
       {/* 顶部工具栏: 极简纯净排版 */}
       <div className="flex items-center justify-between h-9 px-4 bg-zinc-900/60 backdrop-blur-xl border-0 select-none">
-        
         {/* 左侧: 语言指示 */}
         <div className="flex items-center gap-2.5" ref={dropdownRef}>
           {isEditable ? (
             <div className="relative">
               <button
                 type="button"
-                className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-medium text-zinc-400 [@media(hover:hover)_and_(pointer:fine)]:hover:text-zinc-200 transition-colors cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -235,28 +235,36 @@ export function CodeBlockComponent({
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </button>
 
-              {showDropdown && (
-                <div className="absolute top-full left-0 mt-1.5 w-40 bg-zinc-900/95 border-0 rounded-xl shadow-2xl py-1 max-h-56 overflow-y-auto z-[9999] backdrop-blur-2xl">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.value}
-                      type="button"
-                      className={`w-full text-left px-3 py-1.5 text-[11px] font-mono transition-colors cursor-pointer ${
-                        language === lang.value
-                          ? "text-zinc-100 bg-white/10 font-medium"
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleLanguageChange(lang.value);
-                      }}
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {showDropdown && (
+                  <motion.div
+                    initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -4 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -4 }}
+                    transition={{ duration: 0.16, ease: MOTION_EASINGS.snappy }}
+                    className="absolute top-full left-0 mt-1.5 w-40 bg-zinc-900/95 border-0 rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.45),inset_0_1px_0.5px_rgba(255,255,255,0.12)] py-1.5 max-h-56 overflow-y-auto z-[9999] backdrop-blur-2xl origin-top-left"
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.value}
+                        type="button"
+                        className={`w-full text-left px-3 py-1.5 text-[11px] font-mono font-medium transition-colors cursor-pointer ${
+                          language === lang.value
+                            ? "text-zinc-100 bg-white/10"
+                            : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleLanguageChange(lang.value);
+                        }}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <div className="flex items-center gap-2">
@@ -275,21 +283,18 @@ export function CodeBlockComponent({
 
         {/* 右侧: 水滴胶囊功能键 */}
         <div className="flex items-center gap-2">
-          
           {/* 运行 / 查看结果胶囊 */}
           {isPython && (
             <button
               type="button"
               disabled={isRunning}
               onClick={() => handleToggleRun(false)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border-0 transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border-0 transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-out-snappy)] cursor-pointer ${
                 isRunning
                   ? "bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-80"
                   : showResult
-                  ? "bg-white/15 hover:bg-white/20 text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)]"
-                  : hasCachedSnapshot
-                  ? "bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] active:scale-[0.98]"
-                  : "bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] active:scale-[0.98]"
+                  ? "bg-white/15 hover:bg-white/20 text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)] active:scale-[0.97]"
+                  : "bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] active:scale-[0.97]"
               }`}
             >
               {isRunning ? (
@@ -316,19 +321,18 @@ export function CodeBlockComponent({
             </button>
           )}
 
-          {/* 复制代码 */}
-          <button
-            type="button"
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] text-zinc-400 hover:text-zinc-200 bg-zinc-800/40 hover:bg-zinc-800/70 transition-colors cursor-pointer"
+          {/* 复制代码：微模糊融合 + 琥珀微光反馈 */}
+          <CopyMorphButton
+            copied={copied}
             onClick={handleCopy}
+            surface="dark"
+            auraTone="amber"
+            showLabel
+            idleLabel="复制"
+            copiedLabel="已复制"
+            iconClassName="h-3 w-3"
             title="复制代码"
-          >
-            {copied ? (
-              <Check className="h-3 w-3 text-emerald-400" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-          </button>
+          />
         </div>
       </div>
 
@@ -340,127 +344,138 @@ export function CodeBlockComponent({
         <NodeViewContent as="code" />
       </pre>
 
-      {/* 结果折叠区: 克制细腻的控制台抽屉 */}
-      {showResult && (
-        <div className="border-0 bg-[#090a0b]/90 backdrop-blur-2xl transition-all duration-200">
-          
-          {/* 光缝分割 */}
-          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+      {/* 结果折叠区: 克制细腻的控制台流体抽屉 */}
+      <AnimatePresence initial={false}>
+        {showResult && (
+          <motion.div
+            initial={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { height: "auto", opacity: 1 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={
+              prefersReducedMotion
+                ? { duration: 0.1 }
+                : { duration: 0.22, ease: MOTION_EASINGS.snappy }
+            }
+            className="border-0 bg-[#090a0b]/90 backdrop-blur-2xl overflow-hidden"
+          >
+            {/* 光缝分割 */}
+            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/8 to-transparent" />
 
-          {/* 控制台元信息条 */}
-          <div className="flex items-center justify-between h-8 px-4 text-[11px] text-zinc-400 font-mono">
-            
-            {/* 左侧状态 */}
-            <div className="flex items-center gap-2">
-              {execResult?.cached ? (
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
-                  <span>快照命中</span>
-                  {execResult.execution_time_ms ? (
-                    <span className="text-zinc-500">· {execResult.execution_time_ms}ms</span>
-                  ) : null}
-                  {execResult.first_run_user_name ? (
-                    <span className="text-zinc-500">· @{execResult.first_run_user_name} 验证</span>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-zinc-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                  <span>首次运算已归档</span>
-                  {execResult?.execution_time_ms ? (
-                    <span className="text-zinc-500">· {execResult.execution_time_ms}ms</span>
-                  ) : null}
-                </div>
-              )}
-            </div>
-
-            {/* 右侧: Tab 切换与重新运行 */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-full">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("stdout")}
-                  className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-                    activeTab === "stdout"
-                      ? "bg-white/10 text-zinc-200"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  <Terminal className="w-3 h-3" />
-                  <span>终端</span>
-                </button>
-                {execResult?.images && execResult.images.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("visual")}
-                    className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-                      activeTab === "visual"
-                        ? "bg-white/10 text-zinc-200"
-                        : "text-zinc-500 hover:text-zinc-300"
-                    }`}
-                  >
-                    <ImageIcon className="w-3 h-3" />
-                    <span>图表 ({execResult.images.length})</span>
-                  </button>
+            {/* 控制台元信息条 */}
+            <div className="flex items-center justify-between h-8 px-4 text-[11px] text-zinc-400 font-mono">
+              {/* 左侧状态 */}
+              <div className="flex items-center gap-2">
+                {execResult?.cached ? (
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
+                    <span>快照命中</span>
+                    {execResult.execution_time_ms ? (
+                      <span className="text-zinc-500">· {execResult.execution_time_ms}ms</span>
+                    ) : null}
+                    {execResult.first_run_user_name ? (
+                      <span className="text-zinc-500">· @{execResult.first_run_user_name} 验证</span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                    <span>首次运算已归档</span>
+                    {execResult?.execution_time_ms ? (
+                      <span className="text-zinc-500">· {execResult.execution_time_ms}ms</span>
+                    ) : null}
+                  </div>
                 )}
               </div>
 
-              {/* 重新运行按键 */}
-              <button
-                type="button"
-                onClick={() => handleToggleRun(true)}
-                disabled={isRunning}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
-                title="重新在显卡中复算并更新快照"
-              >
-                <RotateCcw className={`w-3 h-3 ${isRunning ? "animate-spin" : ""}`} />
-                <span>重跑</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 内容区 */}
-          <div className="px-4 py-3 font-mono text-[11px] leading-relaxed max-h-72 overflow-y-auto">
-            {isRunning ? (
-              <div className="py-6 flex items-center justify-center text-zinc-500 gap-2 font-mono text-xs">
-                <div className="w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-                <span>GPU 硬件正在加速计算计算图...</span>
-              </div>
-            ) : activeTab === "stdout" ? (
-              execResult?.stdout || execResult?.stderr ? (
-                <div className="space-y-1">
-                  {execResult.stdout && (
-                    <pre className="whitespace-pre-wrap select-text text-zinc-300 font-mono">
-                      {execResult.stdout}
-                    </pre>
-                  )}
-                  {execResult.stderr && (
-                    <pre className="whitespace-pre-wrap select-text text-rose-400/90 font-mono">
-                      {execResult.stderr}
-                    </pre>
+              {/* 右侧: Tab 切换与重新运行 */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-full">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("stdout")}
+                    className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                      activeTab === "stdout"
+                        ? "bg-white/12 text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16)]"
+                        : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    <Terminal className="w-3 h-3" />
+                    <span>终端</span>
+                  </button>
+                  {execResult?.images && execResult.images.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("visual")}
+                      className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                        activeTab === "visual"
+                          ? "bg-white/12 text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16)]"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                      <span>图表 ({execResult.images.length})</span>
+                    </button>
                   )}
                 </div>
-              ) : (
-                <div className="py-2 text-zinc-500">执行完毕，无标准输出。</div>
-              )
-            ) : execResult?.images && execResult.images.length > 0 ? (
-              <div className="flex flex-col gap-3 py-1">
-                {execResult.images.map((base64Str, idx) => (
-                  <div key={idx} className="rounded-xl overflow-hidden bg-black p-1 shadow-sm">
-                    <img
-                      src={`data:image/png;base64,${base64Str}`}
-                      alt={`Visual Output ${idx + 1}`}
-                      className="w-full h-auto rounded-lg"
-                    />
-                  </div>
-                ))}
+
+                {/* 重新运行按键 */}
+                <button
+                  type="button"
+                  onClick={() => handleToggleRun(true)}
+                  disabled={isRunning}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-zinc-400 hover:text-zinc-200 active:scale-[0.96] transition-[transform,color] duration-150 cursor-pointer"
+                  title="重新在显卡中复算并更新快照"
+                >
+                  <RotateCcw className={`w-3 h-3 ${isRunning ? "animate-spin" : ""}`} />
+                  <span>重跑</span>
+                </button>
               </div>
-            ) : (
-              <div className="py-2 text-zinc-500">未检测到绘图输出。</div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+
+            {/* 内容区 */}
+            <div className="px-4 py-3 font-mono text-[11px] leading-relaxed max-h-72 overflow-y-auto overscroll-contain">
+              {isRunning ? (
+                <div className="py-6 flex items-center justify-center text-zinc-500 gap-2 font-mono text-xs">
+                  <div className="w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                  <span>GPU 硬件正在加速计算计算图...</span>
+                </div>
+              ) : activeTab === "stdout" ? (
+                execResult?.stdout || execResult?.stderr ? (
+                  <div className="space-y-1">
+                    {execResult.stdout && (
+                      <pre className="whitespace-pre-wrap select-text text-zinc-300 font-mono">
+                        {execResult.stdout}
+                      </pre>
+                    )}
+                    {execResult.stderr && (
+                      <pre className="whitespace-pre-wrap select-text text-rose-400/90 font-mono">
+                        {execResult.stderr}
+                      </pre>
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-2 text-zinc-500">执行完毕，无标准输出。</div>
+                )
+              ) : execResult?.images && execResult.images.length > 0 ? (
+                <div className="flex flex-col gap-3 py-1">
+                  {execResult.images.map((base64Str, idx) => (
+                    <div key={idx} className="rounded-2xl overflow-hidden bg-black p-1 shadow-sm">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`data:image/png;base64,${base64Str}`}
+                        alt={`Visual Output ${idx + 1}`}
+                        className="w-full h-auto rounded-xl"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-2 text-zinc-500">未检测到绘图输出。</div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </NodeViewWrapper>
   );
 }

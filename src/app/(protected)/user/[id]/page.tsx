@@ -1069,10 +1069,10 @@ export default function UserProfilePage() {
                         {/* Tabs 切换栏与 Post Feed 列表 */}
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                             <div className="pb-2">
-                                <TabsList className="h-auto p-1.5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.2)] flex flex-wrap gap-1 w-full sm:w-auto justify-start">
+                                <TabsList className="h-auto p-1.5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl rounded-3xl sm:rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.2)] flex flex-wrap gap-1 w-full sm:w-auto justify-start">
                                     <TabsTrigger
                                         value="posts"
-                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                        className="rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                                     >
                                         <span>帖子</span>
                                         <span className="px-1.5 py-0.2 rounded-full text-[11px] font-medium tabular-nums bg-zinc-200/60 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300">
@@ -1082,7 +1082,7 @@ export default function UserProfilePage() {
 
                                     <TabsTrigger
                                         value="collections"
-                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                        className="rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                                     >
                                         <BookOpen className="h-3.5 w-3.5 text-zinc-400" />
                                         <span>专栏</span>
@@ -1093,7 +1093,7 @@ export default function UserProfilePage() {
 
                                     <TabsTrigger
                                         value="likes"
-                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                        className="rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                                     >
                                         <Heart className="h-3.5 w-3.5 text-zinc-400" />
                                         <span>点赞</span>
@@ -1106,7 +1106,7 @@ export default function UserProfilePage() {
                                         <>
                                             <TabsTrigger
                                                 value="bookmarks"
-                                                className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                                className="rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                                             >
                                                 <Bookmark className="h-3.5 w-3.5 text-zinc-400" />
                                                 <span>收藏</span>
@@ -1117,7 +1117,7 @@ export default function UserProfilePage() {
 
                                             <TabsTrigger
                                                 value="followed_collections"
-                                                className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                                                className="rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                                             >
                                                 <BookMarked className="h-3.5 w-3.5 text-zinc-400" />
                                                 <span>关注专栏</span>

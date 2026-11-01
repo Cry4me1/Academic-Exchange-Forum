@@ -12,6 +12,7 @@ trigger: always_on
     - **【硬性限制】必须无条件严格参照并执行 `UI-DESIGN-RULES`（Apple Liquid Glass 无边框液态流光毛玻璃设计规范）**。
     - 严禁使用任何显式硬边框线条（`border`、`border-zinc-200`、`border-dashed` 等），统一采用 `border-0` 结合高斯模糊、菲涅尔内高光与弥散阴影构建物理边界。
     - 交互按键与标签必须为 `rounded-full` 水滴胶囊，卡片与面板统一为 `rounded-2xl` / `rounded-3xl` 大曲率面板。严格遵守零布局跳动（Zero Layout Shift）。
+    - **【动效与微交互设计】**: 深度整合已配置的 Emil Kowalski 技能体系（`emil-design-eng` / `apple-design` / `animate` / `animation-performance`），严格遵循物理弹簧（Springs）、微交互（即时 `:active` 缩放回弹、手势连续追踪与动量传递、零输入延迟），严禁滥用生硬线性动效与高频界面的冗余动画。
 3.  **Supabase 深度集成**: 
     - 涉及到数据请求时，优先使用 Supabase SSR Client。
     - 涉及到数据库变更时，必须提供对应的 SQL Migration 代码（包括 RLS 策略）。

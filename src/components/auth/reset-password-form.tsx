@@ -3,8 +3,14 @@
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { resetPasswordSchema, type ResetPasswordFormData } from "@/lib/validations/auth";
+import {
+    resetPasswordSchema,
+    type ResetPasswordFormData,
+} from "@/lib/validations/auth";
 import { updatePassword } from "@/app/auth/actions";
+import { OBSIDIAN_CTA } from "@/components/landing/liquid-glass";
+import { cn } from "@/lib/utils";
+import { ArrowRight, KeyRound, Loader2, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,11 +63,21 @@ export function ResetPasswordForm() {
                     name="password"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>新密码</FormLabel>
+                            <FormLabel className="text-zinc-800 dark:text-zinc-200">
+                                新密码
+                            </FormLabel>
                             <FormControl>
-                                <Input type="password" placeholder="******" {...field} />
+                                <div className="group/field relative">
+                                    <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
+                                    <Input
+                                        type="password"
+                                        placeholder="设置至少 6 位新密码"
+                                        className="pl-10 h-11"
+                                        {...field}
+                                    />
+                                </div>
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-xs pl-1" />
                         </FormItem>
                     )}
                 />
@@ -70,16 +86,47 @@ export function ResetPasswordForm() {
                     name="confirmPassword"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>确认新密码</FormLabel>
+                            <FormLabel className="text-zinc-800 dark:text-zinc-200">
+                                确认新密码
+                            </FormLabel>
                             <FormControl>
-                                <Input type="password" placeholder="******" {...field} />
+                                <div className="group/field relative">
+                                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
+                                    <Input
+                                        type="password"
+                                        placeholder="再次输入新密码"
+                                        className="pl-10 h-11"
+                                        {...field}
+                                    />
+                                </div>
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-xs pl-1" />
                         </FormItem>
                     )}
                 />
-                <Button type="submit" className="w-full" disabled={isPending}>
-                    {isPending ? "重置中..." : "重置密码"}
+                <Button
+                    type="submit"
+                    disabled={isPending}
+                    className={cn(
+                        OBSIDIAN_CTA,
+                        "group relative w-full h-11 mt-1 overflow-hidden rounded-full font-medium cursor-pointer"
+                    )}
+                >
+                    <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/65 dark:via-white/90 to-transparent"
+                    />
+                    {isPending ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>保存中...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>确认更新密码</span>
+                            <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                        </>
+                    )}
                 </Button>
             </form>
         </Form>

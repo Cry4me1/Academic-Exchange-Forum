@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { registerSchema } from "@/lib/validations/auth";
 import { registerLimiter } from "@/lib/rate-limit";
-import { verifyCaptcha } from "@/lib/captcha";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import {
     getRegistrationMode,
     validateInviteCodeServer,
@@ -12,9 +12,11 @@ import {
 
 export async function POST(request: Request) {
     try {
+        const cfConnectingIp = request.headers.get("cf-connecting-ip")?.trim();
         const forwarded = request.headers.get("x-forwarded-for");
         const userAgent = request.headers.get("user-agent") || "";
-        const ip = forwarded?.split(",")[0]?.trim() || "unknown";
+        const ip =
+            cfConnectingIp || forwarded?.split(",")[0]?.trim() || "unknown";
 
         // 1. IP 限流检查
         const { limited, resetIn } = registerLimiter.check(ip);
@@ -56,9 +58,23 @@ export async function POST(request: Request) {
             );
         }
 
-        const { username, email, password, captchaToken, captchaCode, inviteCode } = validated.data;
+        const { username, email, password, turnstileToken, inviteCode } =
+            validated.data;
 
-        // 5. 系统注册模式策略判定（严格邀请制）
+        // 5. 服务端 Cloudflare Turnstile 人机安全验证（前置拦截，保护下游数据库免受撞库与枚举）
+        const turnstileResult = await verifyTurnstileToken(
+            turnstileToken,
+            ip,
+            "register_email"
+        );
+        if (!turnstileResult.success) {
+            return NextResponse.json(
+                { error: turnstileResult.message || "人机安全验证未通过" },
+                { status: 400 }
+            );
+        }
+
+        // 6. 系统注册模式策略判定（严格邀请制）
         const regMode = await getRegistrationMode();
         if (regMode === "CLOSED") {
             return NextResponse.json(
@@ -87,15 +103,6 @@ export async function POST(request: Request) {
                     { status: 400 }
                 );
             }
-        }
-
-        // 6. 服务端人机验证码校验
-        const captchaResult = verifyCaptcha(captchaToken, captchaCode);
-        if (!captchaResult.success) {
-            return NextResponse.json(
-                { error: captchaResult.message || "人机验证未通过" },
-                { status: 400 }
-            );
         }
 
         const adminClient = createAdminClient();
@@ -168,7 +175,7 @@ export async function POST(request: Request) {
             user: authData.user ? { id: authData.user.id, email: authData.user.email } : null,
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[Email Register API] Internal error:", error);
         return NextResponse.json({ error: "服务器内部错误，请稍后重试" }, { status: 500 });
     }

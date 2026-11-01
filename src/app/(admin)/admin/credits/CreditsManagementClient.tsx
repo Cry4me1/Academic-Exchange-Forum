@@ -61,10 +61,10 @@ export function CreditsManagementClient({
 
       {/* Tab 面板 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 h-11 bg-muted/50 p-1">
+        <TabsList className="grid w-full grid-cols-4 h-11 p-1">
           <TabsTrigger
             value="overview"
-            className="flex items-center gap-2 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="flex items-center gap-2 text-xs sm:text-sm"
           >
             <Settings2 className="h-4 w-4" />
             <span className="hidden sm:inline">策略配置</span>
@@ -72,7 +72,7 @@ export function CreditsManagementClient({
           </TabsTrigger>
           <TabsTrigger
             value="audit"
-            className="flex items-center gap-2 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="flex items-center gap-2 text-xs sm:text-sm"
           >
             <ScrollText className="h-4 w-4" />
             <span className="hidden sm:inline">流水审计</span>
@@ -80,7 +80,7 @@ export function CreditsManagementClient({
           </TabsTrigger>
           <TabsTrigger
             value="batch"
-            className="flex items-center gap-2 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="flex items-center gap-2 text-xs sm:text-sm"
           >
             <Gift className="h-4 w-4" />
             <span className="hidden sm:inline">批量发放</span>
@@ -88,7 +88,7 @@ export function CreditsManagementClient({
           </TabsTrigger>
           <TabsTrigger
             value="vip"
-            className="flex items-center gap-2 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="flex items-center gap-2 text-xs sm:text-sm"
           >
             <Crown className="h-4 w-4" />
             <span className="hidden sm:inline">VIP 配置</span>

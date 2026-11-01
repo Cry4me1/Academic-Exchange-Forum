@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useId } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { LineChart, X, RotateCcw, Loader2 } from "lucide-react";
+import { CopyMorphButton } from "@/components/ui/copy-morph-button";
+import { MOTION_EASINGS } from "@/lib/motion-tokens";
 
 interface MathViewerComponentProps {
   content: string; // 传进来的 LaTeX 公式，可能包含 $
@@ -35,36 +37,27 @@ function loadDesmosAPI(): Promise<void> {
 function extractParameters(latex: string, funcName: string | null) {
   const params = new Set<string>();
 
-  // 1. 查找希腊字母参数 — 使用下标格式 (如 \sigma → s_{igma}) 以匹配 convertLatexForDesmos 的输出
-  //    同时也保留原始 \sigma 格式以兼容未经转换的输入
   const greekLetters = ["sigma", "mu", "alpha", "beta", "gamma", "lambda", "omega", "phi", "psi", "delta"];
-  
-  // 检查 Desmos 下标格式: 如 s_{igma}
+
   for (const g of greekLetters) {
     const subscriptPattern = new RegExp(`${g[0]}_\\{${g.slice(1)}\\}`, "g");
     if (subscriptPattern.test(latex)) {
       params.add(`${g[0]}_{${g.slice(1)}}`);
     }
   }
-  
-  // 也检查原始 \greek 格式（向后兼容）
+
   const greekRegex = /\\(sigma|mu|alpha|beta|gamma|lambda|omega|phi|psi|delta)\b/g;
   let match;
   while ((match = greekRegex.exec(latex)) !== null) {
     params.add(match[0]);
   }
 
-  // 2. 查找普通英文字母参数 (单个字母，排除 x, y, t, e)
-  // 我们先通过正则把所有以 \ 开头的 LaTeX 命令暂时替换掉，防止误判命令内的字母 (如 \frac 中的 f, r, a, c)
-  // 同时排除下标模式中的字母（如 s_{igma} 中不应提取 s）
   let cleanLatex = latex.replace(/\\[a-zA-Z]+/g, " ");
-  cleanLatex = cleanLatex.replace(/[a-zA-Z]_\{[a-zA-Z]+\}/g, " "); // 排除下标参数
+  cleanLatex = cleanLatex.replace(/[a-zA-Z]_\{[a-zA-Z]+\}/g, " ");
 
-  // 匹配单个英文字母 (排除 e, x, y, t)
   const letterRegex = /\b([a-df-wzAD-Z])\b/g;
   while ((match = letterRegex.exec(cleanLatex)) !== null) {
     const char = match[1];
-    // 排除被定义的函数名本身 (例如 f(x) 中的 f)
     if (funcName && char.toLowerCase() === funcName.toLowerCase()) {
       continue;
     }
@@ -75,12 +68,9 @@ function extractParameters(latex: string, funcName: string | null) {
 }
 
 // 辅助函数：将标准 LaTeX 公式转换为 Desmos 兼容的 LaTeX 语法
-// Desmos 不支持某些标准 LaTeX 命令，需要做映射转换
 function convertLatexForDesmos(latex: string): string {
   let result = latex;
 
-  // 1. 希腊字母 → Desmos 下标表示法
-  //    Desmos 不识别 \sigma，但识别 s_{igma} 形式
   const greekMap: Record<string, string> = {
     "\\sigma": "s_{igma}",
     "\\mu": "m_{u}",
@@ -92,17 +82,11 @@ function convertLatexForDesmos(latex: string): string {
     "\\phi": "p_{hi}",
     "\\psi": "p_{si}",
     "\\delta": "d_{elta}",
-    "\\pi": "\\pi",  // \pi 是 Desmos 原生支持的，不需要转换
+    "\\pi": "\\pi",
   };
   for (const [latexGreek, desmosGreek] of Object.entries(greekMap)) {
-    // 使用全局替换，但排除 \pi（Desmos 原生支持）
     result = result.split(latexGreek).join(desmosGreek);
   }
-
-  // 2. e^{...} → \exp(...)
-  //    Desmos 不直接支持 e^{...} 的自然指数表示，需要用 e^{...} 的 Desmos 原生形式
-  //    实际上 Desmos 支持 e^{...}，但要确保 e 不被当作变量
-  //    我们不做转换，Desmos 能识别 e^{...}
 
   return result;
 }
@@ -114,31 +98,21 @@ export const checkIsFunction = (latex: string) => {
   const clean = trimmed.replace(/^\$+|\$+$/g, "").trim();
   const lower = clean.toLowerCase();
 
-  // 过短的公式不太可能是可绘制函数 (如单独的 x, y, t)
   if (clean.length < 3) return { isFunc: false, desmosLatex: "" };
 
-  // ── 排除列表：不属于可绘制函数的数学结构 ──
   const invalidKeywords = [
-    // 微积分限制 (允许 \sum, \prod, \int, \frac{d 因为 Desmos 支持它们)
     "\\lim", "\\limsup", "\\liminf",
     "\\partial", "\\nabla", "\\delta",
-    // 矩阵 / 向量
     "\\matrix", "\\bmatrix", "\\pmatrix", "\\vmatrix", "\\begin{array}",
     "\\vec", "\\hat", "\\mathbf",
-    // 集合 / 逻辑
     "\\in", "\\notin", "\\subset", "\\subseteq", "\\supset", "\\cup", "\\cap",
     "\\forall", "\\exists", "\\nexists", "\\implies", "\\iff",
     "\\land", "\\lor", "\\neg", "\\vee", "\\wedge",
-    // 比较 / 近似 / 不等式 (除 = 外)
     "\\approx", "\\neq", "\\equiv", "\\sim", "\\cong", "\\propto",
     "\\ge", "\\le", "\\gg", "\\ll",
-    // 组合数学 / 排列
     "\\binom", "\\choose", "\\perm",
-    // 概率 / 统计
     "\\mathbb{p}", "\\mathbb{e}", "\\var", "\\cov", "\\operatorname{p}",
-    // 文本与注释
     "\\text{", "\\mathrm{", "\\textbf{",
-    // 其他不可绘制结构
     "\\begin{", "\\end{", "\\cases",
     "\\cdots", "\\ldots", "\\vdots", "\\ddots",
     "\\overset", "\\underset", "\\stackrel",
@@ -147,25 +121,19 @@ export const checkIsFunction = (latex: string) => {
     return { isFunc: false, desmosLatex: "" };
   }
 
-  // 排除包含比较符号（除了等号赋值）的表达式
   if (/>(?!=)/.test(clean) || /<(?!=)/.test(clean)) {
     return { isFunc: false, desmosLatex: "" };
   }
 
-  // ── 正向匹配：判断是否为可绘制的函数形式 ──
-
-  // 模式 1: 显式函数定义 y = ..., f(x) = ..., r = ...(极坐标)
   const explicitFuncPattern = /^(y|f\s*\(.*?\)|g\s*\(.*?\)|h\s*\(.*?\)|r)\s*=/i;
   if (explicitFuncPattern.test(clean)) {
     return { isFunc: true, desmosLatex: clean };
   }
 
-  // 模式 2: 隐式方程中包含变量关系 (如 x^2 + y^2 = 1)
   if (clean.includes("=") && /x/i.test(clean) && /y/i.test(clean)) {
     return { isFunc: true, desmosLatex: clean };
   }
 
-  // 模式 3: 常见数学函数作用于变量 x（或 \theta）
   const mathFunctions = [
     "\\sin", "\\cos", "\\tan", "\\cot", "\\sec", "\\csc",
     "\\arcsin", "\\arccos", "\\arctan",
@@ -174,15 +142,13 @@ export const checkIsFunction = (latex: string) => {
     "\\sqrt", "\\exp", "\\abs",
   ];
   const hasMathFunc = mathFunctions.some(fn => lower.includes(fn));
-  const hasX = /(?<!\\te)x(?!t)/i.test(clean); // 排除 \text 中的 x
+  const hasX = /(?<!\\te)x(?!t)/i.test(clean);
   if (hasMathFunc && hasX) {
     return { isFunc: true, desmosLatex: `y = ${clean}` };
   }
 
-  // 模式 4: x 的幂运算表达式 (如 x^2, x^{3}, 2x^2 + 3x - 1)
   const polyPattern = /x\s*\^/i;
   if (polyPattern.test(clean) && hasX) {
-    // 确保不只是出现在下标等位置
     const operatorPattern = /[+\-*/^]/;
     if (operatorPattern.test(clean) || /^\s*x\s*\^/.test(clean)) {
       if (clean.includes("=")) {
@@ -192,17 +158,16 @@ export const checkIsFunction = (latex: string) => {
     }
   }
 
-  // 模式 5: 参数方程 / 极坐标 (包含 \theta 或 t 且有三角函数)
   const hasTheta = lower.includes("\\theta");
   if (hasTheta && hasMathFunc) {
     return { isFunc: true, desmosLatex: clean.includes("=") ? clean : `r = ${clean}` };
   }
 
-  // 默认不匹配 — 不显示绘制按钮
   return { isFunc: false, desmosLatex: "" };
 };
 
 export default function MathViewerComponent({ content }: MathViewerComponentProps) {
+  const prefersReducedMotion = useReducedMotion();
   const calculatorRef = useRef<HTMLDivElement>(null);
   const calculatorInstance = useRef<any>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -217,6 +182,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
   const calculatorId = `desmos-calc-${cleanId}`;
 
   const { isFunc, desmosLatex } = checkIsFunction(content);
+  const cleanRawLatex = content.replace(/^\$+|\$+$/g, "").trim();
 
   // 2. 初始化 Desmos 并执行渐现动画
   const initDesmosAndAnimate = async () => {
@@ -232,7 +198,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
           calculatorInstance.current.destroy();
         }
 
-        const Desmos = (window as any).Desmos;
+              const Desmos = (window as any).Desmos;
         if (!Desmos) {
           setError("Desmos 引擎加载失败，请刷新重试");
           return;
@@ -240,15 +206,14 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
 
         const calc = Desmos.GraphingCalculator(calculatorRef.current, {
           keypad: false,
-          expressions: true,           // 显示表达式面板，让参数滑块可见可调
+          expressions: true,
           settingsMenu: false,
           zoomButtons: true,
-          expressionsCollapsed: false,  // 展开表达式面板
+          expressionsCollapsed: false,
         });
 
         calculatorInstance.current = calc;
 
-        // 默认坐标区间 — 使用 Desmos 官方 setMathBounds API
         calc.setMathBounds({
           left: -10,
           right: 10,
@@ -261,19 +226,12 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
 
         setIsDrawing(true);
 
-        // 将标准 LaTeX 转换为 Desmos 兼容语法
         const convertedLatex = convertLatexForDesmos(desmosLatex);
 
-        // 识别并提取公式中除自变量之外的未知参数 (如 \sigma, \mu, a, b)
-        // 从而自动创建滑块默认值，防止由于未定义变量导致 Desmos 无法画图
         const funcNameMatch = convertedLatex.trim().match(/^(f|g|h)\s*\(.*?\)\s*=/i);
         const funcName = funcNameMatch ? funcNameMatch[1] : null;
         const params = extractParameters(convertedLatex, funcName);
 
-        // 为每一个参数初始化默认值。
-        // 对于 sigma (标准差) 等系数不能为 0，我们默认都设为 1
-        // 对于 mu (均值) 这种平移参数，默认设为 0 以使其居中
-        // 同时设置滑块的最小/最大值范围让用户可以拖动
         params.forEach((param, idx) => {
           const isMu = param.includes("m_{u}") || param === "\\mu";
           const defaultValue = isMu ? "0" : "1";
@@ -287,8 +245,18 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
             },
           });
         });
-        
-        // 动画边界使用 a_{anim} 以防和公式里的自设参数 a 碰撞
+
+        if (prefersReducedMotion) {
+          calc.setExpression({
+            id: "main-graph",
+            latex: convertedLatex,
+            color: "#0ea5e9",
+            lineWidth: 3,
+          });
+          setIsDrawing(false);
+          return;
+        }
+
         calc.setExpression({
           id: "param-anim-a",
           latex: `a_{anim} = ${xMin}`,
@@ -297,17 +265,16 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
         calc.setExpression({
           id: "main-graph",
           latex: `${convertedLatex} \\left\\{ x \\le a_{anim} \\right\\}`,
-          color: "#3b82f6",
+          color: "#0ea5e9",
           lineWidth: 3,
         });
 
-        const duration = 1500;
+        const duration = 1200;
         const startTime = performance.now();
 
         const runAnimation = (now: number) => {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          
           const currentA = xMin + (xMax - xMin) * progress;
 
           calc.setExpression({
@@ -321,7 +288,7 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
             calc.setExpression({
               id: "main-graph",
               latex: convertedLatex,
-              color: "#3b82f6",
+              color: "#0ea5e9",
               lineWidth: 3,
             });
             calc.removeExpression({ id: "param-anim-a" });
@@ -331,7 +298,6 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
 
         animationFrameRef.current = requestAnimationFrame(runAnimation);
       }, 100);
-
     } catch (err) {
       console.error(err);
       setError("无法加载 Desmos 画图面板");
@@ -376,91 +342,132 @@ export default function MathViewerComponent({ content }: MathViewerComponentProp
   if (!isFunc) return null;
 
   return (
-    <span className="inline-flex items-center relative select-none">
-      {/* 绘制图像小药丸按钮 */}
+    <span className="inline-flex flex-wrap items-center relative select-none align-middle">
+      {/* 绘制图像水滴胶囊按钮（Grid 锁宽确保切换零跳动） */}
       <button
         onClick={handleToggle}
         type="button"
-        className={`inline-flex items-center gap-1 ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold cursor-pointer transition-all duration-300 select-none align-middle border shadow-xs
-          ${
-            isOpen
-              ? "bg-primary text-primary-foreground border-primary scale-95"
-              : "bg-secondary hover:bg-primary hover:text-primary-foreground text-secondary-foreground border-border hover:border-primary"
-          }`}
+        className={`inline-grid place-items-center ml-1.5 px-2.5 py-0.5 rounded-full border-0 text-[10px] font-medium cursor-pointer select-none align-middle transition-[transform,background-color,color,box-shadow] duration-150 ease-[var(--ease-out-snappy)] active:scale-[0.95] ${
+          isOpen
+            ? "bg-sky-500/18 text-sky-700 dark:text-sky-300 shadow-[0_0_14px_rgba(14,165,233,0.22),inset_0_1px_0.5px_rgba(255,255,255,0.8)]"
+            : "bg-zinc-200/70 dark:bg-white/[0.08] text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] [@media(hover:hover)_and_(pointer:fine)]:hover:bg-sky-500/15 [@media(hover:hover)_and_(pointer:fine)]:hover:text-sky-700 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:text-sky-300"
+        }`}
         title={isOpen ? "收起函数图像" : "在文内展开 Desmos 函数图像"}
       >
-        <LineChart className={`h-3 w-3 ${isDrawing ? "animate-pulse" : ""}`} />
-        <span>{isOpen ? "收起" : "绘制"}</span>
+        <span className="col-start-1 row-start-1 inline-flex items-center gap-1">
+          <LineChart className={`h-3 w-3 ${isDrawing ? "animate-pulse" : ""}`} />
+          <span>{isOpen ? "收起" : "绘制"}</span>
+        </span>
       </button>
 
-      {/* 动画窗格（在 DOM 中呈现为一个绝对或相对的块级自适应区域，上下整出空位） */}
-      <AnimatePresence>
+      {/* 自适应流体展开窗格（零 margin 布局重排，采用内边距 + clipPath + 强劲曲线丝滑揭示） */}
+      <AnimatePresence initial={false}>
         {isOpen && (
           <motion.span
-            initial={{ height: 0, opacity: 0, margin: "0px 0" }}
-            animate={{ height: "auto", opacity: 1, margin: "16px 0" }}
-            exit={{ height: 0, opacity: 0, margin: "0px 0" }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            className="block w-full overflow-hidden absolute left-0 right-0 z-30"
+            initial={
+              prefersReducedMotion
+                ? { opacity: 0 }
+                : {
+                    height: 0,
+                    opacity: 0,
+                    clipPath: "inset(0% 0% 100% 0% round 24px)",
+                  }
+            }
+            animate={
+              prefersReducedMotion
+                ? { opacity: 1 }
+                : {
+                    height: "auto",
+                    opacity: 1,
+                    clipPath: "inset(0% 0% 0% 0% round 24px)",
+                  }
+            }
+            exit={
+              prefersReducedMotion
+                ? { opacity: 0 }
+                : {
+                    height: 0,
+                    opacity: 0,
+                    clipPath: "inset(0% 0% 100% 0% round 24px)",
+                  }
+            }
+            transition={
+              prefersReducedMotion
+                ? { duration: 0.1 }
+                : { duration: 0.28, ease: MOTION_EASINGS.snappy }
+            }
+            className="block w-full overflow-hidden z-30 basis-full"
             style={{
               position: "relative",
               width: "100%",
-              clear: "both"
+              clear: "both",
             }}
           >
-            <span className="block w-full rounded-xl border border-border bg-card shadow-lg dark:shadow-black/40 p-4 relative overflow-hidden">
-              {/* 控制栏 */}
-              <span className="flex items-center justify-between mb-3 border-b border-border/60 pb-2">
-                <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground select-none">
-                  <LineChart className="h-3.5 w-3.5 text-blue-500" />
-                  <span>Desmos 函数图像：</span>
-                  <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground text-[11px]">
-                    {content.replace(/^\$+|\$+$/g, "")}
-                  </code>
-                </span>
-                <span className="flex items-center gap-1">
-                  <button
-                    onClick={handleReset}
-                    type="button"
-                    disabled={isDrawing || !isDesmosLoaded}
-                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-                    title="重新绘制图像"
-                  >
-                    <RotateCcw className={`h-3.5 w-3.5 ${isDrawing ? "animate-spin" : ""}`} />
-                  </button>
-                  <button
-                    onClick={handleToggle}
-                    type="button"
-                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="收起窗格"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              </span>
-
-              {/* 画板容器 */}
-              <span className="block relative w-full h-[400px] bg-muted/30 rounded-lg overflow-hidden border border-border/40">
-                {!isDesmosLoaded && !error && (
-                  <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground bg-card/60 backdrop-blur-sm z-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-xs font-medium">正在初始化数学计算器...</span>
+            <span className="block w-full py-3">
+              <span className="block w-full rounded-3xl border-0 bg-white/82 dark:bg-zinc-900/78 backdrop-blur-2xl shadow-[0_16px_44px_-8px_rgba(0,0,0,0.1),inset_0_1px_0.5px_rgba(255,255,255,0.88)] dark:shadow-[0_18px_48px_-8px_rgba(0,0,0,0.55),inset_0_1px_0.5px_rgba(255,255,255,0.12)] p-4 relative overflow-hidden">
+                {/* 控制栏 */}
+                <span className="flex items-center justify-between gap-2 pb-2.5">
+                  <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground select-none min-w-0">
+                    <LineChart className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+                    <span className="shrink-0">交互函数图像</span>
+                    <code className="bg-zinc-100/80 dark:bg-white/[0.06] px-2.5 py-0.5 rounded-full font-mono text-foreground text-[11px] truncate">
+                      {cleanRawLatex}
+                    </code>
                   </span>
-                )}
-
-                {error && (
-                  <span className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-destructive bg-destructive/5 backdrop-blur-xs z-10">
-                    <span className="text-sm font-semibold mb-1">加载失败</span>
-                    <span className="text-xs text-muted-foreground">{error}</span>
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    <CopyMorphButton
+                      valueToCopy={cleanRawLatex}
+                      surface="ghost"
+                      auraTone="amber"
+                      iconClassName="h-3.5 w-3.5"
+                      title="复制函数表达式"
+                    />
+                    <button
+                      onClick={handleReset}
+                      type="button"
+                      disabled={isDrawing || !isDesmosLoaded}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border-0 text-muted-foreground hover:text-foreground hover:bg-zinc-200/60 dark:hover:bg-white/[0.08] active:scale-[0.95] transition-[transform,background-color,color] duration-150 disabled:opacity-50 cursor-pointer"
+                      title="重新绘制图像"
+                    >
+                      <RotateCcw className={`h-3.5 w-3.5 ${isDrawing ? "animate-spin" : ""}`} />
+                    </button>
+                    <button
+                      onClick={handleToggle}
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border-0 text-muted-foreground hover:text-foreground hover:bg-zinc-200/60 dark:hover:bg-white/[0.08] active:scale-[0.95] transition-[transform,background-color,color] duration-150 cursor-pointer"
+                      title="收起窗格"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </span>
-                )}
+                </span>
 
-                <span
-                  id={calculatorId}
-                  ref={calculatorRef}
-                  className="block w-full h-full"
-                  style={{ minHeight: "400px" }}
-                />
+                {/* 渐变消融内部微光缝 */}
+                <span className="block h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-3" />
+
+                {/* 画板容器 */}
+                <span className="block relative w-full h-[400px] bg-zinc-100/50 dark:bg-zinc-950/50 rounded-2xl overflow-hidden border-0 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                  {!isDesmosLoaded && !error && (
+                    <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md z-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                      <span className="text-xs font-medium">正在初始化数学计算器...</span>
+                    </span>
+                  )}
+
+                  {error && (
+                    <span className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-destructive bg-destructive/5 backdrop-blur-xs z-10">
+                      <span className="text-sm font-semibold mb-1">加载失败</span>
+                      <span className="text-xs text-muted-foreground">{error}</span>
+                    </span>
+                  )}
+
+                  <span
+                    id={calculatorId}
+                    ref={calculatorRef}
+                    className="block w-full h-full"
+                    style={{ minHeight: "400px" }}
+                  />
+                </span>
               </span>
             </span>
           </motion.span>

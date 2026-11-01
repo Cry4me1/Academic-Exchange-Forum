@@ -9,11 +9,22 @@
 -- ==============================================================================
 
 -- ==============================================================================
--- 模块 1: 基础扩展 (Extensions)
+-- 模块 1: 基础扩展与公共枚举 (Extensions & Types)
 -- ==============================================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "vector"; -- 用于知识图谱与语义相似度推荐 (1024 维)
+
+-- 公共枚举类型定义
+DO $ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'post_review_status') THEN
+        CREATE TYPE post_review_status AS ENUM ('approved', 'pending', 'rejected', 'hidden');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'post_risk_level') THEN
+        CREATE TYPE post_risk_level AS ENUM ('low', 'medium', 'high', 'critical');
+    END IF;
+END $;
 
 -- ==============================================================================
 -- 模块 2: 管理员权限与系统配置 (Admin Roles & System Settings)
@@ -114,6 +125,20 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     duel_wins INT DEFAULT 0 NOT NULL,
     duel_losses INT DEFAULT 0 NOT NULL,
     
+    -- 学者等级 Lv1–Lv6 核心学术指标
+    scholar_exp INT DEFAULT 0 NOT NULL,
+    valid_post_count INT DEFAULT 0 NOT NULL,
+    total_likes_received INT DEFAULT 0 NOT NULL,
+    community_contributions_count INT DEFAULT 0 NOT NULL,
+    
+    -- 主页视觉与个性化装扮
+    banner_url TEXT,
+    falling_effect TEXT DEFAULT NULL,
+    
+    -- 在线状态与时间感知
+    last_seen_at TIMESTAMPTZ DEFAULT NOW(),
+    show_online_status BOOLEAN DEFAULT TRUE NOT NULL,
+    
     -- 风控状态
     is_banned BOOLEAN DEFAULT FALSE NOT NULL,
     is_muted BOOLEAN DEFAULT FALSE NOT NULL,
@@ -127,6 +152,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 CREATE INDEX IF NOT EXISTS idx_profiles_reputation ON public.profiles(reputation_score DESC);
 CREATE INDEX IF NOT EXISTS idx_profiles_onboarding ON public.profiles(id, onboarding_completed);
+CREATE INDEX IF NOT EXISTS idx_profiles_last_seen_at ON public.profiles(last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_profiles_scholar_exp ON public.profiles(scholar_exp DESC);
 
 -- 2. 第三方绑定账号（如洛谷等）
 CREATE TABLE IF NOT EXISTS public.user_oauth_accounts (
@@ -432,6 +459,15 @@ CREATE TABLE IF NOT EXISTS public.posts (
     -- 实验室共创孵化来源
     origin_lab_room_id UUID REFERENCES public.lab_rooms(id) ON DELETE SET NULL,
     
+    -- 帖子风控与隔离
+    is_hidden BOOLEAN DEFAULT FALSE NOT NULL,
+    hidden_reason TEXT,
+    hidden_by UUID REFERENCES public.profiles(id),
+
+    -- 学术质量评估指标 (PQS)
+    pqs_score INT DEFAULT 60 NOT NULL,
+    is_quality_approved BOOLEAN DEFAULT TRUE NOT NULL,
+    
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -441,6 +477,10 @@ CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC)
 CREATE INDEX IF NOT EXISTS idx_posts_tags ON public.posts USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_posts_review_status ON public.posts(review_status);
 CREATE INDEX IF NOT EXISTS idx_posts_origin_lab_room_id ON public.posts(origin_lab_room_id);
+CREATE INDEX IF NOT EXISTS idx_posts_is_hidden ON public.posts(is_hidden);
+CREATE INDEX IF NOT EXISTS idx_posts_is_locked ON public.posts(is_locked);
+CREATE INDEX IF NOT EXISTS idx_posts_hidden_author ON public.posts(author_id, is_hidden);
+CREATE INDEX IF NOT EXISTS idx_posts_pqs_score ON public.posts(pqs_score);
 
 -- 2. 帖子双向链接/引用表 (WikiLink)
 CREATE TABLE IF NOT EXISTS public.post_links (
@@ -526,6 +566,35 @@ CREATE TABLE IF NOT EXISTS public.shares (
     post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- 8. 行间划线批注与边注协同系统 (Inline Margin Notes)
+CREATE TABLE IF NOT EXISTS public.post_annotations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    author_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    parent_id UUID REFERENCES public.post_annotations(id) ON DELETE CASCADE,
+    anchor_text TEXT NOT NULL,
+    anchor_prefix TEXT DEFAULT '',
+    anchor_suffix TEXT DEFAULT '',
+    content TEXT NOT NULL,
+    color VARCHAR(20) DEFAULT 'amber',
+    is_resolved BOOLEAN DEFAULT FALSE,
+    review_status post_review_status DEFAULT 'approved',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_annotations_post_id ON public.post_annotations(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_annotations_parent_id ON public.post_annotations(parent_id);
+CREATE INDEX IF NOT EXISTS idx_post_annotations_author_id ON public.post_annotations(author_id);
+CREATE INDEX IF NOT EXISTS idx_post_annotations_created_at ON public.post_annotations(created_at);
+CREATE INDEX IF NOT EXISTS idx_post_annotations_status ON public.post_annotations(post_id, is_resolved);
+
+DROP TRIGGER IF EXISTS on_post_annotations_updated ON public.post_annotations;
+CREATE TRIGGER on_post_annotations_updated
+    BEFORE UPDATE ON public.post_annotations
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_updated_at();
 
 -- 7. 帖子浏览量与历史版本触发器
 CREATE OR REPLACE FUNCTION public.increment_view_count(post_id UUID)
@@ -789,18 +858,41 @@ CREATE INDEX IF NOT EXISTS idx_duel_bets_duel ON public.duel_bets(duel_id, spect
 -- 6. 同行评审表 (Peer Reviews)
 CREATE TABLE IF NOT EXISTS public.peer_reviews (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
-    reviewer_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    reviewer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     duel_id UUID REFERENCES public.duels(id) ON DELETE CASCADE,
-    score INT NOT NULL CHECK (score >= 1 AND score <= 10),
+    score INT CHECK (score >= 1 AND score <= 10),
+    reasoning_content TEXT,
     review_content TEXT NOT NULL,
     academic_rigor_score INT CHECK (academic_rigor_score >= 1 AND academic_rigor_score <= 10),
     originality_score INT CHECK (originality_score >= 1 AND originality_score <= 10),
     clarity_score INT CHECK (clarity_score >= 1 AND clarity_score <= 10),
+    is_public BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    CONSTRAINT unique_reviewer_target UNIQUE (reviewer_id, post_id)
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_peer_reviews_post ON public.peer_reviews(post_id);
+CREATE INDEX IF NOT EXISTS idx_peer_reviews_user ON public.peer_reviews(user_id);
+
+CREATE OR REPLACE FUNCTION public.sync_peer_review_user_fields()
+RETURNS TRIGGER AS $
+BEGIN
+    IF NEW.user_id IS NULL AND NEW.reviewer_id IS NOT NULL THEN
+        NEW.user_id := NEW.reviewer_id;
+    ELSIF NEW.reviewer_id IS NULL AND NEW.user_id IS NOT NULL THEN
+        NEW.reviewer_id := NEW.user_id;
+    END IF;
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_peer_review_user_fields ON public.peer_reviews;
+CREATE TRIGGER trg_sync_peer_review_user_fields
+    BEFORE INSERT OR UPDATE ON public.peer_reviews
+    FOR EACH ROW
+    EXECUTE FUNCTION public.sync_peer_review_user_fields();
 
 -- ==============================================================================
 -- 模块 7: 积分与代币经济体系 (Credits & Token Economy)
@@ -820,26 +912,41 @@ CREATE TABLE IF NOT EXISTS public.user_credits (
 
 CREATE INDEX IF NOT EXISTS idx_user_credits_balance ON public.user_credits(balance DESC);
 
--- 2. VIP 体系规则配置表
+-- 2. 学者等级与特权规则配置表 (Lv1–Lv6 学术经验体系)
 CREATE TABLE IF NOT EXISTS public.vip_level_config (
     level INT PRIMARY KEY,
     name TEXT NOT NULL,
     title TEXT NOT NULL,
     min_spent NUMERIC(12,2) DEFAULT 0 NOT NULL,
+    min_exp INT DEFAULT 0 NOT NULL,
+    min_posts INT DEFAULT 0 NOT NULL,
+    min_likes INT DEFAULT 0 NOT NULL,
+    min_contributions INT DEFAULT 0 NOT NULL,
+    monthly_bonus NUMERIC(12,2) DEFAULT 100.00 NOT NULL,
     perks TEXT[] DEFAULT '{}'::TEXT[],
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     updated_by UUID REFERENCES public.profiles(id),
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-INSERT INTO public.vip_level_config (level, name, title, min_spent, perks)
+INSERT INTO public.vip_level_config (level, name, title, min_spent, min_exp, min_posts, min_likes, min_contributions, monthly_bonus, perks, is_active)
 VALUES
-  (1, 'VIP 1', '初级学者', 0, ARRAY['基础学术交流', '常规发帖与评论']),
-  (2, 'VIP 2', '资深研究员', 100, ARRAY['每月领取双倍津贴', '专属研究员标识']),
-  (3, 'VIP 3', '学术先锋', 500, ARRAY['发起高额学术对决', '优先同行评审通道']),
-  (4, 'VIP 4', '首席科学家', 2000, ARRAY['创建多个协作实验室', '尊贵科学家徽章']),
-  (5, 'VIP 5', '终身院士', 10000, ARRAY['终身定制头衔', '全站全局特权'])
-ON CONFLICT (level) DO NOTHING;
+  (1, 'Lv1', 'Lv1', 0, 0, 0, 0, 0, 100.00, ARRAY['基础学术浏览与交流', '常规发帖与评论', '月度研讨津贴 100 积分'], TRUE),
+  (2, 'Lv2', 'Lv2', 0, 100, 2, 5, 0, 180.00, ARRAY['解锁学术对决预测质押', '解锁边缘学术批注权限', '月度研讨津贴 180 积分'], TRUE),
+  (3, 'Lv3', 'Lv3', 0, 400, 8, 30, 1, 280.00, ARRAY['解锁帖子历史版本追溯对比', '解锁撰写同行评审资格', '月度研讨津贴 280 积分'], TRUE),
+  (4, 'Lv4', 'Lv4', 0, 1200, 20, 120, 5, 420.00, ARRAY['解锁深度推理思考链通道', '优质解答专享流光高亮', '解锁创建协作实验室', '月度研讨津贴 420 积分'], TRUE),
+  (5, 'Lv5', 'Lv5', 0, 3000, 40, 350, 15, 600.00, ARRAY['同行评审 1.5 倍权威系数', '专属黑曜石液态玻璃名牌', '月度研讨津贴 600 积分'], TRUE),
+  (6, 'Lv6', 'Lv6', 0, 8000, 80, 1000, 35, 1000.00, ARRAY['全站顶峰学术荣誉标牌', '全息流光粒子勋章', '月度研讨津贴 1000 积分'], TRUE)
+ON CONFLICT (level) DO UPDATE SET
+  name = EXCLUDED.name,
+  title = EXCLUDED.title,
+  min_exp = EXCLUDED.min_exp,
+  min_posts = EXCLUDED.min_posts,
+  min_likes = EXCLUDED.min_likes,
+  min_contributions = EXCLUDED.min_contributions,
+  monthly_bonus = EXCLUDED.monthly_bonus,
+  perks = EXCLUDED.perks,
+  is_active = EXCLUDED.is_active;
 
 -- 3. 积分交易流水账单
 CREATE TABLE IF NOT EXISTS public.credit_transactions (
@@ -975,42 +1082,216 @@ BEGIN
 END;
 $$;
 
--- 7. 领取月度津贴 RPC
-CREATE OR REPLACE FUNCTION public.claim_monthly_bonus(p_user_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
+-- 7. 核心学者等级计算与同步函数: sync_scholar_level(uuid)
+CREATE OR REPLACE FUNCTION public.sync_scholar_level(p_user_id UUID)
+RETURNS VOID AS $
 DECLARE
-  v_last_claimed TIMESTAMPTZ;
-  v_vip_level INT;
-  v_bonus_amount NUMERIC;
-  v_result JSONB;
+  v_posts INT := 0;
+  v_post_likes INT := 0;
+  v_comment_likes INT := 0;
+  v_total_likes INT := 0;
+  v_accepted INT := 0;
+  v_peer_reviews INT := 0;
+  v_duel_wins INT := 0;
+  v_contributions INT := 0;
+  v_exp INT := 0;
+  v_new_level INT := 1;
+  v_cfg RECORD;
+BEGIN
+  -- 1. 统计有效发帖数 (通过 PQS 质量要求且审核通过并未被删除)
+  SELECT COUNT(*) INTO v_posts
+  FROM public.posts
+  WHERE author_id = p_user_id
+    AND is_published = TRUE
+    AND review_status = 'approved'
+    AND COALESCE(is_hidden, FALSE) = FALSE
+    AND COALESCE(pqs_score, 60) >= 60;
+
+  -- 2. 统计主帖获赞数
+  SELECT COUNT(l.id) INTO v_post_likes
+  FROM public.likes l
+  JOIN public.posts p ON l.post_id = p.id
+  WHERE p.author_id = p_user_id;
+
+  -- 3. 统计评论获赞数
+  SELECT COUNT(l.id) INTO v_comment_likes
+  FROM public.likes l
+  JOIN public.comments c ON l.comment_id = c.id
+  WHERE c.author_id = p_user_id;
+
+  v_total_likes := v_post_likes + v_comment_likes;
+
+  -- 4. 统计最佳答案采纳数
+  SELECT COUNT(*) INTO v_accepted
+  FROM public.comments
+  WHERE author_id = p_user_id
+    AND is_accepted = TRUE;
+
+  -- 5. 统计同行评审完成数 (兼容 user_id 与 reviewer_id)
+  SELECT COUNT(*) INTO v_peer_reviews
+  FROM public.peer_reviews
+  WHERE (reviewer_id = p_user_id OR user_id = p_user_id);
+
+  -- 6. 统计学术对决胜场数
+  SELECT COALESCE(duel_wins, 0) INTO v_duel_wins
+  FROM public.profiles
+  WHERE id = p_user_id;
+
+  v_contributions := v_accepted + v_peer_reviews + v_duel_wins;
+
+  -- 7. 综合学术经验值公式
+  -- 发帖: 15 EXP | 帖赞: 5 EXP | 评论赞: 3 EXP | 采纳: 30 EXP | 评审: 25 EXP | 对决胜场: 20 EXP
+  v_exp := (v_posts * 15) 
+         + (v_post_likes * 5) 
+         + (v_comment_likes * 3) 
+         + (v_accepted * 30) 
+         + (v_peer_reviews * 25) 
+         + (v_duel_wins * 20);
+
+  -- 8. 根据经验与门槛判定最高达标等级 (Lv6 -> Lv1)
+  FOR v_cfg IN
+    SELECT level, min_exp, min_posts, min_likes, min_contributions
+    FROM public.vip_level_config
+    WHERE is_active = TRUE
+    ORDER BY level DESC
+  LOOP
+    IF v_exp >= v_cfg.min_exp 
+       AND v_posts >= v_cfg.min_posts 
+       AND v_total_likes >= v_cfg.min_likes 
+       AND v_contributions >= v_cfg.min_contributions THEN
+      v_new_level := v_cfg.level;
+      EXIT;
+    END IF;
+  END LOOP;
+
+  IF v_new_level < 1 THEN
+    v_new_level := 1;
+  END IF;
+
+  -- 9. 写回 profiles 档案
+  UPDATE public.profiles
+  SET vip_level = v_new_level,
+      vip_title = 'Lv' || v_new_level,
+      scholar_exp = v_exp,
+      valid_post_count = v_posts,
+      total_likes_received = v_total_likes,
+      community_contributions_count = v_contributions
+  WHERE id = p_user_id;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.sync_all_scholar_levels()
+RETURNS VOID AS $
+BEGIN
+  PERFORM public.sync_scholar_level(id)
+  FROM public.profiles;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 兼容老函数接口
+CREATE OR REPLACE FUNCTION public.sync_vip_title(p_user_id UUID)
+RETURNS VOID AS $
+BEGIN
+  PERFORM public.sync_scholar_level(p_user_id);
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.sync_all_vip_titles()
+RETURNS VOID AS $
+BEGIN
+  PERFORM public.sync_all_scholar_levels();
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE ALL ON FUNCTION public.sync_scholar_level(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_scholar_level(uuid) TO service_role;
+
+REVOKE ALL ON FUNCTION public.sync_all_scholar_levels() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_all_scholar_levels() TO service_role;
+
+REVOKE ALL ON FUNCTION public.sync_vip_title(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_vip_title(uuid) TO service_role;
+
+REVOKE ALL ON FUNCTION public.sync_all_vip_titles() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_all_vip_titles() TO service_role;
+
+-- 7.1 每月学者研讨津贴发放 RPC (无参版本，供前端一键申领)
+CREATE OR REPLACE FUNCTION public.claim_monthly_bonus()
+RETURNS JSONB AS $
+DECLARE
+  v_uid UUID := auth.uid();
+  v_month TEXT;
+  v_exists BOOLEAN;
+  v_level INT;
+  v_bonus_amount NUMERIC(12,2) := 100.00;
+  v_new_balance NUMERIC(12,2);
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'permission_denied: 未登录' USING ERRCODE = '42501';
+  END IF;
+
+  v_month := to_char(now(), 'YYYY-MM');
+
+  -- 检查本月是否已领
+  SELECT EXISTS (
+    SELECT 1 FROM public.credit_transactions 
+    WHERE user_id = v_uid 
+      AND type = 'monthly_bonus' 
+      AND to_char(created_at, 'YYYY-MM') = v_month
+  ) INTO v_exists;
+
+  IF v_exists THEN
+    RETURN jsonb_build_object('success', false, 'reason', 'already_claimed');
+  END IF;
+
+  -- 获取用户当前学者等级
+  SELECT COALESCE(vip_level, 1) INTO v_level
+  FROM public.profiles
+  WHERE id = v_uid;
+
+  -- 从学者等级配置中读取对应的月度津贴额度
+  SELECT COALESCE(monthly_bonus, 100.00) INTO v_bonus_amount
+  FROM public.vip_level_config
+  WHERE level = v_level AND is_active = TRUE;
+
+  IF v_bonus_amount IS NULL OR v_bonus_amount <= 0 THEN
+    v_bonus_amount := 100.00 + (GREATEST(v_level - 1, 0) * 80.00);
+  END IF;
+
+  -- 发放津贴积分 (转为整数积分调用内部 add_user_credits)
+  PERFORM public.add_user_credits(
+    v_uid,
+    v_bonus_amount::INTEGER,
+    'monthly_bonus',
+    v_month || ' 月度学者研讨津贴 (Lv' || v_level || ')'
+  );
+
+  SELECT balance INTO v_new_balance
+  FROM public.user_credits
+  WHERE user_id = v_uid;
+
+  RETURN jsonb_build_object(
+    'success', true, 
+    'new_balance', v_new_balance,
+    'bonus_amount', v_bonus_amount,
+    'level', v_level
+  );
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 兼容老单参签名的 claim_monthly_bonus(p_user_id UUID)
+CREATE OR REPLACE FUNCTION public.claim_monthly_bonus(p_user_id UUID)
+RETURNS JSONB AS $
 BEGIN
   IF auth.uid() != p_user_id AND NOT public.is_admin() THEN
-    RETURN jsonb_build_object('success', false, 'error', '仅本人可领取月度奖励');
+    RETURN jsonb_build_object('success', false, 'error', '仅本人或管理员可代领月度津贴');
   END IF;
-
-  SELECT last_monthly_claimed_at INTO v_last_claimed
-  FROM public.user_credits WHERE user_id = p_user_id FOR UPDATE;
-
-  IF v_last_claimed IS NOT NULL AND v_last_claimed > (NOW() - INTERVAL '30 days') THEN
-    RETURN jsonb_build_object('success', false, 'error', '本月津贴已领取，请下月再来');
-  END IF;
-
-  SELECT vip_level INTO v_vip_level FROM public.profiles WHERE id = p_user_id;
-  v_bonus_amount := 50.00 + (COALESCE(v_vip_level, 0) * 50.00);
-
-  v_result := public.add_user_credits(p_user_id, v_bonus_amount, 'monthly_bonus', '领取学者每月研讨津贴');
-
-  IF (v_result->>'success')::BOOLEAN = TRUE THEN
-    UPDATE public.user_credits SET last_monthly_claimed_at = NOW() WHERE user_id = p_user_id;
-  END IF;
-
-  RETURN v_result;
+  RETURN public.claim_monthly_bonus();
 END;
-$$;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE ALL ON FUNCTION public.claim_monthly_bonus() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.claim_monthly_bonus() TO authenticated;
 
 -- 8. 创建对决并扣除开盘手续费 RPC
 CREATE OR REPLACE FUNCTION public.create_duel_with_fee(
@@ -1072,57 +1353,86 @@ BEGIN
 END;
 $$;
 
--- 9. 观众押注原子 RPC
+-- 9. 观众押注原子 RPC (限制 Lv2+ 学者权限与信誉分原子扣减)
 CREATE OR REPLACE FUNCTION public.place_duel_bet(
-    p_duel_id UUID,
-    p_target_id UUID,
-    p_amount NUMERIC
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
+  p_duel_id UUID,
+  p_target_id UUID,
+  p_amount INTEGER
+) RETURNS JSONB AS $
 DECLARE
-    v_user_id UUID;
-    v_duel RECORD;
-    v_deduct_res JSONB;
-    v_bet_id UUID;
+  v_uid UUID := auth.uid();
+  v_duel public.duels%ROWTYPE;
+  v_bet_id UUID;
+  v_level INT;
 BEGIN
-    v_user_id := auth.uid();
-    IF v_user_id IS NULL THEN
-        RETURN jsonb_build_object('success', false, 'error', '请先登录');
-    END IF;
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'permission_denied: 未登录' USING ERRCODE = '42501';
+  END IF;
 
-    SELECT * INTO v_duel FROM public.duels WHERE id = p_duel_id FOR UPDATE;
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', '对决不存在');
-    END IF;
+  -- 门槛校验: 需达到 Lv2 学者等级
+  SELECT COALESCE(vip_level, 1) INTO v_level
+  FROM public.profiles
+  WHERE id = v_uid;
 
-    IF v_duel.status != 'active' AND v_duel.status != 'voting' THEN
-        RETURN jsonb_build_object('success', false, 'error', '当前对决未处于可投票/押注状态');
-    END IF;
+  IF v_level < 2 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'REQUIRES_SCHOLAR_LV2');
+  END IF;
 
-    IF v_user_id = v_duel.challenger_id OR v_user_id = v_duel.opponent_id THEN
-        RETURN jsonb_build_object('success', false, 'error', '辩论选手不得参与观众预测下注');
-    END IF;
+  -- 金额范围校验
+  IF p_amount IS NULL OR p_amount < 1 OR p_amount > 10000 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'INVALID_AMOUNT');
+  END IF;
 
-    IF p_target_id != v_duel.challenger_id AND p_target_id != v_duel.opponent_id THEN
-        RETURN jsonb_build_object('success', false, 'error', '押注目标必须为对决双方之一');
-    END IF;
+  -- 决斗必须存在
+  SELECT * INTO v_duel FROM public.duels WHERE id = p_duel_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'DUEL_NOT_FOUND');
+  END IF;
 
-    v_deduct_res := public.deduct_user_credits(v_user_id, p_amount, 'duel_bet', '参与学术对决预测下注');
-    IF (v_deduct_res->>'success')::BOOLEAN = FALSE THEN
-        RETURN v_deduct_res;
-    END IF;
+  -- 必须是进行中的决斗
+  IF v_duel.status <> 'active' AND v_duel.status <> 'voting' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'DUEL_NOT_ACTIVE');
+  END IF;
 
-    INSERT INTO public.duel_bets (duel_id, spectator_id, target_id, amount, status, funded)
-    VALUES (p_duel_id, v_user_id, p_target_id, p_amount, 'active', TRUE)
-    RETURNING id INTO v_bet_id;
+  -- 选手不能自押
+  IF v_uid = v_duel.challenger_id OR v_uid = v_duel.opponent_id THEN
+    RETURN jsonb_build_object('success', false, 'error', 'PARTICIPANT_CANNOT_BET');
+  END IF;
 
-    RETURN jsonb_build_object('success', true, 'bet_id', v_bet_id);
+  -- 押注对象必须是本场选手
+  IF p_target_id <> v_duel.challenger_id AND p_target_id <> v_duel.opponent_id THEN
+    RETURN jsonb_build_object('success', false, 'error', 'INVALID_TARGET');
+  END IF;
+
+  -- 每人每场只能下注一次
+  IF EXISTS (
+    SELECT 1 FROM public.duel_bets
+    WHERE duel_id = p_duel_id AND spectator_id = v_uid
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'ALREADY_BET');
+  END IF;
+
+  -- 原子扣减信誉分
+  UPDATE public.profiles
+  SET reputation_score = reputation_score - p_amount
+  WHERE id = v_uid
+    AND reputation_score >= p_amount;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'INSUFFICIENT_REPUTATION');
+  END IF;
+
+  -- 插入押注单
+  INSERT INTO public.duel_bets (duel_id, spectator_id, target_id, amount)
+  VALUES (p_duel_id, v_uid, p_target_id, p_amount)
+  RETURNING id INTO v_bet_id;
+
+  RETURN jsonb_build_object('success', true, 'bet_id', v_bet_id);
 END;
-$$;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE ALL ON FUNCTION public.place_duel_bet(uuid, uuid, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.place_duel_bet(uuid, uuid, integer) TO authenticated;
 
 -- 10. 对决结算分账触发器
 CREATE OR REPLACE FUNCTION public.handle_duel_bets_settlement()
@@ -1293,48 +1603,61 @@ END;
 $$;
 
 -- ==============================================================================
--- 模块 10: 学术文集与合集系统 (Collections & Follows)
+-- 模块 10: 学术专栏与合集系统 (Collections & Follows)
 -- ==============================================================================
 
--- 1. 文集主表
+-- 1. 专栏主表 (支持导读文章与主页流聚合)
 CREATE TABLE IF NOT EXISTS public.collections (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    title TEXT NOT NULL,
+    author_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
     description TEXT,
     cover_url TEXT,
+    cover_style TEXT DEFAULT 'preset-academic',
     is_public BOOLEAN DEFAULT TRUE NOT NULL,
     post_count INT DEFAULT 0 NOT NULL,
     follower_count INT DEFAULT 0 NOT NULL,
     view_count INT DEFAULT 0 NOT NULL,
-    created_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    only_show_lead_post_in_feed BOOLEAN DEFAULT FALSE NOT NULL,
+    lead_post_id UUID REFERENCES public.posts(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_collections_author ON public.collections(created_by);
+CREATE INDEX IF NOT EXISTS idx_collections_author ON public.collections(author_id);
+CREATE INDEX IF NOT EXISTS idx_collections_created_at ON public.collections(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_collections_feed_lead 
+  ON public.collections(only_show_lead_post_in_feed) 
+  WHERE only_show_lead_post_in_feed = TRUE;
 
--- 2. 文集收录帖子关联表
+-- 2. 专栏收录文章关联表
 CREATE TABLE IF NOT EXISTS public.collection_posts (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     collection_id UUID NOT NULL REFERENCES public.collections(id) ON DELETE CASCADE,
     post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    position INT DEFAULT 0 NOT NULL,
     sort_order INT DEFAULT 0 NOT NULL,
     added_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     UNIQUE(collection_id, post_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_collection_posts ON public.collection_posts(collection_id, sort_order ASC);
+CREATE INDEX IF NOT EXISTS idx_collection_posts_collection ON public.collection_posts(collection_id);
+CREATE INDEX IF NOT EXISTS idx_collection_posts_post ON public.collection_posts(post_id);
+CREATE INDEX IF NOT EXISTS idx_collection_posts_position ON public.collection_posts(collection_id, position);
 
--- 3. 文集关注表
+-- 3. 专栏关注表
 CREATE TABLE IF NOT EXISTS public.collection_follows (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     collection_id UUID NOT NULL REFERENCES public.collections(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    UNIQUE(collection_id, user_id)
+    UNIQUE(user_id, collection_id)
 );
 
--- 4. 文集阅读浏览表
+CREATE INDEX IF NOT EXISTS idx_collection_follows_user ON public.collection_follows(user_id);
+CREATE INDEX IF NOT EXISTS idx_collection_follows_collection ON public.collection_follows(collection_id);
+
+-- 4. 专栏阅读浏览表
 CREATE TABLE IF NOT EXISTS public.collection_views (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     collection_id UUID NOT NULL REFERENCES public.collections(id) ON DELETE CASCADE,
@@ -1342,7 +1665,7 @@ CREATE TABLE IF NOT EXISTS public.collection_views (
     viewed_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- 5. 文集帖子重排序 RPC
+-- 5. 专栏帖子重排序 RPC
 CREATE OR REPLACE FUNCTION public.reorder_collection_posts(
     p_collection_id UUID,
     p_post_ids UUID[]
@@ -1350,39 +1673,368 @@ CREATE OR REPLACE FUNCTION public.reorder_collection_posts(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $
 DECLARE
     v_owner_id UUID;
     v_index INT;
 BEGIN
-    SELECT created_by INTO v_owner_id FROM public.collections WHERE id = p_collection_id;
+    SELECT author_id INTO v_owner_id FROM public.collections WHERE id = p_collection_id;
     IF v_owner_id != auth.uid() AND NOT public.is_admin() THEN
-        RAISE EXCEPTION '只有文集创作者可以调整排序';
+        RAISE EXCEPTION '只有专栏创作者可以调整排序';
     END IF;
 
     FOR v_index IN 1..array_length(p_post_ids, 1) LOOP
         UPDATE public.collection_posts
-        SET sort_order = v_index
+        SET position = v_index,
+            sort_order = v_index
         WHERE collection_id = p_collection_id AND post_id = p_post_ids[v_index];
     END LOOP;
 
     RETURN TRUE;
 END;
-$$;
+$;
 
--- 6. 文集浏览自增 RPC
+-- 6. 专栏浏览自增 RPC
 CREATE OR REPLACE FUNCTION public.increment_collection_view_count(p_collection_id UUID)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $
 BEGIN
     UPDATE public.collections SET view_count = view_count + 1 WHERE id = p_collection_id;
 END;
-$$;
+$;
+
+-- 7. 主页 Feed 流排除专栏折叠文章判定函数
+CREATE OR REPLACE FUNCTION public.get_feed_excluded_collection_post_ids()
+RETURNS TABLE (post_id UUID) AS $
+BEGIN
+  RETURN QUERY
+  WITH active_collections AS (
+    SELECT 
+      c.id AS col_id,
+      COALESCE(
+        (
+          SELECT cp_lead.post_id 
+          FROM public.collection_posts cp_lead 
+          JOIN public.posts p ON p.id = cp_lead.post_id
+          WHERE cp_lead.collection_id = c.id 
+            AND cp_lead.post_id = c.lead_post_id
+            AND p.is_published = TRUE
+            AND p.is_hidden = FALSE
+          LIMIT 1
+        ),
+        (
+          SELECT cp_first.post_id 
+          FROM public.collection_posts cp_first 
+          JOIN public.posts p2 ON p2.id = cp_first.post_id
+          WHERE cp_first.collection_id = c.id
+            AND p2.is_published = TRUE
+            AND p2.is_hidden = FALSE
+          ORDER BY cp_first.position ASC, cp_first.added_at ASC 
+          LIMIT 1
+        )
+      ) AS effective_lead_post_id
+    FROM public.collections c
+    WHERE c.only_show_lead_post_in_feed = TRUE
+  )
+  SELECT DISTINCT cp.post_id
+  FROM public.collection_posts cp
+  JOIN active_collections ac ON ac.col_id = cp.collection_id
+  WHERE cp.post_id IS NOT NULL 
+    AND (ac.effective_lead_post_id IS NOT NULL AND cp.post_id != ac.effective_lead_post_id);
+END;
+$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_feed_excluded_collection_post_ids() TO authenticated, anon;
+
+-- 8. 专栏作者快捷设置/切换导读文章与主页流聚合模式 RPC
+CREATE OR REPLACE FUNCTION public.set_collection_lead_post(
+  target_collection_id UUID,
+  target_post_id UUID,
+  enable_feed_limit BOOLEAN DEFAULT TRUE
+)
+RETURNS JSONB AS $
+DECLARE
+  v_author_id UUID;
+  v_exists BOOLEAN;
+BEGIN
+  SELECT author_id INTO v_author_id
+  FROM public.collections
+  WHERE id = target_collection_id;
+
+  IF v_author_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', '专栏不存在');
+  END IF;
+
+  IF v_author_id != auth.uid() AND NOT public.is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'error', '未授权：只有专栏作者可以修改导读文章设置');
+  END IF;
+
+  IF target_post_id IS NOT NULL THEN
+    SELECT EXISTS(
+      SELECT 1 FROM public.collection_posts 
+      WHERE collection_id = target_collection_id AND post_id = target_post_id
+    ) INTO v_exists;
+
+    IF NOT v_exists THEN
+      RETURN jsonb_build_object('success', false, 'error', '指定文章不属于该专栏');
+    END IF;
+  END IF;
+
+  UPDATE public.collections
+  SET 
+    lead_post_id = target_post_id,
+    only_show_lead_post_in_feed = COALESCE(enable_feed_limit, only_show_lead_post_in_feed),
+    updated_at = NOW()
+  WHERE id = target_collection_id;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.set_collection_lead_post(UUID, UUID, BOOLEAN) TO authenticated;
 
 -- ==============================================================================
--- 模块 11: 公告、风控、报告与邀请码 (Announcements, Moderation & Invites)
+-- 模块 11: AI 训练沙盒与代码执行缓存 (AI Sandbox & Code Execution Cache)
+-- ==============================================================================
+
+-- 1. AI 底层算法演练场实验代码快照与成果分享表
+CREATE TABLE IF NOT EXISTS public.ai_sandbox_experiments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    title VARCHAR(120) NOT NULL DEFAULT '未命名 AI 算法演练',
+    description TEXT,
+    code TEXT NOT NULL,
+    tags TEXT[] DEFAULT ARRAY['pytorch', 'autograd'],
+    execution_time_ms INT,
+    is_public BOOLEAN DEFAULT TRUE,
+    likes_count INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_sandbox_author ON public.ai_sandbox_experiments(author_id);
+CREATE INDEX IF NOT EXISTS idx_ai_sandbox_created_at ON public.ai_sandbox_experiments(created_at DESC);
+
+-- 2. 帖子 Python 代码块首次运行缓存与全站共享快照表
+CREATE TABLE IF NOT EXISTS public.code_execution_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code_hash VARCHAR(64) UNIQUE NOT NULL,
+    language VARCHAR(32) NOT NULL DEFAULT 'python',
+    code_snippet TEXT NOT NULL,
+    first_run_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    first_run_user_name VARCHAR(128) DEFAULT '学术同行',
+    stdout TEXT DEFAULT '',
+    stderr TEXT DEFAULT '',
+    images JSONB DEFAULT '[]'::jsonb,
+    execution_time_ms INT DEFAULT 0,
+    hit_count INT DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_code_execution_cache_hash ON public.code_execution_cache(code_hash);
+
+-- 3. 自增代码缓存命中数 RPC
+CREATE OR REPLACE FUNCTION public.increment_code_cache_hits(target_hash VARCHAR(64))
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $
+BEGIN
+    UPDATE public.code_execution_cache
+    SET hit_count = hit_count + 1,
+        updated_at = NOW()
+    WHERE code_hash = target_hash;
+END;
+$;
+
+-- 4. 服务端防抖更新在线心跳 RPC
+CREATE OR REPLACE FUNCTION public.touch_user_last_seen()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_uid UUID := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN;
+  END IF;
+
+  UPDATE public.profiles
+  SET last_seen_at = NOW()
+  WHERE id = v_uid
+    AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '2 minutes');
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.touch_user_last_seen() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.touch_user_last_seen() TO authenticated;
+
+-- 5. 个人主页多元数据一站式聚合 RPC (热力图、24h 时段、领域分布)
+CREATE OR REPLACE FUNCTION public.get_scholar_profile_analytics(p_target_user_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_viewer_id UUID := auth.uid();
+  v_is_owner BOOLEAN := (v_viewer_id IS NOT NULL AND v_viewer_id = p_target_user_id);
+  v_profile RECORD;
+  v_heatmap JSONB;
+  v_hourly JSONB;
+  v_domains JSONB;
+BEGIN
+  SELECT id, last_seen_at, COALESCE(show_online_status, TRUE) AS show_online_status
+  INTO v_profile
+  FROM public.profiles
+  WHERE id = p_target_user_id;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  -- A. 聚合近 375 天每日活跃计数及发帖/评论/评审决斗细分明细
+  WITH raw_events AS (
+    SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::DATE AS act_date, 'post' AS kind
+    FROM public.posts
+    WHERE author_id = p_target_user_id
+      AND is_published = TRUE
+      AND COALESCE(is_hidden, FALSE) = FALSE
+      AND COALESCE(review_status, 'approved') = 'approved'
+      AND created_at >= NOW() - INTERVAL '375 days'
+    UNION ALL
+    SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::DATE, 'comment' AS kind
+    FROM public.comments
+    WHERE author_id = p_target_user_id
+      AND created_at >= NOW() - INTERVAL '375 days'
+    UNION ALL
+    SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::DATE, 'other' AS kind
+    FROM public.peer_reviews
+    WHERE (user_id = p_target_user_id OR reviewer_id = p_target_user_id)
+      AND created_at >= NOW() - INTERVAL '375 days'
+    UNION ALL
+    SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::DATE, 'other' AS kind
+    FROM public.duels
+    WHERE (challenger_id = p_target_user_id OR opponent_id = p_target_user_id)
+      AND created_at >= NOW() - INTERVAL '375 days'
+  ),
+  daily_agg AS (
+    SELECT act_date,
+           COUNT(*)::INT AS cnt,
+           COUNT(*) FILTER (WHERE kind = 'post')::INT AS posts_cnt,
+           COUNT(*) FILTER (WHERE kind = 'comment')::INT AS comments_cnt,
+           COUNT(*) FILTER (WHERE kind = 'other')::INT AS others_cnt
+    FROM raw_events
+    GROUP BY act_date
+    ORDER BY act_date ASC
+  )
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'date', to_char(act_date, 'YYYY-MM-DD'),
+    'count', cnt,
+    'posts', posts_cnt,
+    'comments', comments_cnt,
+    'others', others_cnt
+  )), '[]'::jsonb)
+  INTO v_heatmap
+  FROM daily_agg;
+
+  -- B. 聚合 0-23 时活跃频次数组
+  WITH hour_events AS (
+    SELECT EXTRACT(HOUR FROM (created_at AT TIME ZONE 'Asia/Shanghai'))::INT AS hr
+    FROM public.posts
+    WHERE author_id = p_target_user_id
+      AND is_published = TRUE
+      AND COALESCE(is_hidden, FALSE) = FALSE
+      AND COALESCE(review_status, 'approved') = 'approved'
+    UNION ALL
+    SELECT EXTRACT(HOUR FROM (created_at AT TIME ZONE 'Asia/Shanghai'))::INT AS hr
+    FROM public.comments
+    WHERE author_id = p_target_user_id
+    UNION ALL
+    SELECT EXTRACT(HOUR FROM (created_at AT TIME ZONE 'Asia/Shanghai'))::INT AS hr
+    FROM public.peer_reviews
+    WHERE (user_id = p_target_user_id OR reviewer_id = p_target_user_id)
+  ),
+  hour_counts AS (
+    SELECT gs.h AS hr, COALESCE(COUNT(he.hr), 0)::INT AS cnt
+    FROM generate_series(0, 23) AS gs(h)
+    LEFT JOIN hour_events he ON he.hr = gs.h
+    GROUP BY gs.h
+    ORDER BY gs.h ASC
+  )
+  SELECT COALESCE(jsonb_agg(cnt ORDER BY hr ASC), '[]'::jsonb)
+  INTO v_hourly
+  FROM hour_counts;
+
+  -- C. 聚合涉及领域标签真实发帖篇数、评论条数与点赞浏览次数
+  WITH tag_events AS (
+    SELECT unnest(tags) AS tag, 1 AS p_cnt, 0 AS c_cnt, 0 AS l_cnt, 3.0 AS create_w, 3.0 AS total_w
+    FROM public.posts
+    WHERE author_id = p_target_user_id
+      AND is_published = TRUE
+      AND COALESCE(is_hidden, FALSE) = FALSE
+      AND COALESCE(review_status, 'approved') = 'approved'
+    UNION ALL
+    SELECT unnest(p.tags) AS tag, 0 AS p_cnt, 1 AS c_cnt, 0 AS l_cnt, 1.5 AS create_w, 2.0 AS total_w
+    FROM public.comments c
+    JOIN public.posts p ON p.id = c.post_id
+    WHERE c.author_id = p_target_user_id
+      AND p.is_published = TRUE
+      AND COALESCE(p.is_hidden, FALSE) = FALSE
+    UNION ALL
+    SELECT unnest(p.tags) AS tag, 0 AS p_cnt, 0 AS c_cnt, 1 AS l_cnt, 0.0 AS create_w, 1.0 AS total_w
+    FROM public.likes l
+    JOIN public.posts p ON p.id = l.post_id
+    WHERE l.user_id = p_target_user_id
+      AND p.is_published = TRUE
+      AND COALESCE(p.is_hidden, FALSE) = FALSE
+  ),
+  tag_agg AS (
+    SELECT trim(tag) AS clean_tag,
+           SUM(p_cnt)::INT AS posts_count,
+           SUM(c_cnt)::INT AS comments_count,
+           SUM(l_cnt)::INT AS likes_count,
+           ROUND(SUM(create_w)::NUMERIC, 1) AS creation_score,
+           ROUND(SUM(total_w)::NUMERIC, 1) AS total_score
+    FROM tag_events
+    WHERE tag IS NOT NULL AND trim(tag) <> ''
+    GROUP BY trim(tag)
+    ORDER BY total_score DESC, creation_score DESC
+    LIMIT 12
+  )
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'tag', clean_tag,
+    'posts_count', posts_count,
+    'comments_count', comments_count,
+    'likes_count', likes_count,
+    'creation', creation_score,
+    'total', total_score
+  )), '[]'::jsonb)
+  INTO v_domains
+  FROM tag_agg;
+
+  RETURN jsonb_build_object(
+    'last_seen_at', CASE
+      WHEN v_is_owner OR v_profile.show_online_status THEN v_profile.last_seen_at
+      ELSE NULL
+    END,
+    'show_online_status', v_profile.show_online_status,
+    'heatmap', v_heatmap,
+    'hourly', v_hourly,
+    'domains', v_domains
+  );
+END;
+$;
+
+GRANT EXECUTE ON FUNCTION public.get_scholar_profile_analytics(UUID) TO anon, authenticated;
+
+-- ==============================================================================
+-- 模块 12: 公告、风控、报告与邀请码 (Announcements, Moderation & Invites)
 -- ==============================================================================
 
 -- 1. 系统全站公告表
@@ -1411,20 +2063,33 @@ CREATE TABLE IF NOT EXISTS public.sensitive_words (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- 3. 内容审核日志表
+-- 3. 内容审核日志表 (含拦截快照与复核支持)
 CREATE TABLE IF NOT EXISTS public.content_moderation_logs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     target_type TEXT NOT NULL CHECK (target_type IN ('post', 'comment', 'avatar', 'banner', 'message')),
     target_id UUID NOT NULL,
     comment_id UUID,
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title TEXT,
+    content_snapshot JSONB,
+    cover_image TEXT,
+    tags TEXT[] DEFAULT '{}'::TEXT[],
     trigger_word TEXT,
     action_taken TEXT NOT NULL,
+    final_action TEXT,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     reviewed_by UUID REFERENCES public.profiles(id),
     reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_final_action_created 
+  ON public.content_moderation_logs(final_action, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_moderation_logs_snapshot 
+  ON public.content_moderation_logs(created_at DESC) 
+  WHERE content_snapshot IS NOT NULL;
 
 -- 4. 用户举报表
 CREATE TABLE IF NOT EXISTS public.reports (
@@ -1550,18 +2215,41 @@ END;
 $$;
 
 -- ==============================================================================
--- 模块 12: 存储桶配置 (Supabase Storage Buckets)
+-- 模块 13: 存储桶配置 (Supabase Storage Buckets)
 -- ==============================================================================
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit)
 VALUES 
   ('avatars', 'avatars', true, 5242880),
   ('attachments', 'attachments', false, 52428800),
-  ('collection-covers', 'collection-covers', true, 10485760)
+  ('collection-covers', 'collection-covers', true, 10485760),
+  ('banners', 'banners', true, 10485760)
 ON CONFLICT (id) DO NOTHING;
 
+-- Banners 存储桶 RLS 策略
+DROP POLICY IF EXISTS "Banner images are publicly accessible." ON storage.objects;
+CREATE POLICY "Banner images are publicly accessible."
+  ON storage.objects FOR SELECT
+  USING ( bucket_id = 'banners' );
+
+DROP POLICY IF EXISTS "Authenticated users can upload banners." ON storage.objects;
+CREATE POLICY "Authenticated users can upload banners."
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'banners' AND auth.role() = 'authenticated' );
+
+DROP POLICY IF EXISTS "Users can update their own banners." ON storage.objects;
+CREATE POLICY "Users can update their own banners."
+  ON storage.objects FOR UPDATE
+  USING ( bucket_id = 'banners' AND auth.uid() = owner )
+  WITH CHECK ( bucket_id = 'banners' AND auth.uid() = owner );
+
+DROP POLICY IF EXISTS "Users can delete their own banners." ON storage.objects;
+CREATE POLICY "Users can delete their own banners."
+  ON storage.objects FOR DELETE
+  USING ( bucket_id = 'banners' AND auth.uid() = owner );
+
 -- ==============================================================================
--- 模块 13: 全局行级安全策略 (Row Level Security - RLS)
+-- 模块 14: 全局行级安全策略 (Row Level Security - RLS)
 -- ==============================================================================
 
 -- 启用全量表 RLS
@@ -1576,6 +2264,9 @@ ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.message_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_annotations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_sandbox_experiments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.code_execution_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.post_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.post_co_authors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.post_revisions ENABLE ROW LEVEL SECURITY;
@@ -1618,8 +2309,30 @@ CREATE POLICY "profiles_admin_update" ON public.profiles FOR UPDATE USING (publi
 CREATE POLICY "user_oauth_select_own" ON public.user_oauth_accounts FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
 CREATE POLICY "user_oauth_all_own" ON public.user_oauth_accounts FOR ALL USING (auth.uid() = user_id);
 
--- 2. Posts & Links 策略
-CREATE POLICY "posts_select_public" ON public.posts FOR SELECT USING (is_published = true OR auth.uid() = author_id OR public.is_admin());
+-- 2. Posts & Links 策略 (包含行间划线批注 post_annotations)
+CREATE POLICY "posts_select_public" ON public.posts FOR SELECT USING (
+  (is_published = true AND is_hidden = false AND review_status = 'approved') 
+  OR auth.uid() = author_id 
+  OR public.is_admin()
+);
+
+-- 行间划线批注 post_annotations 策略
+CREATE POLICY "post_annotations_select" ON public.post_annotations FOR SELECT USING (
+  (review_status = 'approved') OR auth.uid() = author_id OR public.is_admin()
+);
+CREATE POLICY "post_annotations_insert" ON public.post_annotations FOR INSERT WITH CHECK (
+  auth.uid() = author_id
+);
+CREATE POLICY "post_annotations_update" ON public.post_annotations FOR UPDATE USING (
+  auth.uid() = author_id 
+  OR EXISTS (SELECT 1 FROM public.posts WHERE id = post_id AND author_id = auth.uid()) 
+  OR public.is_admin()
+);
+CREATE POLICY "post_annotations_delete" ON public.post_annotations FOR DELETE USING (
+  auth.uid() = author_id 
+  OR EXISTS (SELECT 1 FROM public.posts WHERE id = post_id AND author_id = auth.uid()) 
+  OR public.is_admin()
+);
 CREATE POLICY "posts_insert_auth" ON public.posts FOR INSERT WITH CHECK (auth.uid() = author_id);
 CREATE POLICY "posts_update_own" ON public.posts FOR UPDATE USING (auth.uid() = author_id OR public.is_admin()) WITH CHECK (auth.uid() = author_id OR public.is_admin());
 CREATE POLICY "posts_delete_own" ON public.posts FOR DELETE USING (auth.uid() = author_id OR public.is_admin());
@@ -1693,11 +2406,24 @@ CREATE POLICY "lab_notes_all_member" ON public.lab_notes FOR ALL USING (
 );
 
 -- 8. Collections
-CREATE POLICY "collections_select_public" ON public.collections FOR SELECT USING (is_public = true OR auth.uid() = created_by OR public.is_admin());
-CREATE POLICY "collections_insert_auth" ON public.collections FOR INSERT WITH CHECK (auth.uid() = created_by);
-CREATE POLICY "collections_update_own" ON public.collections FOR UPDATE USING (auth.uid() = created_by OR public.is_admin());
-CREATE POLICY "collections_delete_own" ON public.collections FOR DELETE USING (auth.uid() = created_by OR public.is_admin());
+CREATE POLICY "collections_select_public" ON public.collections FOR SELECT USING (is_public = true OR auth.uid() = author_id OR public.is_admin());
+CREATE POLICY "collections_insert_auth" ON public.collections FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "collections_update_own" ON public.collections FOR UPDATE USING (auth.uid() = author_id OR public.is_admin());
+CREATE POLICY "collections_delete_own" ON public.collections FOR DELETE USING (auth.uid() = author_id OR public.is_admin());
 CREATE POLICY "collection_posts_select_public" ON public.collection_posts FOR SELECT USING (true);
+CREATE POLICY "collection_posts_manage_owner" ON public.collection_posts FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.collections c WHERE c.id = collection_posts.collection_id AND (c.author_id = auth.uid() OR public.is_admin()))
+);
+
+-- 8.1 AI 算法沙盒与代码缓存策略
+CREATE POLICY "ai_sandbox_select_public" ON public.ai_sandbox_experiments FOR SELECT USING (is_public = true OR auth.uid() = author_id OR public.is_admin());
+CREATE POLICY "ai_sandbox_insert_auth" ON public.ai_sandbox_experiments FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "ai_sandbox_update_own" ON public.ai_sandbox_experiments FOR UPDATE USING (auth.uid() = author_id OR public.is_admin());
+CREATE POLICY "ai_sandbox_delete_own" ON public.ai_sandbox_experiments FOR DELETE USING (auth.uid() = author_id OR public.is_admin());
+
+CREATE POLICY "code_cache_select_public" ON public.code_execution_cache FOR SELECT USING (true);
+CREATE POLICY "code_cache_insert_auth" ON public.code_execution_cache FOR INSERT WITH CHECK (true);
+CREATE POLICY "code_cache_update_auth" ON public.code_execution_cache FOR UPDATE USING (true);
 
 -- 9. Admin, Announcements & Reports
 CREATE POLICY "admin_roles_select_admin" ON public.admin_roles FOR SELECT USING (public.is_admin());
@@ -1712,10 +2438,10 @@ CREATE POLICY "system_settings_select_public" ON public.system_settings FOR SELE
 CREATE POLICY "system_settings_admin_write" ON public.system_settings FOR ALL USING (public.is_admin());
 
 -- ==============================================================================
--- 模块 14: Supabase Realtime 实时广播发布配置
+-- 模块 15: Supabase Realtime 实时广播发布配置
 -- ==============================================================================
 
-DO $$
+DO $
 BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
@@ -1727,7 +2453,8 @@ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.lab_post_links;
   ALTER PUBLICATION supabase_realtime ADD TABLE public.lab_members;
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.post_annotations;
 EXCEPTION WHEN OTHERS THEN
   NULL;
 END
-$$;
+$;

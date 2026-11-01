@@ -14,7 +14,6 @@ const PUBLIC_EXACT_ROUTES = new Set([
     "/rules",
     "/rule",
     "/invite-820",
-    "/debug",
 ]);
 
 // 游客可访问的前缀匹配公开路由

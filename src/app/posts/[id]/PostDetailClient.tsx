@@ -10,6 +10,7 @@ import { CoAuthorPanel, type CoAuthor } from "@/components/lab/co-author/CoAutho
 import {
     Backlinks,
     type BacklinkItem,
+    CitationsFluidDrawer,
     ImmersiveToolbar,
     SemanticRecommendations,
     ShareCardDialog,
@@ -89,6 +90,7 @@ import {
     Download,
     FileCode,
     Printer,
+    Quote,
     List,
     MessageSquare,
 } from "lucide-react";
@@ -256,6 +258,7 @@ export default function PostDetailClient({
     const [duelDialogOpen, setDuelDialogOpen] = useState(false);
     const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+    const [citationsDrawerOpen, setCitationsDrawerOpen] = useState(false);
     const [mobileTocOpen, setMobileTocOpen] = useState(false);
     const [collectionsList, setCollectionsList] = useState<CollectionSummary[]>(collections);
     const [appealDialogOpen, setAppealDialogOpen] = useState(false);
@@ -904,6 +907,7 @@ export default function PostDetailClient({
                         <ImmersiveToolbar
                             progress={readingProgress}
                             onExit={exitImmersive}
+                            onOpenCitations={() => setCitationsDrawerOpen(true)}
                         />
                     )}
                 </AnimatePresence>
@@ -985,6 +989,16 @@ export default function PostDetailClient({
                                     className="text-muted-foreground hover:text-foreground rounded-full"
                                 >
                                     <Maximize2 className="h-5 w-5" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setCitationsDrawerOpen(true)}
+                                    title="学术引用与参考文献"
+                                    aria-label="打开学术引用与参考文献抽屉"
+                                    className="text-muted-foreground hover:text-foreground rounded-full"
+                                >
+                                    <Quote className="h-5 w-5" />
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={handleShare} className="rounded-full">
                                     <Share2 className="h-5 w-5" />
@@ -1094,6 +1108,13 @@ export default function PostDetailClient({
                                         <DropdownMenuSeparator />
 
                                         {/* 学术导出操作 */}
+                                        <DropdownMenuItem
+                                            onClick={() => setCitationsDrawerOpen(true)}
+                                            className="font-medium text-foreground rounded-xl cursor-pointer"
+                                        >
+                                            <Quote className="mr-2 h-4 w-4 text-amber-500" />
+                                            引用本文与文献溯源
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onClick={() => {
                                                 window.open(`/api/posts/${post.id}/export?format=latex`, "_blank");
@@ -1538,6 +1559,15 @@ export default function PostDetailClient({
                                     >
                                         <Heart className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`} />
                                         <span>{likeCount}</span>
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-1.5 rounded-full text-muted-foreground hover:text-foreground"
+                                        onClick={() => setCitationsDrawerOpen(true)}
+                                    >
+                                        <Quote className="h-4 w-4 text-amber-500" />
+                                        <span>引用本文</span>
                                     </Button>
                                     <Button variant="ghost" size="sm" className="gap-2">
                                         <MessageCircle className="h-5 w-5" />
@@ -2062,6 +2092,7 @@ export default function PostDetailClient({
                     onLike={handleLike}
                     onBookmark={handleBookmark}
                     onOpenToc={() => setMobileTocOpen(true)}
+                    onOpenCitations={() => setCitationsDrawerOpen(true)}
                     onShare={handleShare}
                     onCommentClick={() => {
                         const el = document.getElementById("comments");
@@ -2071,6 +2102,14 @@ export default function PostDetailClient({
                     }}
                 />
             )}
+
+            {/* 文献引用与知识网络流体抽屉 */}
+            <CitationsFluidDrawer
+                open={citationsDrawerOpen}
+                onClose={() => setCitationsDrawerOpen(false)}
+                post={post}
+                backlinks={backlinks}
+            />
 
             {/* 移动端学术大纲目录抽屉 */}
             <MobileTocSheet

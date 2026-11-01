@@ -3,18 +3,13 @@
 import { NodeViewContent, NodeViewProps, NodeViewWrapper } from "@tiptap/react";
 import {
     ChevronDown,
-    ChevronRight,
-    Copy,
     Hash,
     MoreHorizontal,
-    Sparkles,
     Trash2,
     Check,
-    Square,
-    BookOpen,
 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
     ACADEMIC_TYPE_CONFIG,
@@ -29,6 +24,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { CopyMorphButton } from "@/components/ui/copy-morph-button";
+import { MOTION_EASINGS } from "@/lib/motion-tokens";
 import { toast } from "sonner";
 
 export function AcademicBlockComponent({
@@ -37,6 +34,7 @@ export function AcademicBlockComponent({
     editor,
     deleteNode,
 }: NodeViewProps) {
+    const prefersReducedMotion = useReducedMotion();
     const isEditable = editor.isEditable;
     const academicType = (node.attrs.academicType as AcademicType) || "theorem";
     const title = node.attrs.title || "";
@@ -47,7 +45,6 @@ export function AcademicBlockComponent({
         `academic-${academicType}-${Math.random().toString(36).substring(2, 8)}`;
 
     const [isEditingHeader, setIsEditingHeader] = useState(false);
-    const [copied, setCopied] = useState(false);
 
     const config =
         ACADEMIC_TYPE_CONFIG[academicType] || ACADEMIC_TYPE_CONFIG.theorem;
@@ -57,18 +54,7 @@ export function AcademicBlockComponent({
         updateAttributes({ isFolded: !isFolded });
     }, [isFolded, updateAttributes]);
 
-    // 复制锚点定位 ID / 引用语法
-    const handleCopyAnchor = useCallback(
-        (e: React.MouseEvent) => {
-            e.stopPropagation();
-            const refText = `@${academicType}:${number || title || "1"}`;
-            navigator.clipboard.writeText(refText);
-            setCopied(true);
-            toast.success(`已复制交叉引用代码: ${refText}`);
-            setTimeout(() => setCopied(false), 2000);
-        },
-        [academicType, number, title]
-    );
+    const refAnchorText = `@${academicType}:${number || title || "1"}`;
 
     const isProof = academicType === "proof";
 
@@ -78,22 +64,23 @@ export function AcademicBlockComponent({
             data-academic-id={academicId}
             data-academic-type={academicType}
             className={cn(
-                "academic-block-wrapper my-5 rounded-xl border transition-all duration-200 overflow-hidden shadow-xs",
-                config.borderClass,
-                config.bgClass,
-                "relative group/academic"
+                "academic-block-wrapper my-5 rounded-2xl border-0 overflow-hidden relative group/academic",
+                "bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl",
+                "shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)]",
+                "dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.45),inset_0_1px_0.5px_rgba(255,255,255,0.1)]",
+                config.bgClass
             )}
         >
             {/* 顶部标题栏 */}
             <div
                 className={cn(
-                    "academic-header flex items-center justify-between px-4 py-2.5 select-none border-b border-border/40 bg-background/50 backdrop-blur-xs",
-                    isProof && "cursor-pointer hover:bg-muted/40"
+                    "academic-header flex items-center justify-between px-4 py-2.5 select-none bg-white/45 dark:bg-white/[0.03] backdrop-blur-md transition-colors duration-150",
+                    isProof && "cursor-pointer [@media(hover:hover)_and_(pointer:fine)]:hover:bg-zinc-200/40 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:bg-white/[0.06]"
                 )}
                 onClick={isProof ? toggleFold : undefined}
             >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    {/* 折叠切换图标 (仅 Proof 或可折叠块) */}
+                    {/* 折叠切换图标 (旋转微交互取代生硬条件销毁重建) */}
                     {isProof && (
                         <button
                             type="button"
@@ -101,21 +88,22 @@ export function AcademicBlockComponent({
                                 e.stopPropagation();
                                 toggleFold();
                             }}
-                            className="p-1 -ml-1 text-muted-foreground hover:text-foreground rounded-md transition-colors"
+                            className="inline-flex h-6 w-6 items-center justify-center -ml-1 text-muted-foreground hover:text-foreground rounded-full active:scale-[0.94] transition-[transform,color,background-color] duration-150 cursor-pointer"
                             title={isFolded ? "展开证明" : "折叠证明"}
                         >
-                            {isFolded ? (
-                                <ChevronRight className="w-4 h-4 text-slate-500" />
-                            ) : (
-                                <ChevronDown className="w-4 h-4 text-slate-500" />
-                            )}
+                            <ChevronDown
+                                className={cn(
+                                    "w-4 h-4 text-slate-500 transition-transform duration-200 ease-[var(--ease-out-snappy)]",
+                                    isFolded && "-rotate-90"
+                                )}
+                            />
                         </button>
                     )}
 
-                    {/* 类型徽章 */}
+                    {/* 类型水滴徽章 */}
                     <span
                         className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold tracking-wide shrink-0",
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full border-0 text-xs font-medium tracking-wide shrink-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.65)]",
                             config.badgeBg
                         )}
                     >
@@ -145,22 +133,23 @@ export function AcademicBlockComponent({
                 </div>
 
                 {/* 操作工具栏 */}
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                    {/* 复制交叉引用 ID */}
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 opacity-0 group-hover/academic:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                        onClick={handleCopyAnchor}
-                        title="复制引用代号"
-                    >
-                        {copied ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                        )}
-                    </Button>
+                <div
+                    className="flex items-center gap-1 shrink-0 ml-2"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* 复制交叉引用 ID（微模糊融合） */}
+                    <div className="opacity-100 sm:opacity-0 sm:group-hover/academic:opacity-100 transition-opacity duration-150">
+                        <CopyMorphButton
+                            valueToCopy={refAnchorText}
+                            onCopied={() =>
+                                toast.success(`已复制交叉引用代码: ${refAnchorText}`)
+                            }
+                            surface="ghost"
+                            auraTone="amber"
+                            iconClassName="w-3.5 h-3.5"
+                            title="复制引用代号"
+                        />
+                    </div>
 
                     {/* 编辑态专属配置菜单 */}
                     {isEditable && (
@@ -170,12 +159,15 @@ export function AcademicBlockComponent({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
                                 >
                                     <MoreHorizontal className="w-3.5 h-3.5" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuContent
+                                align="end"
+                                className="w-48 rounded-2xl border-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl shadow-[0_16px_40px_-6px_rgba(0,0,0,0.16),inset_0_1px_0.5px_rgba(255,255,255,0.85)]"
+                            >
                                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                                     切换学术环境
                                 </DropdownMenuLabel>
@@ -194,9 +186,9 @@ export function AcademicBlockComponent({
                                                 })
                                             }
                                             className={cn(
-                                                "text-xs flex items-center justify-between",
+                                                "text-xs flex items-center justify-between rounded-xl cursor-pointer",
                                                 academicType === typeKey &&
-                                                    "font-bold text-primary"
+                                                    "font-medium text-primary"
                                             )}
                                         >
                                             <span>
@@ -215,7 +207,7 @@ export function AcademicBlockComponent({
                                     onClick={() =>
                                         setIsEditingHeader(!isEditingHeader)
                                     }
-                                    className="text-xs"
+                                    className="text-xs rounded-xl cursor-pointer"
                                 >
                                     <Hash className="w-3.5 h-3.5 mr-2" />
                                     {isEditingHeader
@@ -227,7 +219,7 @@ export function AcademicBlockComponent({
 
                                 <DropdownMenuItem
                                     onClick={() => deleteNode()}
-                                    className="text-xs text-destructive focus:text-destructive"
+                                    className="text-xs text-destructive focus:text-destructive rounded-xl cursor-pointer"
                                 >
                                     <Trash2 className="w-3.5 h-3.5 mr-2" />
                                     删除学术块
@@ -238,48 +230,79 @@ export function AcademicBlockComponent({
                 </div>
             </div>
 
-            {/* 编辑态：属性编辑折叠面板 */}
-            {isEditable && isEditingHeader && (
-                <div className="px-4 py-2.5 bg-background/80 border-b border-border/50 flex flex-wrap items-center gap-3 text-xs">
-                    <div className="flex items-center gap-1.5">
-                        <label className="text-muted-foreground font-medium">
-                            编号:
-                        </label>
-                        <input
-                            type="text"
-                            value={number}
-                            placeholder="如: 1.1 或 3"
-                            onChange={(e) =>
-                                updateAttributes({ number: e.target.value })
-                            }
-                            className="h-6 w-20 px-1.5 rounded border border-border bg-background text-foreground text-xs focus:outline-hidden focus:ring-1 focus:ring-primary"
-                        />
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
-                        <label className="text-muted-foreground font-medium">
-                            名称:
-                        </label>
-                        <input
-                            type="text"
-                            value={title}
-                            placeholder="如: 费马大定理 或 均值不等式"
-                            onChange={(e) =>
-                                updateAttributes({ title: e.target.value })
-                            }
-                            className="h-6 flex-1 px-1.5 rounded border border-border bg-background text-foreground text-xs focus:outline-hidden focus:ring-1 focus:ring-primary"
-                        />
-                    </div>
-                </div>
-            )}
+            {/* 渐变消融内部微光缝 */}
+            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
 
-            {/* 内容区域 (带折叠动效与 NodeViewContent) */}
+            {/* 编辑态：属性编辑折叠面板 */}
+            <AnimatePresence initial={false}>
+                {isEditable && isEditingHeader && (
+                    <motion.div
+                        initial={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        animate={prefersReducedMotion ? { opacity: 1 } : { height: "auto", opacity: 1 }}
+                        exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                        transition={{ duration: 0.18, ease: MOTION_EASINGS.snappy }}
+                        className="overflow-hidden"
+                    >
+                        <div className="px-4 py-2.5 bg-white/50 dark:bg-zinc-900/50 flex flex-wrap items-center gap-3 text-xs">
+                            <div className="flex items-center gap-1.5">
+                                <label className="text-muted-foreground font-medium">
+                                    编号:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={number}
+                                    placeholder="如: 1.1 或 3"
+                                    onChange={(e) =>
+                                        updateAttributes({ number: e.target.value })
+                                    }
+                                    className="h-7 w-24 px-3 rounded-full border-0 bg-zinc-100/90 dark:bg-zinc-800/90 text-foreground text-xs shadow-[inset_0_1px_1px_rgba(0,0,0,0.06)] focus:outline-hidden focus:ring-2 focus:ring-sky-500/30"
+                                />
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
+                                <label className="text-muted-foreground font-medium">
+                                    名称:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={title}
+                                    placeholder="如: 费马大定理 或 均值不等式"
+                                    onChange={(e) =>
+                                        updateAttributes({ title: e.target.value })
+                                    }
+                                    className="h-7 flex-1 px-3 rounded-full border-0 bg-zinc-100/90 dark:bg-zinc-800/90 text-foreground text-xs shadow-[inset_0_1px_1px_rgba(0,0,0,0.06)] focus:outline-hidden focus:ring-2 focus:ring-sky-500/30"
+                                />
+                            </div>
+                        </div>
+                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 内容区域 (带强劲曲线自适应折叠动效与 NodeViewContent) */}
             <AnimatePresence initial={false}>
                 {!isFolded && (
                     <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        initial={
+                            prefersReducedMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, height: 0 }
+                        }
+                        animate={
+                            prefersReducedMotion
+                                ? { opacity: 1 }
+                                : { opacity: 1, height: "auto" }
+                        }
+                        exit={
+                            prefersReducedMotion
+                                ? { opacity: 0 }
+                                : { opacity: 0, height: 0 }
+                        }
+                        transition={
+                            prefersReducedMotion
+                                ? { duration: 0.1 }
+                                : { duration: 0.22, ease: MOTION_EASINGS.snappy }
+                        }
+                        className="overflow-hidden"
                     >
                         <div className="p-4 relative">
                             {/* 富文本嵌套渲染槽位 */}
@@ -306,9 +329,9 @@ export function AcademicBlockComponent({
             {isFolded && (
                 <div
                     onClick={toggleFold}
-                    className="px-4 py-2 text-xs text-muted-foreground/70 italic cursor-pointer hover:bg-muted/20 flex items-center justify-between"
+                    className="px-4 py-2.5 text-xs text-muted-foreground/80 italic cursor-pointer [@media(hover:hover)_and_(pointer:fine)]:hover:bg-zinc-200/35 dark:[@media(hover:hover)_and_(pointer:fine)]:hover:bg-white/[0.04] transition-colors duration-150 flex items-center justify-between select-none"
                 >
-                    <span>证明推导过程已折叠（点击展开查看详细步骤）</span>
+                    <span>证明推导过程已折叠（点击展开完整推导步骤）</span>
                     <span className="font-serif text-[11px]">Q.E.D. ∎</span>
                 </div>
             )}

@@ -6,7 +6,7 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "@/lib/utils"
 
 function TooltipProvider({
-  delayDuration = 0,
+  delayDuration = 100,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
   return (
@@ -41,7 +41,7 @@ interface TooltipContentProps
 
 function TooltipContent({
   className,
-  sideOffset = 4,
+  sideOffset = 6,
   children,
   showArrow = false,
   ...props
@@ -52,14 +52,17 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          "bg-foreground text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-xs text-balance",
+          "animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-1.5 data-[side=left]:slide-in-from-right-1.5 data-[side=right]:slide-in-from-left-1.5 data-[side=top]:slide-in-from-bottom-1.5",
+          "z-50 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-2xl border-0 px-3 py-1.5 text-xs font-medium text-balance outline-none",
+          "bg-white/90 dark:bg-zinc-900/90 text-foreground backdrop-blur-2xl",
+          "shadow-[0_12px_36px_-4px_rgba(0,0,0,0.14),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_12px_36px_-4px_rgba(0,0,0,0.6),inset_0_1px_0.5px_rgba(255,255,255,0.12)]",
           className
         )}
         {...props}
       >
         {children}
         {showArrow && (
-          <TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5" />
+          <TooltipPrimitive.Arrow className="fill-white/90 dark:fill-zinc-900/90 z-50 size-2.5" />
         )}
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>

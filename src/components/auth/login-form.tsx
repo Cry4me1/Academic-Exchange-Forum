@@ -3,18 +3,47 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    DIVIDER_H,
+    OBSIDIAN_CTA,
+    SERIF_STACK,
+} from "@/components/landing/liquid-glass";
 import { createClient } from "@/lib/supabase/client";
-import { loginSchema, type LoginFormData, usernameLoginSchema, type UsernameLoginFormData } from "@/lib/validations/auth";
-import { getUsernamePseudoEmail } from "@/lib/auth-utils";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import { cn } from "@/lib/utils";
+import {
+    loginSchema,
+    type LoginFormData,
+    usernameLoginSchema,
+    type UsernameLoginFormData,
+} from "@/lib/validations/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle, KeyRound, Loader2, Mail, User, Copy, ExternalLink, HelpCircle } from "lucide-react";
+import {
+    AlertCircle,
+    ArrowRight,
+    Check,
+    CheckCircle2,
+    Copy,
+    ExternalLink,
+    HelpCircle,
+    KeyRound,
+    Loader2,
+    Mail,
+    User,
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter, useSearchParams } from "next/navigation";
+const LOGIN_TABS = [
+    { value: "magic-link", label: "邮箱链接" },
+    { value: "password", label: "账号密码" },
+    { value: "username", label: "用户名" },
+    { value: "luogu", label: "洛谷登录" },
+] as const;
 
 export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -31,10 +60,14 @@ export function LoginForm() {
     const [luoguError, setLuoguError] = useState<string | null>(null);
     const [showLuoguManual, setShowLuoguManual] = useState(false);
     const [luoguHtml, setLuoguHtml] = useState("");
+    const [copiedCode, setCopiedCode] = useState(false);
 
     useEffect(() => {
         const tabParam = searchParams.get("tab");
-        if (tabParam && ["magic-link", "password", "username", "luogu"].includes(tabParam)) {
+        if (
+            tabParam &&
+            ["magic-link", "password", "username", "luogu"].includes(tabParam)
+        ) {
             setActiveTab(tabParam);
         }
 
@@ -44,32 +77,46 @@ export function LoginForm() {
             toast.success("账号注册成功，请使用刚设置的用户名和密码登录");
         }
 
-        const error = searchParams.get("error");
+        const errParam = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
-        if (error) {
+        if (errParam) {
             setError(errorDescription || "登录验证失败，请重试");
         }
 
         const supabase = createClient();
-        
+
         // 获取重定向目标路径，优先使用 next 参数，否则默认为 /dashboard
         const next = searchParams.get("next") || "/dashboard";
 
-        // 🌟 客户端会话自动感知：监听 Auth 状态变化，实时消费 Hash 并写入 Cookie。
+        // 客户端会话自动感知：监听 Auth 状态变化，实时消费 Hash 并写入 Cookie。
         // 使用 window.location.replace 触发整页跳转，确保服务端能携带并识别最新的 Cookie。
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-            console.log(`[LoginForm] Auth state changed: ${event}`, session ? "Session exists" : "No session");
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(
+            (event: AuthChangeEvent, session: Session | null) => {
+            console.log(
+                `[LoginForm] Auth state changed: ${event}`,
+                session ? "Session exists" : "No session"
+            );
             if (session) {
-                console.log("[LoginForm] Active session detected via onAuthStateChange, redirecting to:", next);
+                console.log(
+                    "[LoginForm] Active session detected via onAuthStateChange, redirecting to:",
+                    next
+                );
                 window.location.replace(next);
             }
         });
 
         // 兜底立即检查已有会话
         const checkActiveSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
             if (session) {
-                console.log("[LoginForm] Active session detected via getSession, redirecting to:", next);
+                console.log(
+                    "[LoginForm] Active session detected via getSession, redirecting to:",
+                    next
+                );
                 window.location.replace(next);
             }
         };
@@ -109,6 +156,8 @@ export function LoginForm() {
         resetUsername();
         setLuoguId("");
         setLuoguVerifyCode("");
+        setShowLuoguManual(false);
+        setLuoguHtml("");
     };
 
     // 洛谷登录第一步：获取登录验证码
@@ -137,8 +186,9 @@ export function LoginForm() {
 
             setLuoguVerifyCode(data.verificationCode);
             toast.success("登录验证码生成成功！");
-        } catch (err: any) {
-            setLuoguError(err.message || "请求出错，请重试");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "请求出错，请重试";
+            setLuoguError(msg);
         } finally {
             setIsLuoguLoading(false);
         }
@@ -153,9 +203,12 @@ export function LoginForm() {
             const res = await fetch("/api/auth/luogu/login/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     luoguId: luoguId.trim(),
-                    luoguHtml: showLuoguManual && luoguHtml.trim() ? luoguHtml.trim() : undefined,
+                    luoguHtml:
+                        showLuoguManual && luoguHtml.trim()
+                            ? luoguHtml.trim()
+                            : undefined,
                 }),
             });
             const data = await res.json();
@@ -164,8 +217,9 @@ export function LoginForm() {
             toast.success("验证成功，正在登录...");
             // 重定向至 Supabase 生成的 Magic Link 完成登录会话初始化
             window.location.href = data.actionLink;
-        } catch (err: any) {
-            setLuoguError(err.message || "登录失败，请重试");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "登录失败，请重试";
+            setLuoguError(msg);
             setIsLuoguLoading(false);
             if (!showLuoguManual) {
                 setShowLuoguManual(true);
@@ -181,12 +235,9 @@ export function LoginForm() {
 
         try {
             if (activeTab === "magic-link") {
-                // 邮箱链接登录
-                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+                const siteUrl =
+                    process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
                 const redirectTo = `${siteUrl}/auth/callback?next=/dashboard`;
-
-                console.log("[Auth] Sending magic link to:", data.email);
-                console.log("[Auth] Redirect URL:", redirectTo);
 
                 const { error: authError } = await supabase.auth.signInWithOtp({
                     email: data.email,
@@ -196,10 +247,8 @@ export function LoginForm() {
                 });
 
                 if (authError) {
-                    console.error("[Auth] Magic link error:", authError);
                     throw authError;
                 }
-                console.log("[Auth] Magic link sent successfully");
                 setIsSuccess(true);
             } else {
                 const next = searchParams.get("next") || "/dashboard";
@@ -221,7 +270,8 @@ export function LoginForm() {
                         toast.error(result.error, {
                             action: {
                                 label: "去验证",
-                                onClick: () => router.push("/pending-verification"),
+                                onClick: () =>
+                                    router.push("/pending-verification"),
                             },
                         });
                     }
@@ -231,8 +281,10 @@ export function LoginForm() {
                 // 登录成功整页跳转（保证服务端识别最新 Cookie）
                 window.location.replace(next);
             }
-        } catch (err: any) {
-            setError(err.message || "登录请求出错，请稍后重试");
+        } catch (err: unknown) {
+            const msg =
+                err instanceof Error ? err.message : "登录请求出错，请稍后重试";
+            setError(msg);
         } finally {
             setIsLoading(false);
         }
@@ -271,91 +323,141 @@ export function LoginForm() {
         }
     };
 
+    const primaryCtaClass = cn(
+        OBSIDIAN_CTA,
+        "group relative w-full h-11 mt-2 overflow-hidden rounded-full font-medium cursor-pointer",
+        "transition-[transform,background-color,box-shadow,opacity] duration-140 ease-[var(--ease-out-snappy)] active:scale-[0.97]"
+    );
+
+    const errorBanner = (message: string) => (
+        <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-2xl border-0 bg-rose-500/[0.08] dark:bg-rose-500/[0.12] px-4 py-3 text-xs font-medium text-rose-600 dark:text-rose-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.55)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
+        >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+            <span className="leading-relaxed">{message}</span>
+        </div>
+    );
+
     if (isSuccess && activeTab === "magic-link") {
         return (
-            <div className="text-center space-y-4">
-                <div className="inline-flex p-4 rounded-full bg-green-500/10 text-green-500">
-                    <CheckCircle className="w-8 h-8" />
+            <div className="text-center space-y-5 py-3">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/[0.12] text-emerald-600 dark:text-emerald-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_0_20px_rgba(16,185,129,0.16)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_0_20px_rgba(16,185,129,0.2)]">
+                    <CheckCircle2 className="w-7 h-7" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">
-                    登录链接已发送！
-                </h3>
-                <p className="text-muted-foreground">
-                    请检查您的邮箱，点击链接完成登录。
-                </p>
-                <Button
-                    variant="outline"
-                    onClick={() => setIsSuccess(false)}
-                    className="mt-4"
-                >
-                    返回登录页
-                </Button>
+                <div className="space-y-1.5">
+                    <h3
+                        style={{ fontFamily: SERIF_STACK }}
+                        className="text-xl font-semibold text-zinc-900 dark:text-zinc-50"
+                    >
+                        登录链接已发送
+                    </h3>
+                    <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto">
+                        专属免密登录链接已投递至您的收件箱，点击邮件中的按钮即可直接进入工作台。
+                    </p>
+                </div>
+                <div className="pt-1">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsSuccess(false)}
+                        className="h-10 px-6 rounded-full border-0 text-xs font-medium"
+                    >
+                        返回切换其他登录方式
+                    </Button>
+                </div>
             </div>
         );
     }
 
-    const gradientButtonClass = "w-full h-11 mt-2 text-white font-semibold border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/25 dark:from-amber-500 dark:to-orange-500 dark:hover:from-amber-400 dark:hover:to-orange-400 dark:text-slate-950 dark:shadow-amber-500/25";
-
     return (
         <div className="space-y-6">
-            {/* 标题 */}
-            <div className="space-y-2 text-center">
-                <h1 className="text-2xl font-bold text-foreground">欢迎回来</h1>
-                <p className="text-muted-foreground">
-                    登录您的 Scholarly 账号
+            {/* 标题区 */}
+            <div className="space-y-1.5 text-center">
+                <h1
+                    style={{ fontFamily: SERIF_STACK }}
+                    className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
+                >
+                    欢迎回来
+                </h1>
+                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                    登录您的 Scholarly 学术账号
                 </p>
             </div>
 
-            <Tabs defaultValue="magic-link" value={activeTab} onValueChange={onTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-4">
-                    <TabsTrigger value="magic-link" className="text-xs px-1">邮箱链接</TabsTrigger>
-                    <TabsTrigger value="password" className="text-xs px-1">账号密码</TabsTrigger>
-                    <TabsTrigger value="username" className="text-xs px-1">用户名</TabsTrigger>
-                    <TabsTrigger value="luogu" className="text-xs px-1">洛谷登录</TabsTrigger>
+            <Tabs
+                defaultValue="magic-link"
+                value={activeTab}
+                onValueChange={onTabChange}
+                className="w-full"
+            >
+                {/* 四通道水滴胶囊分段切换器（原生集成 Tabs layoutId 流体物理滑块 + 琥珀微光晕） */}
+                <TabsList
+                    indicatorClassName="shadow-[0_2px_10px_-2px_rgba(0,0,0,0.08),inset_0_1px_0.5px_rgba(255,255,255,1),0_0_14px_rgba(245,158,11,0.12)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.5),inset_0_1px_0.5px_rgba(255,255,255,0.16),0_0_14px_rgba(245,158,11,0.16)]"
+                    className="grid w-full grid-cols-4 h-11 p-1 mb-4 bg-zinc-200/50 dark:bg-white/[0.06]"
+                >
+                    {LOGIN_TABS.map((tab) => (
+                        <TabsTrigger
+                            key={tab.value}
+                            value={tab.value}
+                            className="text-xs px-1 font-medium"
+                        >
+                            <span className="truncate">{tab.label}</span>
+                        </TabsTrigger>
+                    ))}
                 </TabsList>
 
                 {/* Tab 1: 邮箱链接登录 */}
                 <TabsContent value="magic-link" className="space-y-4 mt-0">
-                    <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
-                        {/* 邮箱输入 */}
+                    <form
+                        onSubmit={handleSubmitEmail(onEmailSubmit)}
+                        className="space-y-4"
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="magic-email">邮箱地址</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Label
+                                htmlFor="magic-email"
+                                className="text-zinc-800 dark:text-zinc-200"
+                            >
+                                邮箱地址
+                            </Label>
+                            <div className="group/field relative">
+                                <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
                                 <Input
                                     id="magic-email"
                                     type="email"
-                                    placeholder="your@email.com"
+                                    placeholder="your@university.edu"
+                                    aria-invalid={!!emailErrors.email}
                                     className="pl-10 h-11"
                                     {...registerEmail("email")}
                                 />
                             </div>
                             {emailErrors.email && (
-                                <p className="text-sm text-destructive">{emailErrors.email.message}</p>
+                                <p className="text-xs font-medium text-rose-600 dark:text-rose-400 pl-1">
+                                    {emailErrors.email.message}
+                                </p>
                             )}
                         </div>
 
-                        {/* 错误提示 */}
-                        {error && (
-                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                                <Loader2 className="w-4 h-4" />
-                                {error}
-                            </div>
-                        )}
+                        {error && errorBanner(error)}
 
-                        {/* 提交按钮 */}
                         <Button
                             type="submit"
-                            className={gradientButtonClass}
+                            className={primaryCtaClass}
                             disabled={isLoading}
                         >
+                            <span
+                                aria-hidden
+                                className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/65 dark:via-white/90 to-transparent"
+                            />
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    发送中...
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>发送中...</span>
                                 </>
                             ) : (
-                                "发送登录链接"
+                                <>
+                                    <span>发送免密登录链接</span>
+                                    <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                                </>
                             )}
                         </Button>
                     </form>
@@ -363,72 +465,89 @@ export function LoginForm() {
 
                 {/* Tab 2: 账号密码登录 */}
                 <TabsContent value="password" className="space-y-4 mt-0">
-                    <form onSubmit={handleSubmitEmail(onEmailSubmit)} className="space-y-4">
-                        {/* 邮箱输入 */}
+                    <form
+                        onSubmit={handleSubmitEmail(onEmailSubmit)}
+                        className="space-y-4"
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="pwd-email">邮箱地址</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Label
+                                htmlFor="pwd-email"
+                                className="text-zinc-800 dark:text-zinc-200"
+                            >
+                                邮箱地址
+                            </Label>
+                            <div className="group/field relative">
+                                <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
                                 <Input
                                     id="pwd-email"
                                     type="email"
-                                    placeholder="your@email.com"
+                                    placeholder="your@university.edu"
+                                    aria-invalid={!!emailErrors.email}
                                     className="pl-10 h-11"
                                     {...registerEmail("email")}
                                 />
                             </div>
                             {emailErrors.email && (
-                                <p className="text-sm text-destructive">{emailErrors.email.message}</p>
+                                <p className="text-xs font-medium text-rose-600 dark:text-rose-400 pl-1">
+                                    {emailErrors.email.message}
+                                </p>
                             )}
                         </div>
 
-                        {/* 密码输入 */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="pwd-password">密码</Label>
+                                <Label
+                                    htmlFor="pwd-password"
+                                    className="text-zinc-800 dark:text-zinc-200"
+                                >
+                                    密码
+                                </Label>
                                 <Link
                                     href="/forgot-password"
-                                    className="text-xs text-muted-foreground hover:text-orange-500 dark:hover:text-amber-400 hover:underline transition-colors"
+                                    className="rounded-full px-2 py-0.5 text-xs font-medium text-zinc-500 hover:text-amber-700 hover:bg-[rgba(245,158,11,0.10)] dark:text-zinc-400 dark:hover:text-amber-300 transition-colors"
                                 >
                                     忘记密码？
                                 </Link>
                             </div>
-                            <div className="relative">
-                                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <div className="group/field relative">
+                                <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
                                 <Input
                                     id="pwd-password"
                                     type="password"
                                     placeholder="请输入密码"
+                                    aria-invalid={!!emailErrors.password}
                                     className="pl-10 h-11"
                                     {...registerEmail("password")}
                                 />
                             </div>
                             {emailErrors.password && (
-                                <p className="text-sm text-destructive">{emailErrors.password.message}</p>
+                                <p className="text-xs font-medium text-rose-600 dark:text-rose-400 pl-1">
+                                    {emailErrors.password.message}
+                                </p>
                             )}
                         </div>
 
-                        {/* 错误提示 */}
-                        {error && (
-                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                                <Loader2 className="w-4 h-4" />
-                                {error}
-                            </div>
-                        )}
+                        {error && errorBanner(error)}
 
-                        {/* 提交按钮 */}
                         <Button
                             type="submit"
-                            className={gradientButtonClass}
+                            className={primaryCtaClass}
                             disabled={isLoading}
                         >
+                            <span
+                                aria-hidden
+                                className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/65 dark:via-white/90 to-transparent"
+                            />
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    登录中...
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>登录中...</span>
                                 </>
                             ) : (
-                                "登录"
+                                <>
+                                    <span>登录</span>
+                                    <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                                </>
                             )}
                         </Button>
                     </form>
@@ -436,64 +555,81 @@ export function LoginForm() {
 
                 {/* Tab 3: 用户名登录 */}
                 <TabsContent value="username" className="space-y-4 mt-0">
-                    <form onSubmit={handleSubmitUsername(onUsernameSubmit)} className="space-y-4">
-                        {/* 用户名输入 */}
+                    <form
+                        onSubmit={handleSubmitUsername(onUsernameSubmit)}
+                        className="space-y-4"
+                    >
                         <div className="space-y-2">
-                            <Label htmlFor="uname-username">用户名</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Label
+                                htmlFor="uname-username"
+                                className="text-zinc-800 dark:text-zinc-200"
+                            >
+                                学者用户名
+                            </Label>
+                            <div className="group/field relative">
+                                <User className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
                                 <Input
                                     id="uname-username"
                                     type="text"
                                     placeholder="请输入用户名"
+                                    aria-invalid={!!usernameErrors.username}
                                     className="pl-10 h-11"
                                     {...registerUsername("username")}
                                 />
                             </div>
                             {usernameErrors.username && (
-                                <p className="text-sm text-destructive">{usernameErrors.username.message}</p>
+                                <p className="text-xs font-medium text-rose-600 dark:text-rose-400 pl-1">
+                                    {usernameErrors.username.message}
+                                </p>
                             )}
                         </div>
 
-                        {/* 密码输入 */}
                         <div className="space-y-2">
-                            <Label htmlFor="uname-password">密码</Label>
-                            <div className="relative">
-                                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Label
+                                htmlFor="uname-password"
+                                className="text-zinc-800 dark:text-zinc-200"
+                            >
+                                密码
+                            </Label>
+                            <div className="group/field relative">
+                                <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
                                 <Input
                                     id="uname-password"
                                     type="password"
                                     placeholder="请输入密码"
+                                    aria-invalid={!!usernameErrors.password}
                                     className="pl-10 h-11"
                                     {...registerUsername("password")}
                                 />
                             </div>
                             {usernameErrors.password && (
-                                <p className="text-sm text-destructive">{usernameErrors.password.message}</p>
+                                <p className="text-xs font-medium text-rose-600 dark:text-rose-400 pl-1">
+                                    {usernameErrors.password.message}
+                                </p>
                             )}
                         </div>
 
-                        {/* 错误提示 */}
-                        {error && (
-                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                                <Loader2 className="w-4 h-4" />
-                                {error}
-                            </div>
-                        )}
+                        {error && errorBanner(error)}
 
-                        {/* 提交按钮 */}
                         <Button
                             type="submit"
-                            className={gradientButtonClass}
+                            className={primaryCtaClass}
                             disabled={isLoading}
                         >
+                            <span
+                                aria-hidden
+                                className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/65 dark:via-white/90 to-transparent"
+                            />
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    登录中...
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>登录中...</span>
                                 </>
                             ) : (
-                                "登录"
+                                <>
+                                    <span>登录</span>
+                                    <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                                </>
                             )}
                         </Button>
                     </form>
@@ -502,45 +638,45 @@ export function LoginForm() {
                 {/* Tab 4: 洛谷登录 */}
                 <TabsContent value="luogu" className="space-y-4 mt-0">
                     <form onSubmit={handleLuoguInit} className="space-y-4">
-                        {/* 洛谷 UID */}
                         <div className="space-y-2">
-                            <Label htmlFor="luogu-login-uid">洛谷 UID (纯数字)</Label>
-                            <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center font-bold text-xs text-red-500 w-4 h-4">
+                            <Label
+                                htmlFor="luogu-login-uid"
+                                className="text-zinc-800 dark:text-zinc-200"
+                            >
+                                洛谷 UID (纯数字)
+                            </Label>
+                            <div className="group/field relative">
+                                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/[0.14] text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                                     谷
-                                </div>
+                                </span>
                                 <Input
                                     id="luogu-login-uid"
                                     type="text"
+                                    inputMode="numeric"
                                     placeholder="例如: 384039"
-                                    className="pl-10 h-11"
+                                    className="pl-10 h-11 font-mono"
                                     value={luoguId}
                                     onChange={(e) => setLuoguId(e.target.value)}
-                                    disabled={isLuoguLoading || !!luoguVerifyCode}
+                                    disabled={
+                                        isLuoguLoading || !!luoguVerifyCode
+                                    }
                                 />
                             </div>
                         </div>
 
-                        {/* 错误提示 */}
-                        {luoguError && (
-                            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 shrink-0" />
-                                <span className="leading-snug">{luoguError}</span>
-                            </div>
-                        )}
+                        {luoguError && errorBanner(luoguError)}
 
-                        {/* 如果已生成验证码，显示操作步骤 */}
                         {luoguVerifyCode ? (
-                            <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/10 border border-orange-200/50 dark:border-orange-900/30 space-y-3">
-                                <h4 className="text-xs font-semibold text-orange-800 dark:text-orange-400 flex items-center gap-1">
-                                    <HelpCircle className="h-3.5 w-3.5" />
-                                    登录验证步骤：
+                            <div className="rounded-2xl border-0 bg-amber-500/[0.08] dark:bg-amber-500/[0.07] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] p-4 space-y-3.5">
+                                <h4 className="text-xs font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                                    <HelpCircle className="h-3.5 w-3.5 shrink-0" />
+                                    <span>洛谷身份核验步骤</span>
                                 </h4>
-                                <ol className="text-xs text-muted-foreground space-y-2 list-decimal list-inside">
+                                <ol className="text-xs text-zinc-600 dark:text-zinc-300 space-y-2.5 list-decimal list-inside">
                                     <li className="leading-relaxed">
                                         复制您的专属登录验证码：
                                         <div className="mt-1.5 flex items-center gap-2">
-                                            <code className="px-2 py-0.5 rounded bg-background border border-border text-foreground font-mono text-[10px] block flex-1 overflow-x-auto">
+                                            <code className="px-3 py-1.5 rounded-full border-0 bg-white/80 dark:bg-zinc-950/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] text-zinc-900 dark:text-zinc-100 font-mono text-[11px] block flex-1 overflow-x-auto">
                                                 {luoguVerifyCode}
                                             </code>
                                             <Button
@@ -548,29 +684,51 @@ export function LoginForm() {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => {
-                                                    navigator.clipboard.writeText(luoguVerifyCode);
-                                                    toast.success("登录验证码已复制");
+                                                    navigator.clipboard.writeText(
+                                                        luoguVerifyCode
+                                                    );
+                                                    setCopiedCode(true);
+                                                    toast.success(
+                                                        "登录验证码已复制"
+                                                    );
+                                                    setTimeout(
+                                                        () =>
+                                                            setCopiedCode(
+                                                                false
+                                                            ),
+                                                        1800
+                                                    );
                                                 }}
-                                                className="h-6 text-[10px] px-2"
+                                                className="h-7 rounded-full border-0 px-3 text-[11px] font-medium"
                                             >
-                                                复制
+                                                {copiedCode ? (
+                                                    <>
+                                                        <Check className="h-3 w-3 text-emerald-500" />
+                                                        <span>已复制</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy className="h-3 w-3" />
+                                                        <span>复制</span>
+                                                    </>
+                                                )}
                                             </Button>
                                         </div>
                                     </li>
                                     <li className="leading-relaxed">
-                                        在
+                                        前往
                                         <a
                                             href="https://www.luogu.com.cn/"
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="text-primary hover:underline font-semibold mx-1"
+                                            className="text-amber-700 dark:text-amber-300 hover:underline font-medium mx-1"
                                         >
                                             洛谷个人中心
                                         </a>
-                                        中，将验证码保存到您的“个人介绍”。
+                                        将验证码临时保存至“个人介绍”。
                                     </li>
                                     <li className="leading-relaxed">
-                                        完成设置后，点击下方的“验证并登录”。
+                                        保存完成后，点击下方“验证并登录”。
                                     </li>
                                 </ol>
 
@@ -579,15 +737,22 @@ export function LoginForm() {
                                         type="button"
                                         onClick={handleLuoguVerify}
                                         disabled={isLuoguLoading}
-                                        className="flex-1 h-9 text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 dark:from-amber-500 dark:to-orange-500 dark:text-slate-950"
+                                        className={cn(
+                                            OBSIDIAN_CTA,
+                                            "relative flex-1 h-10 overflow-hidden rounded-full text-xs font-medium"
+                                        )}
                                     >
+                                        <span
+                                            aria-hidden
+                                            className="pointer-events-none absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/60 dark:via-white/90 to-transparent"
+                                        />
                                         {isLuoguLoading ? (
                                             <>
-                                                <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-                                                验证登录中...
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                <span>验证登录中...</span>
                                             </>
                                         ) : (
-                                            "验证并登录"
+                                            <span>验证并登录</span>
                                         )}
                                     </Button>
                                     <Button
@@ -599,7 +764,7 @@ export function LoginForm() {
                                             setShowLuoguManual(false);
                                             setLuoguHtml("");
                                         }}
-                                        className="h-9 text-xs"
+                                        className="h-10 rounded-full border-0 px-4 text-xs font-medium"
                                         disabled={isLuoguLoading}
                                     >
                                         上一步
@@ -607,53 +772,74 @@ export function LoginForm() {
                                 </div>
 
                                 {!showLuoguManual && (
-                                    <div className="text-center">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowLuoguManual(true)} 
-                                            className="text-[10px] text-muted-foreground hover:text-primary underline mt-1"
+                                    <div className="text-center pt-0.5">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowLuoguManual(true)
+                                            }
+                                            className="rounded-full px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors cursor-pointer"
                                         >
-                                            网络受限？尝试手动验证
+                                            网络受限？切换手动源码验证
                                         </button>
                                     </div>
                                 )}
 
                                 {showLuoguManual && (
-                                    <div className="mt-3 p-3 rounded-lg border border-dashed border-orange-300 dark:border-orange-900 bg-orange-50/20 dark:bg-orange-950/5 space-y-2.5">
-                                        <div className="text-[11px] text-orange-800 dark:text-orange-400 font-semibold flex items-center justify-between">
-                                            <span>🌐 服务器海外连接受限，请使用手动网页源码验证：</span>
-                                            <button 
-                                                type="button" 
-                                                className="text-[9px] underline hover:text-orange-600"
+                                    <div className="mt-2 p-3.5 rounded-2xl border-0 bg-white/60 dark:bg-zinc-950/45 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] space-y-2.5">
+                                        <div className="text-[11px] text-amber-800 dark:text-amber-300 font-medium flex items-center justify-between gap-2">
+                                            <span>
+                                                手动网页源码核验模式
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="rounded-full px-2 py-0.5 text-[10px] font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer"
                                                 onClick={() => {
                                                     setShowLuoguManual(false);
                                                     setLuoguHtml("");
                                                 }}
                                             >
-                                                隐藏手动模式
+                                                收起
                                             </button>
                                         </div>
-                                        <ol className="list-decimal list-inside text-[10px] text-muted-foreground space-y-1 leading-relaxed">
+                                        <ol className="list-decimal list-inside text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1.5 leading-relaxed">
                                             <li>
-                                                点此打开洛谷数据页面：
-                                                <a 
-                                                    href={`https://www.luogu.com.cn/user/${luoguId.trim()}?_contentOnly=1`} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="text-primary font-semibold hover:underline inline-flex items-center ml-0.5"
+                                                打开洛谷数据页：
+                                                <a
+                                                    href={`https://www.luogu.com.cn/user/${luoguId.trim()}?_contentOnly=1`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-amber-700 dark:text-amber-300 font-medium hover:underline inline-flex items-center ml-1"
                                                 >
-                                                    打开数据页面
-                                                    <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                                                    <span>打开数据页面</span>
+                                                    <ExternalLink className="h-3 w-3 ml-0.5" />
                                                 </a>
                                             </li>
-                                            <li>在打开的网页中<strong>右键选择查看网页源代码</strong> (或按 <kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+U</kbd>)</li>
-                                            <li>按 <kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+A</kbd> 全选，<kbd className="px-1 rounded bg-muted border text-[9px]">Ctrl+C</kbd> 复制全部代码，并粘贴在下方：</li>
+                                            <li>
+                                                右键查看网页源代码（或按{" "}
+                                                <kbd className="rounded-full border-0 bg-zinc-200/70 dark:bg-white/[0.1] px-2 py-0.5 text-[10px] font-mono">
+                                                    Ctrl+U
+                                                </kbd>
+                                                ）
+                                            </li>
+                                            <li>
+                                                全选复制全部代码并粘贴至下方：
+                                            </li>
                                         </ol>
                                         <textarea
-                                            className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-[10px] font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                            placeholder="请在这里粘贴刚才复制的网页全部源代码..."
+                                            className={cn(
+                                                "flex min-h-[88px] w-full rounded-2xl border-0 px-3.5 py-2.5 text-base md:text-xs font-mono outline-none transition-all duration-200",
+                                                "bg-zinc-200/45 focus-visible:bg-white/90 text-zinc-900 placeholder:text-zinc-400",
+                                                "dark:bg-white/[0.05] dark:focus-visible:bg-zinc-900/85 dark:text-zinc-100 dark:placeholder:text-zinc-500",
+                                                "shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]",
+                                                "focus-visible:shadow-[0_4px_20px_-4px_rgba(14,165,233,0.16),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:focus-visible:shadow-[0_4px_20px_-4px_rgba(14,165,233,0.2),inset_0_1px_0.5px_rgba(255,255,255,0.2)]",
+                                                "disabled:cursor-not-allowed disabled:opacity-50"
+                                            )}
+                                            placeholder="在此粘贴复制的网页全部源代码..."
                                             value={luoguHtml}
-                                            onChange={(e) => setLuoguHtml(e.target.value)}
+                                            onChange={(e) =>
+                                                setLuoguHtml(e.target.value)
+                                            }
                                             disabled={isLuoguLoading}
                                             rows={4}
                                         />
@@ -661,19 +847,25 @@ export function LoginForm() {
                                 )}
                             </div>
                         ) : (
-                            /* 获取验证码按钮 */
                             <Button
                                 type="submit"
-                                className={gradientButtonClass}
+                                className={primaryCtaClass}
                                 disabled={isLuoguLoading}
                             >
+                                <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-x-6 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/65 dark:via-white/90 to-transparent"
+                                />
                                 {isLuoguLoading ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                        请求中...
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>生成中...</span>
                                     </>
                                 ) : (
-                                    "获取登录验证码"
+                                    <>
+                                        <span>获取登录验证码</span>
+                                        <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                                    </>
                                 )}
                             </Button>
                         )}
@@ -681,14 +873,17 @@ export function LoginForm() {
                 </TabsContent>
             </Tabs>
 
-            {/* 注册链接 */}
-            <p className="text-center text-sm text-muted-foreground">
-                还没有账号？{" "}
+            {/* 渐变消融内部光缝 */}
+            <div className={DIVIDER_H} />
+
+            {/* 注册引导 */}
+            <p className="text-center text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                还没有学者账号？{" "}
                 <Link
                     href="/register"
-                    className="text-orange-500 dark:text-amber-400 hover:text-orange-600 dark:hover:text-amber-300 hover:underline font-medium transition-colors"
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.10)] hover:bg-[rgba(245,158,11,0.18)] transition-colors"
                 >
-                    立即注册
+                    立即受邀注册
                 </Link>
             </p>
         </div>

@@ -1,12 +1,12 @@
-
 import { Toaster } from "@/components/ui/sonner";
 import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
 import { I18nProvider } from "@/i18n/context";
+import { cookies } from "next/headers";
+import type { Locale } from "@/i18n/types";
 import "katex/dist/katex.min.css";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-
 
 const geistSans = localFont({
   src: [{ path: "./fonts/GeistVF.woff2", style: "normal" }],
@@ -39,18 +39,24 @@ export const metadata: Metadata = {
   description: "现代化学术交流平台，支持 LaTeX 公式、代码高亮和图表渲染",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const localeCookie =
+    cookieStore.get("NEXT_LOCALE")?.value ||
+    cookieStore.get("scholarly_lang")?.value;
+  const initialLocale: Locale = localeCookie === "en" ? "en" : "zh";
+
   return (
-    <html lang="zh" suppressHydrationWarning>
+    <html lang={initialLocale} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>
           {children}
         </I18nProvider>
         <AuthRedirectHandler />

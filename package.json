@@ -1,13 +1,14 @@
 {
   "name": "academic_forum",
-  "version": "1.1.8",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "embed:sync": "node scripts/sync_embeddings.mjs"
+    "embed:sync": "node scripts/sync_embeddings.mjs",
+    "skills:update": "npx skills@latest update"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.2",

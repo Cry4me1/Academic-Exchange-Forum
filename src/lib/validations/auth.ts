@@ -17,8 +17,10 @@ export const registerSchema = z
         email: z.string().email("请输入有效的邮箱地址"),
         password: passwordSchema,
         confirmPassword: passwordSchema,
-        captchaCode: z.string().min(1, "请输入人机验证码"),
-        captchaToken: z.string().min(1, "缺少人机验证签名"),
+        turnstileToken: z
+            .string()
+            .min(1, "请先完成人机安全验证")
+            .max(2048, "人机验证凭证异常"),
         inviteCode: z.string().optional(),
         honeypot: z.string().optional(),
         renderedAt: z.number().optional(),
@@ -66,8 +68,10 @@ export const usernameRegisterSchema = z
             .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, "用户名只能包含字母、数字、下划线或中文"),
         password: passwordSchema,
         confirmPassword: passwordSchema,
-        captchaCode: z.string().min(1, "请输入人机验证码"),
-        captchaToken: z.string().min(1, "缺少人机验证签名"),
+        turnstileToken: z
+            .string()
+            .min(1, "请先完成人机安全验证")
+            .max(2048, "人机验证凭证异常"),
         inviteCode: z.string().optional(),
         honeypot: z.string().optional(),
         renderedAt: z.number().optional(),
@@ -90,6 +94,3 @@ export const generateInviteCodesSchema = z.object({
 });
 
 export type GenerateInviteCodesFormData = z.infer<typeof generateInviteCodesSchema>;
-
-
-

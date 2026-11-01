@@ -14,35 +14,42 @@ import {
     Send,
     Loader2,
     AlertTriangle,
-    CheckCircle,
-    Star,
     Zap,
     BookOpen,
     Brain,
+    Eye,
+    EyeOff,
 } from "lucide-react";
-import { ReputationBadge } from "@/components/duel/ReputationBadge";
 import { DuelScoreCard } from "@/components/duel/DuelScoreCard";
+import { DuelCrystalArena } from "@/components/duel/DuelCrystalArena";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "@/lib/utils";
 import dynamic from "next/dynamic";
-
-const NovelEditor = dynamic(() => import("@/components/editor/NovelEditor"), {
-    ssr: false,
-    loading: () => <div className="h-[200px] w-full bg-muted/20 animate-pulse rounded-lg border flex items-center justify-center text-sm text-muted-foreground">编辑器加载中...</div>
-});
-
-const NovelViewer = dynamic(() => import("@/components/editor/NovelViewer"), {
-    ssr: false,
-    loading: () => <div className="h-20 w-full bg-muted/10 animate-pulse rounded-lg border flex items-center justify-center text-sm text-muted-foreground">内容加载中...</div>
-});
 import { SpectatorBadge, Spectator } from "@/components/duel/SpectatorBadge";
 import { DanmakuOverlay, DanmakuMessage } from "@/components/duel/DanmakuOverlay";
 import { DanmakuHistoryPanel, DanmakuRecord } from "@/components/duel/DanmakuHistoryPanel";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, MessageSquareText, ShieldAlert } from "lucide-react";
 import { SpectatorBetPanel } from "@/components/duel/SpectatorBetPanel";
-import { Progress } from "@/components/ui/progress";
+import { MOTION_EASINGS } from "@/lib/motion-tokens";
+
+const NovelEditor = dynamic(() => import("@/components/editor/NovelEditor"), {
+    ssr: false,
+    loading: () => (
+        <div className="h-[200px] w-full bg-zinc-100/60 dark:bg-white/[0.04] animate-pulse rounded-2xl border-0 flex items-center justify-center text-sm text-muted-foreground">
+            编辑器加载中...
+        </div>
+    ),
+});
+
+const NovelViewer = dynamic(() => import("@/components/editor/NovelViewer"), {
+    ssr: false,
+    loading: () => (
+        <div className="h-20 w-full bg-zinc-100/40 dark:bg-white/[0.03] animate-pulse rounded-2xl border-0 flex items-center justify-center text-sm text-muted-foreground">
+            内容加载中...
+        </div>
+    ),
+});
 
 interface Profile {
     id: string;
@@ -136,7 +143,7 @@ export default function DuelDetailClient({
     const [supabase] = useState(() => createClient());
     const processedIds = useRef(new Set(initialRounds.map(r => r.id)));
 
-    // 新增：弹幕与围观状态
+    // 弹幕与围观状态
     const [spectators, setSpectators] = useState<Spectator[]>([]);
     const [danmakuInput, setDanmakuInput] = useState("");
     const [danmakuVisible, setDanmakuVisible] = useState(true);
@@ -230,11 +237,9 @@ export default function DuelDetailClient({
             },
             async (payload: any) => {
                 if (payload.eventType === "INSERT") {
-                    // Check duplicate immediately
                     if (processedIds.current.has(payload.new.id)) return;
                     processedIds.current.add(payload.new.id);
 
-                    // 获取完整的回合数据
                     const { data: newRound } = await supabase
                         .from("duel_rounds")
                         .select(`
@@ -248,7 +253,6 @@ export default function DuelDetailClient({
 
                     if (newRound) {
                         setRounds((prev) => {
-                            // Double safety check
                             if (prev.some(r => r.id === newRound.id)) return prev;
                             return [...prev, newRound];
                         });
@@ -272,8 +276,7 @@ export default function DuelDetailClient({
                 table: "duels",
                 filter: `id=eq.${currentDuel.id}`,
             },
-            async (payload: any) => {
-                // 当收到更新通知时，重新获取完整的决斗数据，以确保关联数据（如 winner, opponent）正确加载
+            async () => {
                 const { data: updatedDuel } = await supabase
                     .from("duels")
                     .select(`
@@ -295,7 +298,6 @@ export default function DuelDetailClient({
                 if (updatedDuel) {
                     setCurrentDuel(updatedDuel as unknown as Duel);
 
-                    // Update turn state
                     if (currentUser && updatedDuel.current_turn_user_id) {
                         setIsMyTurn(updatedDuel.current_turn_user_id === currentUser.id);
                     }
@@ -320,10 +322,10 @@ export default function DuelDetailClient({
                         .eq("id", payload.new.user_id)
                         .single();
 
-                    const role = payload.new.user_id === currentDuel.challenger_id 
+                    const role = payload.new.user_id === currentDuel.challenger_id
                         ? "challenger" as const
                         : (payload.new.user_id === currentDuel.opponent_id ? "opponent" as const : "spectator" as const);
-                    
+
                     const username = userProfile?.username || "神秘学者";
 
                     setLatestDanmaku({
@@ -334,7 +336,6 @@ export default function DuelDetailClient({
                         positionColor: role,
                     });
 
-                    // 追加到弹幕历史记录
                     setDanmakuHistory((prev) => [
                         ...prev,
                         {
@@ -357,17 +358,17 @@ export default function DuelDetailClient({
         channel.on("presence", { event: "sync" }, () => {
             const state = channel.presenceState();
             const onlineList: Spectator[] = [];
-            
+
             Object.keys(state).forEach((key) => {
                 const presences = state[key] as any[];
                 presences.forEach((p) => {
                     const isChallenger = p.username === currentDuel.challenger.username;
                     const isOpponent = currentDuel.opponent && p.username === currentDuel.opponent.username;
-                    
+
                     if (
-                        p.username && 
-                        !isChallenger && 
-                        !isOpponent && 
+                        p.username &&
+                        !isChallenger &&
+                        !isOpponent &&
                         !onlineList.some(o => o.username === p.username)
                     ) {
                         onlineList.push({
@@ -380,7 +381,6 @@ export default function DuelDetailClient({
             setSpectators(onlineList);
         });
 
-        // 订阅频道并进行 track
         channel.subscribe(async (status: any) => {
             if (status === "SUBSCRIBED") {
                 await channel.track({
@@ -492,7 +492,6 @@ export default function DuelDetailClient({
                 .single();
 
             if (error) {
-                // 检查是否是重复内容的数据库拦截
                 if (error.message?.includes("duplicate_content")) {
                     toast.error("不允许提交与之前完全相同的内容");
                     return;
@@ -616,20 +615,20 @@ export default function DuelDetailClient({
 
                 // Determine winner logic with KO priority
                 if (newChallengerLp <= 0) {
-                     updatePayload.winner_id = currentDuel.opponent_id;
+                    updatePayload.winner_id = currentDuel.opponent_id;
                 } else if (newOpponentLp <= 0) {
-                     updatePayload.winner_id = currentDuel.challenger_id;
+                    updatePayload.winner_id = currentDuel.challenger_id;
                 } else if (newChallengerScore <= -30) {
-                     updatePayload.winner_id = currentDuel.opponent_id;
+                    updatePayload.winner_id = currentDuel.opponent_id;
                 } else if (newOpponentScore <= -30) {
-                     updatePayload.winner_id = currentDuel.challenger_id;
+                    updatePayload.winner_id = currentDuel.challenger_id;
                 } else if (newChallengerScore > newOpponentScore) {
                     updatePayload.winner_id = currentDuel.challenger_id;
                 } else if (newOpponentScore > newChallengerScore && currentDuel.opponent_id) {
                     updatePayload.winner_id = currentDuel.opponent_id;
                 }
 
-                toast.success(koType ? `决斗结束，判定 T.K.O！` : `决斗结束！正在生成总结...`);
+                toast.success(koType ? "决斗结束，判定 T.K.O！" : "决斗结束！正在生成总结...");
             } else {
                 updatePayload.current_round = currentRoundNumber;
                 updatePayload.current_turn_user_id = isChallenger
@@ -691,11 +690,11 @@ export default function DuelDetailClient({
     if (!isMounted) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative flex flex-col">
-                <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+                <header className="sticky top-0 z-50 bg-white/75 dark:bg-zinc-900/65 backdrop-blur-2xl border-0 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)]">
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
                             <Link href="/duels">
-                                <Button variant="ghost" size="sm" className="gap-2">
+                                <Button variant="ghost" size="sm" className="gap-2 rounded-full">
                                     <ArrowLeft className="h-4 w-4" />
                                     返回决斗场
                                 </Button>
@@ -719,18 +718,18 @@ export default function DuelDetailClient({
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative">
-            {/* 顶部导航 */}
-            <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+            {/* 顶部导航（无边框液态流光毛玻璃） */}
+            <header className="sticky top-0 z-50 bg-white/75 dark:bg-zinc-900/65 backdrop-blur-2xl border-0 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.38),inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <Link href="/duels">
-                            <Button variant="ghost" size="sm" className="gap-2">
+                            <Button variant="ghost" size="sm" className="gap-2 rounded-full">
                                 <ArrowLeft className="h-4 w-4" />
                                 返回决斗场
                             </Button>
                         </Link>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
                             {/* 观战人数显示 */}
                             {currentDuel.status === "active" && isMounted && (
                                 <SpectatorBadge spectators={spectators} />
@@ -743,7 +742,7 @@ export default function DuelDetailClient({
                                     size="icon"
                                     onClick={() => setDanmakuVisible(!danmakuVisible)}
                                     title={danmakuVisible ? "屏蔽弹幕" : "开启弹幕"}
-                                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                                    className="text-muted-foreground hover:text-foreground h-8 w-8 rounded-full"
                                 >
                                     {danmakuVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                 </Button>
@@ -751,22 +750,23 @@ export default function DuelDetailClient({
 
                             <div className="flex items-center gap-2">
                                 {currentDuel.status === "active" && (
-                                    <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/30">
+                                    <Badge variant="default" className="rounded-full border-0 bg-emerald-500/14 text-emerald-700 dark:text-emerald-300 font-medium px-3 py-0.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.65)]">
                                         <span className="animate-pulse mr-1">●</span> 进行中
                                     </Badge>
                                 )}
                                 {currentDuel.status === "completed" && (
-                                    <Badge variant="outline">
-                                        {currentDuel.ko_type ? "KO 结束" : "已完成"}
+                                    <Badge variant="secondary" className="rounded-full border-0 bg-amber-500/14 text-amber-700 dark:text-amber-300 font-medium px-3 py-0.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.65)]">
+                                        {currentDuel.ko_type ? "KO 结束" : "已完赛"}
                                     </Badge>
                                 )}
-                                <span className="text-sm text-muted-foreground">
+                                <span className="text-xs sm:text-sm text-muted-foreground font-mono tabular-nums font-medium">
                                     第 {currentDuel.current_round}/{currentDuel.max_rounds} 回合
                                 </span>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
             </header>
 
             <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
@@ -774,153 +774,28 @@ export default function DuelDetailClient({
                 {isMounted && myRole === "spectator" && (
                     <DanmakuOverlay newDanmaku={latestDanmaku} visible={danmakuVisible} />
                 )}
+
                 {/* 辩题 */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.24, ease: MOTION_EASINGS.snappy }}
                     className="text-center mb-8"
                 >
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{currentDuel.topic}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">{currentDuel.topic}</h1>
                     {currentDuel.description && (
-                        <p className="text-muted-foreground">{currentDuel.description}</p>
+                        <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">{currentDuel.description}</p>
                     )}
                 </motion.div>
 
-                {/* VS 对战展示 */}
+                {/* 3D 晶体翻转对战竞技舱（正面实时对战态势 / 背面 AI 多维量化裁决） */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                    transition={{ duration: 0.26, delay: 0.05, ease: MOTION_EASINGS.snappy }}
                     className="mb-8"
                 >
-                    <Card className="overflow-hidden">
-                        <CardContent className="p-4 sm:p-6">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-                                <div className="flex-1 text-center">
-                                    <div className="relative inline-block">
-                                        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mx-auto mb-2 sm:mb-3 ring-4 ring-blue-500/30">
-                                            <AvatarImage src={currentDuel.challenger?.avatar_url} />
-                                            <AvatarFallback className="bg-blue-500/10 text-blue-600 text-lg sm:text-xl">
-                                                {currentDuel.challenger?.username?.slice(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        {currentDuel.winner_id === currentDuel.challenger_id && (
-                                            <Trophy className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500" />
-                                        )}
-                                    </div>
-                                    <p className="font-semibold text-base sm:text-lg">
-                                        {currentDuel.challenger?.username || "学者"}
-                                    </p>
-                                    <Badge variant="outline" className="mt-1 bg-blue-500/5 border-blue-500/30 text-blue-600 text-xs sm:text-sm">
-                                        {currentDuel.challenger_position}
-                                    </Badge>
-                                    {currentDuel.challenger?.reputation_score !== undefined && (
-                                        <div className="mt-2 hidden sm:block">
-                                            <ReputationBadge
-                                                score={currentDuel.challenger.reputation_score}
-                                                wins={currentDuel.challenger.duel_wins}
-                                                losses={currentDuel.challenger.duel_losses}
-                                                size="sm"
-                                                showStats
-                                            />
-                                        </div>
-                                    )}
-                                    
-                                    <div className="mt-4 px-4">
-                                        <div className="flex justify-between text-xs font-semibold mb-1">
-                                            <span className="flex items-center gap-1 text-muted-foreground"><ShieldAlert className="h-3 w-3" /> LP</span>
-                                            <span className={currentDuel.challenger_lp <= 30 ? "text-red-500" : currentDuel.challenger_lp <= 60 ? "text-yellow-500" : "text-green-500"}>
-                                                {currentDuel.challenger_lp ?? 100} / 100
-                                            </span>
-                                        </div>
-                                        <Progress 
-                                            value={currentDuel.challenger_lp ?? 100} 
-                                            max={100}
-                                            className="h-2" 
-                                            indicatorClassName={
-                                                (currentDuel.challenger_lp ?? 100) <= 30 ? "bg-red-500" : 
-                                                (currentDuel.challenger_lp ?? 100) <= 60 ? "bg-yellow-500" : "bg-green-500"
-                                            }
-                                        />
-                                    </div>
-                                    
-                                    <p className="text-3xl sm:text-4xl font-bold text-blue-600 mt-2 sm:mt-3">
-                                        {currentDuel.challenger_score}
-                                    </p>
-                                </div>
-
-                                {/* VS */}
-                                <div className="flex flex-col items-center px-2 sm:px-4 py-2 sm:py-0">
-                                    <Swords className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mb-1 sm:mb-2" />
-                                    <span className="text-base sm:text-lg font-bold text-muted-foreground">VS</span>
-                                </div>
-
-                                <div className="flex-1 text-center">
-                                    {currentDuel.opponent ? (
-                                        <>
-                                            <div className="relative inline-block">
-                                                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mx-auto mb-2 sm:mb-3 ring-4 ring-red-500/30">
-                                                    <AvatarImage src={currentDuel.opponent?.avatar_url} />
-                                                    <AvatarFallback className="bg-red-500/10 text-red-600 text-lg sm:text-xl">
-                                                        {currentDuel.opponent?.username?.slice(0, 2).toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                {currentDuel.winner_id === currentDuel.opponent_id && (
-                                                    <Trophy className="absolute -top-2 -right-2 h-6 w-6 text-yellow-500" />
-                                                )}
-                                            </div>
-                                            <p className="font-semibold text-base sm:text-lg">
-                                                {currentDuel.opponent?.username || "学者"}
-                                            </p>
-                                            <Badge variant="outline" className="mt-1 bg-red-500/5 border-red-500/30 text-red-600 text-xs sm:text-sm">
-                                                {currentDuel.opponent_position}
-                                            </Badge>
-                                            {currentDuel.opponent?.reputation_score !== undefined && (
-                                                <div className="mt-2 hidden sm:block">
-                                                    <ReputationBadge
-                                                        score={currentDuel.opponent.reputation_score}
-                                                        wins={currentDuel.opponent.duel_wins}
-                                                        losses={currentDuel.opponent.duel_losses}
-                                                        size="sm"
-                                                        showStats
-                                                    />
-                                                </div>
-                                            )}
-
-                                            <div className="mt-4 px-4">
-                                                <div className="flex justify-between text-xs font-semibold mb-1">
-                                                    <span className="flex items-center gap-1 text-muted-foreground"><ShieldAlert className="h-3 w-3" /> LP</span>
-                                                    <span className={(currentDuel.opponent_lp ?? 100) <= 30 ? "text-red-500" : (currentDuel.opponent_lp ?? 100) <= 60 ? "text-yellow-500" : "text-green-500"}>
-                                                        {currentDuel.opponent_lp ?? 100} / 100
-                                                    </span>
-                                                </div>
-                                                <Progress 
-                                                    value={currentDuel.opponent_lp ?? 100} 
-                                                    max={100}
-                                                    className="h-2" 
-                                                    indicatorClassName={
-                                                        (currentDuel.opponent_lp ?? 100) <= 30 ? "bg-red-500" : 
-                                                        (currentDuel.opponent_lp ?? 100) <= 60 ? "bg-yellow-500" : "bg-green-500"
-                                                    }
-                                                />
-                                            </div>
-
-                                            <p className="text-3xl sm:text-4xl font-bold text-red-600 mt-2 sm:mt-3">
-                                                {currentDuel.opponent_score}
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <div className="opacity-50">
-                                            <div className="h-20 w-20 mx-auto mb-3 rounded-full bg-muted border-4 border-dashed flex items-center justify-center">
-                                                <span className="text-2xl">?</span>
-                                            </div>
-                                            <p className="text-lg">等待对手加入</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <DuelCrystalArena duel={currentDuel} rounds={rounds} />
                 </motion.div>
 
                 {/* 回合列表 */}
@@ -932,12 +807,12 @@ export default function DuelDetailClient({
 
                     <AnimatePresence>
                         {rounds.length === 0 ? (
-                            <Card className="text-center py-12">
+                            <Card className="text-center py-12 border-0 rounded-3xl bg-white/70 dark:bg-zinc-900/55 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)]">
                                 <CardContent>
                                     <Swords className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                                     <p className="text-muted-foreground">还没有任何论点提交</p>
                                     {isMyTurn && (
-                                        <p className="text-sm text-primary mt-2">轮到你了，发起第一轮攻势吧！</p>
+                                        <p className="text-sm text-primary mt-2 font-medium">轮到你了，发起第一轮攻势吧！</p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -951,18 +826,23 @@ export default function DuelDetailClient({
                                 return (
                                     <motion.div
                                         key={round.id}
-                                        initial={{ opacity: 0, x: isChallenger ? -20 : 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.1 }}
+                                        initial={{ opacity: 0, y: 12 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{
+                                            duration: 0.24,
+                                            delay: Math.min(index * 0.04, 0.2),
+                                            ease: MOTION_EASINGS.snappy,
+                                        }}
                                     >
                                         <Card
-                                            className={`overflow-hidden ${isChallenger
-                                                ? "border-l-4 border-l-blue-500"
-                                                : "border-r-4 border-r-red-500"
-                                                }`}
+                                            className={`relative overflow-hidden border-0 rounded-3xl bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.45),inset_0_1px_0.5px_rgba(255,255,255,0.1)] ${
+                                                isChallenger
+                                                    ? "before:content-[''] before:absolute before:inset-y-4 before:left-0 before:w-1 before:rounded-r-full before:bg-sky-500/80"
+                                                    : "before:content-[''] before:absolute before:inset-y-4 before:right-0 before:w-1 before:rounded-l-full before:bg-rose-500/80"
+                                            }`}
                                         >
                                             <CardHeader className="pb-2">
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between gap-3">
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="h-10 w-10">
                                                             <AvatarImage src={round.author?.avatar_url} />
@@ -976,11 +856,12 @@ export default function DuelDetailClient({
                                                             </p>
                                                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                                 <Badge
-                                                                    variant="outline"
-                                                                    className={isChallenger
-                                                                        ? "bg-blue-500/5 border-blue-500/30 text-blue-600"
-                                                                        : "bg-red-500/5 border-red-500/30 text-red-600"
-                                                                    }
+                                                                    variant="secondary"
+                                                                    className={`rounded-full border-0 font-medium ${
+                                                                        isChallenger
+                                                                            ? "bg-sky-500/12 text-sky-700 dark:text-sky-300"
+                                                                            : "bg-rose-500/12 text-rose-700 dark:text-rose-300"
+                                                                    }`}
                                                                 >
                                                                     {position}
                                                                 </Badge>
@@ -1022,17 +903,18 @@ export default function DuelDetailClient({
                 {/* 提交论点区域 */}
                 {currentDuel.status === "active" && isParticipant && (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.24, ease: MOTION_EASINGS.snappy }}
                     >
-                        <Card>
+                        <Card className="border-0 rounded-3xl bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)]">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     {isMyTurn ? (
                                         <>
                                             <Zap className="h-5 w-5 text-amber-500" />
                                             轮到你了！提交你的论点
-                                            <Badge className="ml-2">{myPosition}</Badge>
+                                            <Badge className="ml-2 rounded-full border-0">{myPosition}</Badge>
                                         </>
                                     ) : (
                                         <>
@@ -1045,7 +927,7 @@ export default function DuelDetailClient({
                             <CardContent>
                                 {isMyTurn ? (
                                     <div className="space-y-4">
-                                        <div className="min-h-[200px] border rounded-lg">
+                                        <div className="min-h-[200px] rounded-2xl border-0 bg-zinc-100/60 dark:bg-white/[0.03] shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)] overflow-hidden">
                                             <NovelEditor
                                                 initialValue={undefined}
                                                 onChange={(content) => setEditorContent(content as object)}
@@ -1056,6 +938,7 @@ export default function DuelDetailClient({
                                                 onClick={handleSubmit}
                                                 disabled={isSubmitting || !editorContent}
                                                 size="lg"
+                                                className="rounded-full"
                                             >
                                                 {isSubmitting ? (
                                                     <>
@@ -1085,25 +968,26 @@ export default function DuelDetailClient({
                 {/* 观战提示区域 */}
                 {currentDuel.status === "active" && !isParticipant && (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.24, ease: MOTION_EASINGS.snappy }}
                         className="grid grid-cols-1 md:grid-cols-3 gap-6"
                     >
                         <div className="md:col-span-2">
-                            <Card className="bg-background/60 backdrop-blur-md border-dashed border-primary/30 h-full">
+                            <Card className="border-0 rounded-3xl bg-white/70 dark:bg-zinc-900/55 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] h-full">
                                 <CardContent className="text-center py-8">
                                     <Eye className="h-10 w-10 mx-auto text-primary/60 mb-3 animate-pulse" />
                                     <h3 className="text-base font-semibold mb-1">您正在学术围观中</h3>
-                                    <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                                        您是本次学术决斗的观战嘉宾，可以阅读双方选手的交锋记录，并使用底部的弹幕框进行实时吐槽或学术应援！
+                                    <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                                        您是本次学术决斗的观战嘉宾，可以阅读双方选手的交锋记录，翻转顶部 3D 晶体舱查看 AI 裁判量化矩阵，或使用底部弹幕框进行学术应援！
                                     </p>
                                 </CardContent>
                             </Card>
                         </div>
-                        
+
                         <div className="md:col-span-1">
                             {currentDuel.opponent && currentUser ? (
-                                <SpectatorBetPanel 
+                                <SpectatorBetPanel
                                     duelId={currentDuel.id}
                                     challenger={{
                                         id: currentDuel.challenger_id,
@@ -1127,15 +1011,16 @@ export default function DuelDetailClient({
                     </motion.div>
                 )}
 
-                {/* 决斗结束 */}
+                {/* 决斗结束底部摘要铭牌 */}
                 {currentDuel.status === "completed" && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.96 }}
                         animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.24, ease: MOTION_EASINGS.snappy }}
                     >
-                        <Card className="border-2 border-primary/30 bg-primary/5">
+                        <Card className="border-0 rounded-3xl bg-amber-500/[0.08] dark:bg-amber-500/[0.07] backdrop-blur-2xl shadow-[0_12px_36px_-6px_rgba(245,158,11,0.16),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.45),inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
                             <CardContent className="text-center py-8">
-                                <Trophy className="h-16 w-16 mx-auto text-yellow-500 mb-4" />
+                                <Trophy className="h-14 w-14 mx-auto text-amber-500 mb-3" />
                                 <h2 className="text-2xl font-bold mb-2">决斗结束！</h2>
                                 {currentDuel.winner ? (
                                     <p className="text-lg">
@@ -1145,7 +1030,7 @@ export default function DuelDetailClient({
                                     <p className="text-lg text-muted-foreground">平局！</p>
                                 )}
                                 {currentDuel.ko_type && (
-                                    <Badge variant="destructive" className="mt-2">
+                                    <Badge variant="destructive" className="mt-2 rounded-full border-0 px-3 py-0.5">
                                         <AlertTriangle className="h-3 w-3 mr-1" />
                                         {currentDuel.ko_type === "fallacy_limit" ? "逻辑谬误 KO" : "负分连败 KO"}
                                     </Badge>
@@ -1161,13 +1046,13 @@ export default function DuelDetailClient({
                 {/* 底部悬浮/固定弹幕栏 */}
                 {currentDuel.status === "active" && isMounted && myRole === "spectator" && (
                     <div className="sticky bottom-6 left-0 right-0 max-w-xl mx-auto px-4 z-30 mt-8">
-                        <div className="flex items-center gap-2 p-2 rounded-full bg-background/80 backdrop-blur-lg border border-border/60 shadow-lg">
-                            <DanmakuHistoryPanel 
+                        <div className="flex items-center gap-2 p-2 rounded-full border-0 bg-white/80 dark:bg-zinc-900/75 backdrop-blur-2xl shadow-[0_12px_36px_-6px_rgba(0,0,0,0.12),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_12px_36px_-6px_rgba(0,0,0,0.55),inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
+                            <DanmakuHistoryPanel
                                 records={danmakuHistory}
                                 challengerName={currentDuel.challenger.username}
                                 opponentName={currentDuel.opponent?.username}
                             />
-                            <div className="w-px h-6 bg-border/50 hidden sm:block"></div>
+                            <div className="w-[1px] h-5 bg-gradient-to-b from-transparent via-zinc-300/80 dark:via-zinc-700/60 to-transparent hidden sm:block" />
                             <Input
                                 placeholder={currentUser ? "说点什么，发送实时弹幕..." : "请登录后发送弹幕"}
                                 value={danmakuInput}
@@ -1180,7 +1065,7 @@ export default function DuelDetailClient({
                                 onClick={handleSendDanmaku}
                                 disabled={!currentUser || isSendingDanmaku || !danmakuInput.trim()}
                                 size="sm"
-                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 h-8 shrink-0 text-xs font-medium"
+                                className="rounded-full px-4 h-8 shrink-0 text-xs font-medium"
                             >
                                 {isSendingDanmaku ? "发送中..." : "发弹幕"}
                             </Button>

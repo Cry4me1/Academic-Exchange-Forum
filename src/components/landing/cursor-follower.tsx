@@ -37,6 +37,7 @@ export function CursorFollower() {
         const droplet = dropletRef.current;
         const aura = auraRef.current;
         if (!dot || !droplet || !aura) return;
+        if (window.matchMedia("(pointer: coarse)").matches) return;
 
         let mouseX = -100;
         let mouseY = -100;

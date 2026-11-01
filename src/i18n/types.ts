@@ -268,6 +268,9 @@ export interface TranslationDictionary {
         capCode: string;
         navExplore: string;
         navLogin: string;
+        navWorkspace: string;
+        enterWorkspaceBtn: string;
+        badgeFallback: string;
     };
     landing: {
         panoramaBadge: string;
@@ -275,6 +278,8 @@ export interface TranslationDictionary {
         evolutionSubtitle: string;
         footerDesc: string;
         quickLinks: string;
+        workspace: string;
+        trending: string;
         login: string;
         register: string;
         aboutUs: string;

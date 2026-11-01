@@ -4,21 +4,27 @@ import { Button } from "@/components/ui/button";
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
-import { ArrowLeft, Keyboard, Minimize2 } from "lucide-react";
+import { ArrowLeft, Keyboard, Minimize2, Quote } from "lucide-react";
 import Link from "next/link";
+import { MOTION_EASINGS } from "@/lib/motion-tokens";
 
 interface ImmersiveToolbarProps {
     /** 阅读进度 0-100 */
     progress: number;
     /** 退出沉浸模式 */
     onExit: () => void;
+    /** 打开文献引用流体抽屉 */
+    onOpenCitations?: () => void;
 }
 
-export function ImmersiveToolbar({ progress, onExit }: ImmersiveToolbarProps) {
+export function ImmersiveToolbar({
+    progress,
+    onExit,
+    onOpenCitations,
+}: ImmersiveToolbarProps) {
     const safeProgress = Math.min(100, Math.max(0, isNaN(progress) ? 0 : progress));
 
     return (
@@ -26,16 +32,23 @@ export function ImmersiveToolbar({ progress, onExit }: ImmersiveToolbarProps) {
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: MOTION_EASINGS.snappy }}
             className="fixed top-0 left-0 right-0 z-50 pointer-events-auto"
             role="toolbar"
             aria-label="沉浸阅读工具栏"
         >
-            {/* 顶端微细阅读进度轨 */}
-            <div className="h-[2px] bg-zinc-200/40 dark:bg-zinc-800/40" role="progressbar" aria-valuenow={Math.round(safeProgress)} aria-valuemin={0} aria-valuemax={100} aria-label="阅读进度">
+            {/* 顶端微细阅读进度轨（GPU scaleX 复合层更新） */}
+            <div
+                className="h-[2px] bg-zinc-200/40 dark:bg-zinc-800/40 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={Math.round(safeProgress)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="阅读进度"
+            >
                 <div
-                    className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full transition-all duration-150 ease-out will-change-[width]"
-                    style={{ width: `${safeProgress}%` }}
+                    className="h-full w-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full origin-left transition-transform duration-150 ease-out will-change-transform"
+                    style={{ transform: `scaleX(${safeProgress / 100})` }}
                 />
             </div>
 
@@ -62,6 +75,19 @@ export function ImmersiveToolbar({ progress, onExit }: ImmersiveToolbarProps) {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                    {onOpenCitations && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onOpenCitations}
+                            className="gap-1.5 text-muted-foreground hover:text-foreground rounded-full px-3 h-8 text-xs font-medium hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60"
+                            title="查看学术引用与文献"
+                        >
+                            <Quote className="h-3.5 w-3.5 text-amber-500" />
+                            <span className="hidden sm:inline">引用</span>
+                        </Button>
+                    )}
+
                     {/* 快捷键提示 */}
                     <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>

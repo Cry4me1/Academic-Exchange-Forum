@@ -17,21 +17,24 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
-      icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+      toastOptions={{
+        classNames: {
+          toast:
+            "!border-0 !rounded-2xl !bg-white/85 dark:!bg-zinc-900/85 !backdrop-blur-2xl !text-foreground !shadow-[0_12px_40px_-4px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:!shadow-[0_12px_40px_-4px_rgba(0,0,0,0.65),inset_0_1px_0.5px_rgba(255,255,255,0.16)] !px-4 !py-3 !font-medium",
+          description: "!text-muted-foreground !text-xs",
+          actionButton:
+            "!rounded-full !border-0 !bg-zinc-950 dark:!bg-white !text-white dark:!text-zinc-950 !font-medium !text-xs !shadow-sm",
+          cancelButton:
+            "!rounded-full !border-0 !bg-zinc-200/50 dark:!bg-white/[0.08] !text-muted-foreground !font-medium !text-xs",
+        },
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
+      icons={{
+        success: <CircleCheckIcon className="size-4 text-emerald-500" />,
+        info: <InfoIcon className="size-4 text-sky-500" />,
+        warning: <TriangleAlertIcon className="size-4 text-amber-500" />,
+        error: <OctagonXIcon className="size-4 text-rose-500" />,
+        loading: <Loader2Icon className="size-4 animate-spin text-primary" />,
+      }}
       {...props}
     />
   )

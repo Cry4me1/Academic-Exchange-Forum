@@ -1,138 +1,168 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowUpRight } from "lucide-react";
+import { Sparkles, ArrowUpRight, Eye, MessageSquare } from "lucide-react";
 import { MathText } from "@/components/ui/math-text";
 import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/utils";
+import {
+    formatAuthorTitle,
+    localizeTag,
+    type ShowcaseItem,
+} from "@/lib/landing-showcase";
 import { DIVIDER_H, EASE_OUT_EXPO, GLASS, SERIF_STACK, trackPointer } from "./liquid-glass";
 
-interface ShowcaseItem {
-    id: string;
-    tag: string;
-    title: string;
-    highlight: string;
-    latex?: string;
-    codeSnippet?: string;
-    symbol: string; // 学术符号徽标：如 \Sigma, \otimes, \hbar, \nabla, \Omega 等
-    author: {
-        name: string;
-        institution: string;
-    };
+const MIN_TRACK_ITEMS = 6;
+
+/** 第二排：真实平台核心能力（每一张卡片均对应真实路由与已上线能力） */
+function buildCapabilityItems(isZh: boolean): ShowcaseItem[] {
+    return [
+        {
+            id: "cap-katex",
+            href: "/dashboard",
+            tags: [isZh ? "排版引擎 · 实时数学" : "Typesetting · Live Math"],
+            title: isZh
+                ? "毫秒级 KaTeX 符号公式解析与交互推导"
+                : "Millisecond KaTeX Formula Parsing & Live Derivation",
+            highlight: isZh
+                ? "原生支持行内与跨行张量公式排版，搭配符号面板即写即显"
+                : "Seamless inline and block tensor typesetting with interactive symbol palette",
+            latex: "$$\\nabla \\times \\mathbf{B} = \\mu_0 \\mathbf{J} + \\mu_0 \\varepsilon_0 \\frac{\\partial \\mathbf{E}}{\\partial t}$$",
+            symbol: "\\nabla",
+            author: {
+                name: isZh ? "KaTeX 排版引擎" : "KaTeX Engine",
+                institution: "Scholarly Typesetting",
+            },
+        },
+        {
+            id: "cap-sandbox",
+            href: "/lab/sandbox",
+            tags: [isZh ? "计算实验室 · 代码环境" : "Compute Lab · Sandbox"],
+            title: isZh
+                ? "50+ 语言语法高亮与 Python 在线计算沙盒"
+                : "50+ Language Highlighting & Python Compute Sandbox",
+            highlight: isZh
+                ? "One Dark 代码高亮搭配 Python 实验沙盒与结果缓存复现"
+                : "One Dark syntax highlighting paired with reproducible Python execution",
+            codeSnippet:
+                "def kl_divergence(p, q):\n    ratio = np.clip(p / (q + 1e-9), 1e-9, None)\n    return float(np.sum(p * np.log(ratio)))",
+            symbol: "\\lambda",
+            author: {
+                name: isZh ? "计算实验室" : "Compute Sandbox",
+                institution: "Scholarly Lab",
+            },
+        },
+        {
+            id: "cap-backlinks",
+            href: "/trending",
+            tags: [isZh ? "知识拓扑 · 文献脉络" : "Knowledge Graph · Backlinks"],
+            title: isZh
+                ? "双向文章反向引用 (Backlinks) 与知识关联"
+                : "Bidirectional Backlinks & Knowledge Graph",
+            highlight: isZh
+                ? "通过 [[WikiLink]] 自动织就跨帖子与专栏的学科引用网络"
+                : "Automatically weaves cross-post citation graphs via [[WikiLink]] references",
+            latex: "$$\\text{Sim}(u, v) = \\frac{|\\Gamma(u) \\cap \\Gamma(v)|}{\\sqrt{|\\Gamma(u)| \\cdot |\\Gamma(v)|}}$$",
+            symbol: "\\Delta",
+            author: {
+                name: isZh ? "织网知识图谱" : "Knowledge Graph",
+                institution: "Scholarly Graph",
+            },
+        },
+        {
+            id: "cap-duel",
+            href: "/duels",
+            tags: [isZh ? "学术决斗场 · 同行声誉" : "Academic Duels · Reputation"],
+            title: isZh
+                ? "围绕命题展开严谨交锋的学术决斗与声誉体系"
+                : "Structured Proposition Duels & Peer Reputation",
+            highlight: isZh
+                ? "以有据可查的逻辑辩难与同行评审沉淀真实学术声誉"
+                : "Cultivates verifiable scholarly reputation through structured peer debate",
+            latex: "$$\\mathcal{R}_{u} = \\sum_{p \\in \\mathcal{P}_u} \\alpha_p \\cdot \\log(1 + w_p)$$",
+            symbol: "\\alpha",
+            author: {
+                name: isZh ? "学术决斗仲裁组" : "Duel Arbitration",
+                institution: "Scholarly Duels",
+            },
+        },
+        {
+            id: "cap-interactive",
+            href: "/lab",
+            tags: [isZh ? "交互教具 · 可视化推演" : "Interactive · Visualization"],
+            title: isZh
+                ? "交互式算法步进器与三维立体几何实时画板"
+                : "Interactive Algorithm Stepper & 3D Solid Geometry",
+            highlight: isZh
+                ? "在文章内单步追踪指针变量变化，自由旋转剖视三维几何体"
+                : "Step through pointer state transitions and inspect 3D geometry inline",
+            latex: "$$V - E + F = \\chi(\\mathcal{M}) = 2$$",
+            symbol: "\\Omega",
+            author: {
+                name: isZh ? "交互推演引擎" : "Interactive Engine",
+                institution: "Scholarly Studio",
+            },
+        },
+    ];
 }
 
-// 第一排卡片（前沿数学、理论物理与核心理论）
-const TOP_ITEMS: ShowcaseItem[] = [
-    {
-        id: "c-top-1",
-        tag: "理论物理 · 弦论与全息",
-        title: "量子纠缠的引力对偶与全息时空重构",
-        highlight: "纠缠熵的几何测度确立了弯曲时空的微观引力机制",
-        latex: "$$S_{\\text{EE}} = \\frac{\\text{Area}(\\gamma_A)}{4G_N}$$",
-        symbol: "\\hbar",
-        author: { name: "沈知远 教授", institution: "高能物理研究所" },
-    },
-    {
-        id: "c-top-2",
-        tag: "算法设计 · 树结构",
-        title: "树链剖分与重链剖分的动态树路径维护",
-        highlight: "通过 DFS 序将树上任意路径投影为 O(log n) 段连续区间",
-        codeSnippet: "// 重链剖分二次 DFS 确定轻重链与新线段树标号\nvoid dfs2(int u, int t) {\n    dfn[u] = ++tot, top[u] = t;\n    if (son[u]) dfs2(son[u], t);\n    for (int v : G[u]) if (v != son[u]) dfs2(v, v);\n}",
-        symbol: "\\mathcal{O}",
-        author: { name: "李承风 算法导师", institution: "算法竞赛研学实验室" },
-    },
-    {
-        id: "c-top-3",
-        tag: "微分流形 · 拓扑学",
-        title: "紧致辛流形上的弗洛尔同调与相交几何",
-        highlight: "辛拓扑不变量揭示了高维哈密顿系统周期轨道的守恒规律",
-        latex: "$$HF_*(L_0, L_1) \\cong H_*(L_0 \\cap L_1)$$",
-        symbol: "\\Sigma",
-        author: { name: "林承宇 博士", institution: "应用数学国际中心" },
-    },
-    {
-        id: "c-top-4",
-        tag: "凝聚态物理 · 量子物态",
-        title: "分数量子反常霍尔效应在魔角石墨烯中的实现",
-        highlight: "无外加磁场条件下实现精确量子化霍尔电阻平台的突破",
-        latex: "$$\\sigma_{xy} = \\frac{e^2}{h} \\cdot \\mathcal{C}$$",
-        symbol: "\\Omega",
-        author: { name: "顾怀安 教授", institution: "量子科学国家重点实验室" },
-    },
-    {
-        id: "c-top-5",
-        tag: "大模型理论 · 记忆机制",
-        title: "超长上下文注意力剪枝与无损记忆边界",
-        highlight: "稀疏注意力掩码在保持困惑度不变的前提下降低 70% 显存消耗",
-        codeSnippet: "scores = (Q @ K.T) * (d_k ** -0.5)\nmask_attn = sparse_topk(scores, k=64)\ncontext = softmax(mask_attn, dim=-1) @ V",
-        symbol: "\\otimes",
-        author: { name: "Dr. Elena Rostova", institution: "Scholarly 智能实验室" },
-    },
-];
+function CardAuthorAvatar({
+    avatarUrl,
+    name,
+}: {
+    avatarUrl?: string | null;
+    name: string;
+}) {
+    const [failed, setFailed] = useState(false);
 
-// 第二排卡片（平台学术工具、排版引擎与学术生态）
-const BOTTOM_ITEMS: ShowcaseItem[] = [
-    {
-        id: "c-bot-1",
-        tag: "排版引擎 · 实时数学",
-        title: "毫秒级 KaTeX 符号公式解析与交互推导",
-        highlight: "支持行内与跨行张量公式无缝排版，数学推导清晰可辨",
-        latex: "$$\\nabla \\times \\mathbf{B} = \\mu_0 \\mathbf{J} + \\mu_0 \\varepsilon_0 \\frac{\\partial \\mathbf{E}}{\\partial t}$$",
-        symbol: "\\nabla",
-        author: { name: "KaTeX 核心系统", institution: "Scholarly 排版架构" },
-    },
-    {
-        id: "c-bot-2",
-        tag: "天体物理 · 相对论",
-        title: "双黑洞并合引力波形的高阶多极矩精确拟合",
-        highlight: "通过数值相对论波形库校准引力辐射各向异性能量损耗",
-        latex: "$$h_+(t) - i h_\\times(t) = \\sum_{l,m} h_{lm}(t)\\,_{-2}Y_{lm}$$",
-        symbol: "\\Psi",
-        author: { name: "Marcus Vance", institution: "天体物理观测中心" },
-    },
-    {
-        id: "c-bot-3",
-        tag: "知识拓扑 · 文献溯源",
-        title: "双向文献反向引用 (Backlinks) 与共引网络",
-        highlight: "自动构建跨论文与研讨的学科关联图谱，追溯知识衍生脉络",
-        latex: "$$\\text{Similarity}(u, v) = \\frac{|\\Gamma(u) \\cap \\Gamma(v)|}{\\sqrt{|\\Gamma(u)| \\cdot |\\Gamma(v)|}}$$",
-        symbol: "\\Delta",
-        author: { name: "知识图谱服务", institution: "Scholarly Graph" },
-    },
-    {
-        id: "c-bot-4",
-        tag: "算法环境 · 代码高亮",
-        title: "50+ 编程语言高亮与沙盒代码片段一键运行",
-        highlight: "One Dark 现代暗黑主题与行号对齐，专为算法交流打造",
-        codeSnippet: "def kl_divergence(p, q):\n    return torch.sum(p * torch.log(p / (q + 1e-9)), dim=-1)",
-        symbol: "\\lambda",
-        author: { name: "算法沙盒团队", institution: "Scholarly Sandbox" },
-    },
-    {
-        id: "c-bot-5",
-        tag: "声誉体系 · 同行认证",
-        title: "基于同行评审与学术贡献度的量化声誉体系",
-        highlight: "以严肃学术评价取代娱乐点赞，打造高质量研究者殿堂",
-        latex: "$$\\mathcal{R}_{u} = \\sum_{p \\in \\mathcal{P}_u} \\alpha_p \\cdot \\log(1 + \\text{Citations}_p)$$",
-        symbol: "\\alpha",
-        author: { name: "同行评审仲裁组", institution: "Scholarly Trust" },
-    },
-];
+    if (avatarUrl && !failed) {
+        return (
+            <Image
+                src={avatarUrl}
+                alt={name}
+                width={32}
+                height={32}
+                onError={() => setFailed(true)}
+                className="h-8 w-8 shrink-0 rounded-full border-0 object-cover bg-zinc-100 dark:bg-zinc-800 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_8px_-2px_rgba(0,0,0,0.12)]"
+            />
+        );
+    }
 
-// 单个学术展示卡片（Liquid Glass 面板 + 鼠标物理漫射）
-function AcademicShowcaseCard({ item }: { item: ShowcaseItem }) {
     return (
-        <article
-            onMouseMove={trackPointer}
-            className={cn(
-                GLASS,
-                "group relative flex h-[380px] w-[290px] sm:w-[330px] shrink-0 select-none flex-col overflow-hidden rounded-3xl p-6",
-                "transition-[transform,box-shadow] duration-500 ease-out hover:-translate-y-1.5",
-                "hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_20px_48px_-12px_rgba(0,0,0,0.12),0_0_32px_-6px_rgba(245,158,11,0.22)]",
-                "dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_20px_48px_-12px_rgba(0,0,0,0.7),0_0_32px_-6px_rgba(245,158,11,0.18)]"
-            )}
-        >
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_2px_8px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
+            {name.slice(0, 1).toUpperCase()}
+        </div>
+    );
+}
+
+// 单个学术展示卡片（Liquid Glass 面板 + 鼠标物理漫射 + 真实路由跳转）
+function AcademicShowcaseCard({
+    item,
+    isDuplicate,
+}: {
+    item: ShowcaseItem;
+    isDuplicate?: boolean;
+}) {
+    const { t, isZh } = useI18n();
+
+    const tagLabel =
+        item.tags.length > 0
+            ? item.tags.map((tag) => localizeTag(tag, isZh)).join(" · ")
+            : isZh
+              ? "学术研讨"
+              : "Academic";
+
+    const authorSubtitle = formatAuthorTitle(
+        item.author.institution,
+        isZh,
+        t.hero.defaultTitle
+    );
+
+    const cardBody = (
+        <>
             {/* 鼠标跟随的无色镜面反射 */}
             <div
                 aria-hidden
@@ -146,7 +176,7 @@ function AcademicShowcaseCard({ item }: { item: ShowcaseItem }) {
             {/* 头部：学科胶囊 + 符号徽标 */}
             <div className="relative z-10 flex items-center justify-between gap-3">
                 <span className="truncate rounded-full px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.10)]">
-                    {item.tag}
+                    {tagLabel}
                 </span>
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] text-sm text-zinc-700 dark:text-amber-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] transition-transform duration-300 group-hover:scale-105">
                     <MathText text={`$${item.symbol}$`} />
@@ -155,71 +185,138 @@ function AcademicShowcaseCard({ item }: { item: ShowcaseItem }) {
 
             {/* 标题 + 导语（固定行数槽位） */}
             <div className="relative z-10 mt-4 space-y-1.5">
-                <h4
+                <h3
                     style={{ fontFamily: SERIF_STACK }}
-                    className="line-clamp-2 min-h-[2.8em] text-[17px] font-semibold leading-[1.4] tracking-tight text-zinc-900 dark:text-zinc-50"
+                    className="line-clamp-2 min-h-[2.8em] text-[17px] font-semibold leading-[1.4] tracking-tight text-zinc-900 dark:text-zinc-50 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors"
                 >
-                    {item.title}
-                </h4>
-                <p className="line-clamp-2 min-h-[2.9em] text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    {item.highlight}
-                </p>
+                    <MathText text={item.title} inlineOnly />
+                </h3>
+
+                <div className="line-clamp-2 min-h-[2.9em] text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    {item.highlight ? (
+                        <MathText text={item.highlight} inlineOnly />
+                    ) : item.stats ? (
+                        <span className="inline-flex items-center gap-3 tabular-nums text-zinc-400 dark:text-zinc-500">
+                            {item.stats.views > 0 && (
+                                <span className="inline-flex items-center gap-1">
+                                    <Eye className="h-3 w-3" /> {item.stats.views}
+                                </span>
+                            )}
+                            {item.stats.comments > 0 && (
+                                <span className="inline-flex items-center gap-1">
+                                    <MessageSquare className="h-3 w-3" /> {item.stats.comments}
+                                </span>
+                            )}
+                            <span>{isZh ? "社区真实研讨帖" : "Community Post"}</span>
+                        </span>
+                    ) : null}
+                </div>
             </div>
 
-            {/* 核心内容：LaTeX 公式井 / 代码沙盒 */}
+            {/* 核心内容：LaTeX 公式井 / 代码沙盒 / 真实正文摘录 */}
             <div className="relative z-10 flex flex-1 items-center py-4">
-                {item.latex && (
-                    <div className="flex min-h-[92px] w-full items-center justify-center overflow-x-auto rounded-2xl px-3 py-4 bg-zinc-900/[0.03] dark:bg-white/[0.04] shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {item.latex ? (
+                    <div className="flex min-h-[96px] max-h-[108px] w-full items-center justify-center overflow-hidden rounded-2xl px-3 py-3.5 bg-zinc-900/[0.03] dark:bg-white/[0.04] shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
                         <MathText
                             text={item.latex}
-                            className="max-w-full text-xs sm:text-sm text-zinc-800 dark:text-amber-100"
+                            className="max-w-full overflow-x-auto text-xs sm:text-sm text-zinc-800 dark:text-amber-100 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                         />
                     </div>
-                )}
-
-                {item.codeSnippet && (
+                ) : item.codeSnippet ? (
                     <div className="w-full overflow-hidden rounded-2xl p-3.5 bg-zinc-950/90 dark:bg-black/50 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_24px_-8px_rgba(0,0,0,0.35)]">
-                        <pre className="max-h-[96px] overflow-hidden whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-zinc-300">
+                        <pre className="max-h-[92px] overflow-hidden whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-zinc-300">
                             {item.codeSnippet}
                         </pre>
                     </div>
+                ) : (
+                    <div className="flex min-h-[96px] max-h-[108px] w-full items-center rounded-2xl p-3.5 bg-zinc-900/[0.03] dark:bg-white/[0.04] shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]">
+                        <p className="line-clamp-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
+                            <MathText
+                                text={
+                                    item.excerpt ||
+                                    (isZh
+                                        ? "点击进入阅读完整推导与讨论。"
+                                        : "Click to read the full derivation and discussion.")
+                                }
+                                inlineOnly
+                            />
+                        </p>
+                    </div>
                 )}
             </div>
 
-            {/* 底部：署名 + 跳转 */}
+            {/* 底部：真实署名 + 跳转指示 */}
             <div className="relative z-10">
                 <div className={DIVIDER_H} />
                 <div className="flex items-center justify-between pt-4">
                     <div className="flex min-w-0 items-center gap-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-100 dark:from-zinc-700 dark:to-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-100 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_2px_8px_-2px_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
-                            {item.author.name.slice(0, 1)}
-                        </div>
+                        <CardAuthorAvatar
+                            avatarUrl={item.author.avatarUrl}
+                            name={item.author.name}
+                        />
                         <div className="min-w-0">
                             <div className="truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">
                                 {item.author.name}
                             </div>
                             <div className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-                                {item.author.institution}
+                                {authorSubtitle}
                             </div>
                         </div>
                     </div>
 
-                    <div className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] text-zinc-500 dark:text-zinc-300 transition-colors duration-300 group-hover:bg-zinc-950/85 group-hover:text-white group-hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:group-hover:bg-white/90 dark:group-hover:text-zinc-950">
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                    </div>
+                    {item.href && (
+                        <div className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.04] dark:bg-white/[0.06] text-zinc-500 dark:text-zinc-300 transition-colors duration-300 group-hover:bg-zinc-950/85 group-hover:text-white group-hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:group-hover:bg-white/90 dark:group-hover:text-zinc-950">
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                        </div>
+                    )}
                 </div>
             </div>
+        </>
+    );
+
+    const cardClassName = cn(
+        GLASS,
+        "group relative flex h-[380px] w-[290px] sm:w-[330px] shrink-0 select-none flex-col overflow-hidden rounded-3xl p-6",
+        "transition-[transform,box-shadow] duration-500 ease-out hover:-translate-y-1.5",
+        "hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_20px_48px_-12px_rgba(0,0,0,0.12),0_0_32px_-6px_rgba(245,158,11,0.22)]",
+        "dark:hover:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_20px_48px_-12px_rgba(0,0,0,0.7),0_0_32px_-6px_rgba(245,158,11,0.18)]"
+    );
+
+    if (item.href) {
+        return (
+            <Link
+                href={item.href}
+                tabIndex={isDuplicate ? -1 : undefined}
+                onMouseMove={trackPointer}
+                className={cardClassName}
+            >
+                {cardBody}
+            </Link>
+        );
+    }
+
+    return (
+        <article onMouseMove={trackPointer} className={cardClassName}>
+            {cardBody}
         </article>
     );
 }
 
-// 雾透渐隐学术打字机（预留最大宽度，切换词语时零布局跳动）
+// 雾透渐隐学术打字机（预留最大宽度，切换词语时零布局跳动，且 SSR / 客户端首帧渲染结构完全一致）
 function MistTypewriter() {
     const { isZh } = useI18n();
 
     const words = isZh
         ? ["探索真理", "沉淀思想", "推导本质", "重构认知", "启迪智慧", "见证突破", "溯源求索", "叩问未知"]
-        : ["Rigorous Proof", "Deep Insights", "First Principles", "Breakthroughs", "Pure Reasoning", "Illuminating Wisdom", "Exploring Unknowns"];
+        : [
+              "Rigorous Proof",
+              "Deep Insights",
+              "First Principles",
+              "Breakthroughs",
+              "Pure Reasoning",
+              "Illuminating Wisdom",
+              "Exploring Unknowns",
+          ];
 
     const [index, setIndex] = useState(0);
 
@@ -294,30 +391,60 @@ function MistTypewriter() {
     );
 }
 
-// 跑马灯行：每项使用右侧 padding 代替 gap，保证 -33.333% 位移首尾精确衔接无跳帧
-function MarqueeRow({ items, direction }: { items: ShowcaseItem[]; direction: "left" | "right" }) {
-    const list = [...items, ...items, ...items];
+// 跑马灯行：保证单周期不少于 MIN_TRACK_ITEMS 张卡片以铺满超宽屏，并以 3 倍拷贝精确匹配 -33.3333% 位移
+function MarqueeRow({
+    items,
+    direction,
+}: {
+    items: ShowcaseItem[];
+    direction: "left" | "right";
+}) {
+    const baseItems = useMemo(() => {
+        if (items.length === 0) return [];
+        const padded: ShowcaseItem[] = [];
+        while (padded.length < MIN_TRACK_ITEMS) {
+            padded.push(...items);
+        }
+        return padded;
+    }, [items]);
+
+    if (baseItems.length === 0) return null;
+
+    const list = [...baseItems, ...baseItems, ...baseItems];
+
     return (
         <div
             className={cn(
-                "flex w-max py-4 will-change-transform hover:[animation-play-state:paused]",
+                "flex w-max py-4 will-change-transform hover:[animation-play-state:paused] focus-within:[animation-play-state:paused]",
                 direction === "left" ? "animate-track-left" : "animate-track-right"
             )}
         >
-            {list.map((item, idx) => (
-                <div key={`${direction}-${item.id}-${idx}`} className="pr-5 sm:pr-6" aria-hidden={idx >= items.length}>
-                    <AcademicShowcaseCard item={item} />
-                </div>
-            ))}
+            {list.map((item, idx) => {
+                const isDuplicate = idx >= items.length;
+                return (
+                    <div
+                        key={`${direction}-${item.id}-${idx}`}
+                        className="pr-5 sm:pr-6"
+                        aria-hidden={isDuplicate}
+                    >
+                        <AcademicShowcaseCard item={item} isDuplicate={isDuplicate} />
+                    </div>
+                );
+            })}
         </div>
     );
 }
 
-export function Features() {
-    const { t } = useI18n();
+interface FeaturesProps {
+    posts?: ShowcaseItem[];
+}
+
+export function Features({ posts = [] }: FeaturesProps) {
+    const { t, isZh } = useI18n();
+    const capabilityItems = useMemo(() => buildCapabilityItems(isZh), [isZh]);
 
     return (
-        <section className="relative overflow-hidden bg-[#fafafc] py-24 sm:py-32 text-zinc-900 dark:bg-[#07090e] dark:text-zinc-50 transition-colors duration-700">
+        <section className="relative overflow-hidden bg-[#fafafc] py-20 sm:py-24 text-zinc-900 dark:bg-[#07090e] dark:text-zinc-50 transition-colors duration-700">
             {/* 柔和环境光晕（低饱和单色） */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div className="absolute -top-32 left-1/2 h-[480px] w-[960px] -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-400/[0.10] via-amber-200/[0.04] to-transparent blur-[140px] dark:from-amber-400/[0.08]" />
@@ -336,9 +463,14 @@ export function Features() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
-                className="relative z-10 mx-auto mb-14 max-w-5xl px-6 text-center"
+                className="relative z-10 mx-auto mb-12 max-w-5xl px-6 text-center"
             >
-                <div className={cn(GLASS, "mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300")}>
+                <div
+                    className={cn(
+                        GLASS,
+                        "mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300"
+                    )}
+                >
                     <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                     {t.landing.panoramaBadge}
                 </div>
@@ -354,10 +486,10 @@ export function Features() {
                 </p>
             </motion.div>
 
-            {/* 双行错向无限跑马灯（两端羽化遮罩） */}
+            {/* 双行错向无限跑马灯：上排展示站内真实学术帖子，下排展示平台真实核心能力 */}
             <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-                <MarqueeRow items={TOP_ITEMS} direction="left" />
-                <MarqueeRow items={BOTTOM_ITEMS} direction="right" />
+                {posts.length > 0 && <MarqueeRow items={posts} direction="left" />}
+                <MarqueeRow items={capabilityItems} direction="right" />
             </div>
         </section>
     );

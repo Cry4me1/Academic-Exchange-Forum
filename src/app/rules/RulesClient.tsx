@@ -107,24 +107,24 @@ export function RulesClient() {
 
                 {/* 三支柱 Tab 切换 */}
                 <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full space-y-8">
-                    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 p-1.5 bg-muted/60 border-0 rounded-2xl h-auto backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.15)]">
+                    <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 p-1.5 rounded-3xl sm:rounded-full h-auto border-0 backdrop-blur-2xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
                         <TabsTrigger
                             value="terms"
-                            className="py-3 px-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
+                            className="py-2.5 px-4 rounded-full font-medium text-sm flex items-center justify-center gap-2"
                         >
                             <ScrollText className="w-4 h-4 text-primary" />
                             <span>📜 用户协议</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="credits"
-                            className="py-3 px-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
+                            className="py-2.5 px-4 rounded-full font-medium text-sm flex items-center justify-center gap-2"
                         >
                             <Coins className="w-4 h-4 text-amber-500" />
                             <span>🪙 积分服务条款</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="guidelines"
-                            className="py-3 px-4 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
+                            className="py-2.5 px-4 rounded-full font-medium text-sm flex items-center justify-center gap-2"
                         >
                             <HeartHandshake className="w-4 h-4 text-emerald-500" />
                             <span>📋 社区公约</span>

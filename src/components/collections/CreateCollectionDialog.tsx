@@ -228,10 +228,10 @@ export function CreateCollectionDialog({ open, onOpenChange, editingCollection, 
                         <Tabs value={coverTab} onValueChange={setCoverTab} className="w-full">
                             {/* 分段胶囊控制器 */}
                             <TabsList className="grid w-full grid-cols-2 h-10 p-1 rounded-full bg-zinc-200/40 dark:bg-white/[0.05] border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
-                                <TabsTrigger value="preset" className="rounded-full text-xs font-medium border-0 data-[state=active]:bg-white data-[state=active]:text-zinc-950 dark:data-[state=active]:bg-zinc-800 dark:data-[state=active]:text-white data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_0.5px_rgba(255,255,255,0.9)] transition-all cursor-pointer">
+                                <TabsTrigger value="preset" className="rounded-full text-xs font-medium border-0 cursor-pointer">
                                     精选液态预设
                                 </TabsTrigger>
-                                <TabsTrigger value="upload" className="rounded-full text-xs font-medium border-0 data-[state=active]:bg-white data-[state=active]:text-zinc-950 dark:data-[state=active]:bg-zinc-800 dark:data-[state=active]:text-white data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.08),inset_0_1px_0.5px_rgba(255,255,255,0.9)] transition-all cursor-pointer">
+                                <TabsTrigger value="upload" className="rounded-full text-xs font-medium border-0 cursor-pointer">
                                     自定义上传封面
                                 </TabsTrigger>
                             </TabsList>

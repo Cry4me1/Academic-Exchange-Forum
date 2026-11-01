@@ -127,6 +127,19 @@
 :root {
   --radius: 0.625rem;
 
+  /* ============================================================
+   * Emil Kowalski Motion Tokens (Easing Curves & Durations)
+   * ============================================================ */
+  --ease-out-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-fluid: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-apple-spring: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --duration-press: 140ms;
+  --duration-popover: 180ms;
+  --duration-modal: 220ms;
+  --duration-drawer: 320ms;
+
   /* WCAG AA 对比度调校冷灰中性色 (Zinc / Slate 混合基准) */
   --background: oklch(0.995 0.002 240);
   --foreground: oklch(0.145 0.005 240);

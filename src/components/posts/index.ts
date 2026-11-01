@@ -1,4 +1,5 @@
 export { Backlinks, type BacklinkItem } from "./Backlinks";
+export { CitationsFluidDrawer, type CitationsFluidDrawerProps } from "./CitationsFluidDrawer";
 export { DiffViewer } from "./DiffViewer";
 export { ImmersiveToolbar } from "./ImmersiveToolbar";
 export { PostHistoryDialog } from "./PostHistoryDialog";

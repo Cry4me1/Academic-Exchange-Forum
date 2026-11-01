@@ -8,9 +8,11 @@ export default function RegisterPage() {
     return (
         <Suspense
             fallback={
-                <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-                    <span className="text-sm">正在加载注册通道...</span>
+                <div className="flex flex-col items-center justify-center min-h-[380px] text-zinc-500 dark:text-zinc-400 gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(245,158,11,0.12)] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.75)]">
+                        <Loader2 className="w-5 h-5 animate-spin text-amber-600 dark:text-amber-300" />
+                    </span>
+                    <span className="text-xs font-medium">正在加载注册通道...</span>
                 </div>
             }
         >

@@ -261,9 +261,9 @@ function SearchResultsContent() {
             {/* 标签页 (水滴胶囊 + Liquid Glass 纯净光学) */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-6">
                 <TabsList className="border-0 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08),0_4px_16px_-2px_rgba(0,0,0,0.3)] p-1 rounded-full h-10">
-                    <TabsTrigger value="all" className="rounded-full text-xs sm:text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-sm px-4">综合</TabsTrigger>
-                    <TabsTrigger value="posts" className="rounded-full text-xs sm:text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-sm px-4">帖子 ({posts.length})</TabsTrigger>
-                    <TabsTrigger value="users" className="rounded-full text-xs sm:text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-sm px-4">学者 ({users.length})</TabsTrigger>
+                    <TabsTrigger value="all" className="rounded-full text-xs sm:text-sm font-medium px-4">综合</TabsTrigger>
+                    <TabsTrigger value="posts" className="rounded-full text-xs sm:text-sm font-medium px-4">帖子 ({posts.length})</TabsTrigger>
+                    <TabsTrigger value="users" className="rounded-full text-xs sm:text-sm font-medium px-4">学者 ({users.length})</TabsTrigger>
                 </TabsList>
             </Tabs>
 

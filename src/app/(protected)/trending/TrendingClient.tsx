@@ -132,21 +132,21 @@ export default function TrendingClient({ initialPosts }: TrendingClientProps) {
                     <TabsList className="h-auto p-1.5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_4px_16px_-2px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.2)] flex gap-1 w-fit">
                         <TabsTrigger
                             value="hot"
-                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                            className="rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                         >
                             <TrendingUp className="h-3.5 w-3.5" />
                             <span>热度</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="views"
-                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                            className="rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                         >
                             <Eye className="h-3.5 w-3.5" />
                             <span>浏览量</span>
                         </TabsTrigger>
                         <TabsTrigger
                             value="likes"
-                            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800/90 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-zinc-100 data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)] dark:data-[state=active]:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.15)] text-zinc-600 dark:text-zinc-400 rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer"
+                            className="rounded-full px-4 py-1.5 text-xs sm:text-sm font-medium flex items-center gap-1.5 cursor-pointer"
                         >
                             <Heart className="h-3.5 w-3.5" />
                             <span>点赞数</span>

@@ -6,9 +6,10 @@ import { EditorContent, EditorRoot, type JSONContent } from "novel";
 import katex from "katex";
 import { cn } from "@/lib/utils";
 import { viewerExtensions } from "./viewer-extensions";
-import MathViewerComponent from "./extensions/MathViewerComponent";
+import MathViewerComponent, { checkIsFunction } from "./extensions/MathViewerComponent";
+import { LatexFormulaExpandBar } from "./extensions/LatexFormulaExpandBar";
 import { toast } from "sonner";
-import { SieveSequenceViewer, isSieveSequence, parseSieveSequence, type SieveItem } from "@/components/posts/SieveSequenceViewer";
+import { SieveSequenceViewer, parseSieveSequence, type SieveItem } from "@/components/posts/SieveSequenceViewer";
 import { TableChartViewer, parseTableData, type ParsedTableData } from "@/components/posts";
 
 // Error boundary to catch Tiptap rendering crashes
@@ -32,8 +33,8 @@ class ViewerErrorBoundary extends Component<
     render() {
         if (this.state.hasError) {
             return (
-                <div className="p-4 rounded-lg border border-orange-500/30 bg-orange-500/5 text-sm">
-                    <p className="font-semibold text-orange-600 mb-1">
+                <div className="p-4 rounded-2xl border-0 bg-amber-500/10 text-sm shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)]">
+                    <p className="font-semibold text-amber-600 dark:text-amber-400 mb-1">
                         ⚠ 内容渲染出错
                     </p>
                     <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
@@ -53,24 +54,54 @@ interface NovelViewerProps {
     editorClassName?: string;
 }
 
-// 辅助函数，判定 LaTeX 是否为函数公式
-function checkIsFunction(latex: string) {
-    const trimmed = latex.trim();
-    const clean = trimmed.replace(/^\$+|\$+$/g, "").trim();
-    const lower = clean.toLowerCase();
-
-    const hasXOrTheta = lower.includes("x") || lower.includes("\\theta") || lower.includes("t") || lower.includes("y");
-    if (!hasXOrTheta) return { isFunc: false, desmosLatex: "" };
-
-    const invalidKeywords = ["\\sum", "\\int", "\\lim", "\\matrix", "\\frac{d}{dx}", "\\approx", ">", "<", "\\ge", "\\le"];
-    const hasInvalid = invalidKeywords.some(keyword => lower.includes(keyword));
-    if (hasInvalid) return { isFunc: false, desmosLatex: "" };
-
-    if (clean.includes("=")) {
-        return { isFunc: true, desmosLatex: clean };
-    } else {
-        return { isFunc: true, desmosLatex: `y = ${clean}` };
+/**
+ * 严格判定公式是否为独占段落的独立块级公式（Standalone Display Formula）
+ * 若所在 <p> 含有任何散文文字（如“记 ... ,其中 t 为自然数”）或存在多个行内公式，一律判定为行内公式，绝不打断行内排版！
+ */
+function getStandaloneBlockTarget(renderEl: HTMLElement): HTMLElement | null {
+    if (
+        renderEl.classList.contains("Tiptap-mathematics-render--block") ||
+        renderEl.querySelector(".katex-display") !== null
+    ) {
+        const hostP = renderEl.closest("p");
+        if (!hostP) return renderEl;
     }
+
+    const hostP = renderEl.closest("p");
+    if (!hostP) {
+        return renderEl.classList.contains("Tiptap-mathematics-render--block")
+            ? renderEl
+            : null;
+    }
+
+    // 段落内必须仅包含这唯一一个数学公式节点
+    const allMathInP = hostP.querySelectorAll(".Tiptap-mathematics-render");
+    if (allMathInP.length !== 1) return null;
+
+    // 检查段落直接子节点中是否存在任何非空白散文文本或其他内联元素
+    for (const child of Array.from(hostP.childNodes)) {
+        if (child.nodeType === Node.TEXT_NODE) {
+            const raw = (child.textContent || "").trim();
+            // 排除未被剥离的纯 $$ 定界符，若有任何汉字/字母/标点则说明是行内混排段落
+            if (raw.replace(/^\$+|\$+$/g, "").trim().length > 0) {
+                return null;
+            }
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            const el = child as HTMLElement;
+            if (
+                el === renderEl ||
+                el.contains(renderEl) ||
+                el.classList.contains("Tiptap-mathematics-editor") ||
+                el.classList.contains("math-desmos-portal-container") ||
+                el.tagName === "BR"
+            ) {
+                continue;
+            }
+            return null;
+        }
+    }
+
+    return hostP;
 }
 
 export default function NovelViewer({
@@ -82,6 +113,12 @@ export default function NovelViewer({
     const valueToRender = initialValue || content;
     const containerRef = useRef<HTMLDivElement>(null);
     const [mathPortals, setMathPortals] = useState<{ id: string; element: HTMLElement; latex: string }[]>([]);
+    const [expandPortals, setExpandPortals] = useState<{
+        id: string;
+        element: HTMLElement;
+        latex: string;
+        formulaElement: HTMLElement;
+    }[]>([]);
     const [sievePortals, setSievePortals] = useState<{
         id: string;
         element: HTMLElement;
@@ -114,24 +151,20 @@ export default function NovelViewer({
 
             const renders = container.querySelectorAll(".Tiptap-mathematics-render");
             const newDesmosPortals: typeof mathPortals = [];
+            const newExpandPortals: typeof expandPortals = [];
             const newSievePortals: typeof sievePortals = [];
             const newTablePortals: typeof tablePortals = [];
 
-            // 1. 处理公式：Desmos 函数交互 + 独立居中公式悬停复制 + \tag 原生右对齐锁定
+            // 1. 处理公式：Desmos 函数交互 + 独立块级长公式推导自适应展开 + 点击复制 + \tag 原生右对齐锁定
             renders.forEach((renderElNode, index) => {
                 const renderEl = renderElNode as HTMLElement;
 
-                // 在同级或父节点下寻找原 LaTeX 隐藏编辑节点
-                let editorEl = renderEl.previousElementSibling as HTMLElement;
-                if (!editorEl || !editorEl.classList.contains("Tiptap-mathematics-editor")) {
-                    editorEl = renderEl.parentNode?.querySelector(".Tiptap-mathematics-editor") as HTMLElement;
-                }
-
+                // 严格只读取紧邻的前置隐藏编辑节点或自身内部的 KaTeX annotation，绝不跨兄弟节点误取父级第一个公式
+                const prevSibling = renderEl.previousElementSibling as HTMLElement | null;
                 let latex = "";
-                if (editorEl && editorEl.classList.contains("Tiptap-mathematics-editor")) {
-                    latex = editorEl.textContent || "";
+                if (prevSibling && prevSibling.classList.contains("Tiptap-mathematics-editor")) {
+                    latex = prevSibling.textContent || "";
                 } else {
-                    // 尝试从 KaTeX annotation 提取
                     const annotation = renderEl.querySelector('annotation[encoding="application/x-tex"]');
                     if (annotation && annotation.textContent) {
                         latex = annotation.textContent;
@@ -143,12 +176,6 @@ export default function NovelViewer({
                 // 规范化手动手打编号 (**) -> \tag{**}
                 const hasManualTag = /\\(quad|qquad)\s*\(\s*(\*+)\s*\)|\s*\(\s*(\*+)\s*\)$/.test(latex);
                 const hasLatexTag = latex.includes("\\tag{");
-                const isDisplayOrLong =
-                    hasLatexTag ||
-                    hasManualTag ||
-                    renderEl.classList.contains("Tiptap-mathematics-render--block") ||
-                    renderEl.querySelector(".katex-display") !== null ||
-                    latex.length > 35;
 
                 let normalizedLatex = latex;
                 if (hasManualTag && !hasLatexTag) {
@@ -157,8 +184,10 @@ export default function NovelViewer({
                         .replace(/\s*\(\s*(\*+)\s*\)$/g, "\\tag{$1}");
                 }
 
-                // 如果包含 \tag 或被标识为独立行公式，确保在 displayMode 下重新渲染以锁定右端
-                if ((hasLatexTag || hasManualTag) && !renderEl.dataset.katexRetagged) {
+                const standaloneHost = getStandaloneBlockTarget(renderEl);
+
+                // 仅当公式带 \tag 且本身独占一行（非句中内联混排）时，以 displayMode 渲染右对齐编号
+                if ((hasLatexTag || hasManualTag) && standaloneHost && !renderEl.dataset.katexRetagged) {
                     try {
                         renderEl.dataset.katexRetagged = "true";
                         katex.render(normalizedLatex, renderEl, {
@@ -172,7 +201,7 @@ export default function NovelViewer({
                     }
                 }
 
-                // 挂载 Desmos 交互窗格
+                // 挂载 Desmos 交互窗格（复用 MathViewerComponent 严格函数判定，过滤单个变量如 t / r / s_i）
                 const { isFunc } = checkIsFunction(normalizedLatex);
                 if (isFunc) {
                     const sibling = renderEl.nextSibling as HTMLElement;
@@ -189,12 +218,40 @@ export default function NovelViewer({
                     }
                 }
 
-                // 支持点击公式直接复制 LaTeX 源码（消灭浮动按钮）
+                // 仅对【独占段落的独立块级复杂公式】在段落外部（兄弟层级）挂载展开/精读条，绝不向 <p> 内部注入 <div>！
+                const isComplexStandaloneFormula =
+                    Boolean(standaloneHost) &&
+                    (renderEl.classList.contains("Tiptap-mathematics-render--block") ||
+                        renderEl.querySelector(".katex-display") !== null ||
+                        normalizedLatex.includes("\\begin{") ||
+                        (normalizedLatex.match(/\\\\/g)?.length ?? 0) >= 2 ||
+                        normalizedLatex.length >= 120);
+
+                if (
+                    isComplexStandaloneFormula &&
+                    standaloneHost &&
+                    standaloneHost.dataset.expandPortalAttached !== "true"
+                ) {
+                    standaloneHost.dataset.expandPortalAttached = "true";
+                    const expandPortalEl = document.createElement("div");
+                    expandPortalEl.className = "math-expand-portal-container w-full";
+                    // 插入在块级宿主（如 <p>）之后，严格保持 HTML5 块级同级结构，零干扰 ProseMirror 行内 DOM
+                    standaloneHost.parentNode?.insertBefore(expandPortalEl, standaloneHost.nextSibling);
+
+                    newExpandPortals.push({
+                        id: `expand-portal-${index}-${Date.now()}`,
+                        element: expandPortalEl,
+                        latex: normalizedLatex,
+                        formulaElement: renderEl,
+                    });
+                }
+
+                // 支持点击公式直接复制 LaTeX 源码
                 renderEl.dataset.latexSource = normalizedLatex;
                 renderEl.title = "点击复制 LaTeX 公式源码";
                 renderEl.classList.add(
                     "cursor-pointer",
-                    "transition-all",
+                    "transition-[transform,background-color,box-shadow]",
                     "duration-150",
                     "hover:bg-zinc-500/5",
                     "dark:hover:bg-zinc-400/10",
@@ -211,16 +268,13 @@ export default function NovelViewer({
                 const items = parseSieveSequence(p);
                 if (items.length < 5) return;
 
-                // 检查是否已经挂载过筛法容器
                 const nextEl = p.nextElementSibling as HTMLElement;
                 if (nextEl && nextEl.classList?.contains("sieve-portal-container")) {
                     return;
                 }
 
-                // 标记已处理，绝不重复生成
                 p.dataset.sieveMounted = "true";
 
-                // 上下文前缀嗅探：向上寻找是否有紧邻的 "d = x 时:" 描述
                 let label = "筛法数字序列状态演化";
                 const prevEl = p.previousElementSibling as HTMLElement;
                 if (prevEl && prevEl.textContent) {
@@ -233,7 +287,6 @@ export default function NovelViewer({
                     }
                 }
 
-                // 隐藏原原生段落（保留 DOM 用于 SEO 和辅助阅读）
                 p.style.display = "none";
                 p.setAttribute("data-sieve-hidden", "true");
 
@@ -275,6 +328,9 @@ export default function NovelViewer({
             if (newDesmosPortals.length > 0) {
                 setMathPortals(prev => [...prev, ...newDesmosPortals]);
             }
+            if (newExpandPortals.length > 0) {
+                setExpandPortals(prev => [...prev, ...newExpandPortals]);
+            }
             if (newSievePortals.length > 0) {
                 setSievePortals(prev => [...prev, ...newSievePortals]);
             }
@@ -288,17 +344,26 @@ export default function NovelViewer({
             const target = (e.target as HTMLElement)?.closest(".Tiptap-mathematics-render") as HTMLElement;
             if (!target || !container.contains(target)) return;
 
-            // 若点击的是 Desmos 互动窗格，不触发公式源码复制
-            if ((e.target as HTMLElement)?.closest(".math-desmos-portal-container")) return;
+            if (
+                (e.target as HTMLElement)?.closest(".math-desmos-portal-container") ||
+                (e.target as HTMLElement)?.closest(".math-expand-portal-container")
+            ) {
+                return;
+            }
 
             const latex = target.dataset.latexSource;
             if (latex) {
                 navigator.clipboard.writeText(latex).then(() => {
-                    // 触觉与视觉微光反馈
-                    target.classList.add("ring-1", "ring-emerald-500/40", "bg-emerald-500/10");
+                    target.classList.add(
+                        "bg-amber-500/12",
+                        "shadow-[0_0_16px_rgba(245,158,11,0.22)]"
+                    );
                     setTimeout(() => {
-                        target.classList.remove("ring-1", "ring-emerald-500/40", "bg-emerald-500/10");
-                    }, 350);
+                        target.classList.remove(
+                            "bg-amber-500/12",
+                            "shadow-[0_0_16px_rgba(245,158,11,0.22)]"
+                        );
+                    }, 380);
 
                     toast.success("已复制 LaTeX 公式源码", {
                         description: latex.length > 50 ? `${latex.slice(0, 48)}...` : latex,
@@ -318,7 +383,7 @@ export default function NovelViewer({
         const t2 = setTimeout(scanAndMount, 300);
         const t3 = setTimeout(scanAndMount, 700);
 
-        // 监听 Tiptap / ProseMirror DOM 异步更新（增加防抖，避免连续 DOM 插入引发密集重扫描）
+        // 监听 Tiptap / ProseMirror DOM 异步更新
         let observerDebounceTimer: NodeJS.Timeout | null = null;
         const observer = new MutationObserver(() => {
             if (observerDebounceTimer) clearTimeout(observerDebounceTimer);
@@ -342,12 +407,13 @@ export default function NovelViewer({
             observer.disconnect();
 
             setMathPortals([]);
+            setExpandPortals([]);
             setSievePortals([]);
             setTablePortals([]);
 
             if (container) {
-                // 清理所有动态注入的 portal 容器与恢复被隐藏的文本和表格
                 container.querySelectorAll(".math-desmos-portal-container").forEach(el => el.remove());
+                container.querySelectorAll(".math-expand-portal-container").forEach(el => el.remove());
                 container.querySelectorAll(".sieve-portal-container").forEach(el => el.remove());
                 container.querySelectorAll(".table-chart-portal-container").forEach(el => el.remove());
                 container.querySelectorAll<HTMLTableElement>("table[data-chart-portal-attached='true']").forEach(t => {
@@ -358,6 +424,9 @@ export default function NovelViewer({
                     (p as HTMLElement).style.display = "";
                     p.removeAttribute("data-sieve-hidden");
                     delete (p as HTMLElement).dataset.sieveMounted;
+                });
+                container.querySelectorAll("[data-expand-portal-attached='true']").forEach(el => {
+                    delete (el as HTMLElement).dataset.expandPortalAttached;
                 });
                 container.querySelectorAll(".Tiptap-mathematics-render").forEach(el => {
                     delete (el as HTMLElement).dataset.latexSource;
@@ -404,7 +473,16 @@ export default function NovelViewer({
                 )
             )}
 
-
+            {/* 通过 React Portal 挂载独立块级长公式自适应展开与放大检视条 */}
+            {expandPortals.map(portal =>
+                createPortal(
+                    <LatexFormulaExpandBar
+                        latex={portal.latex}
+                        formulaElement={portal.formulaElement}
+                    />,
+                    portal.element
+                )
+            )}
 
             {/* 通过 React Portal 挂载数字筛法微型胶囊网格 */}
             {sievePortals.map(portal =>

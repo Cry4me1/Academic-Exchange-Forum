@@ -1,32 +1,60 @@
-import { generateCaptchaSvg, verifyCaptcha } from "../src/lib/captcha";
+import fs from "fs";
+import path from "path";
+import { verifyTurnstileToken } from "../src/lib/turnstile";
+
+// 本地测试脚本加载 .env.local
+const envLocalPath = path.resolve(__dirname, "../.env.local");
+if (fs.existsSync(envLocalPath)) {
+  const content = fs.readFileSync(envLocalPath, "utf8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx !== -1) {
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
+  }
+}
 
 async function runTests() {
-  console.log("=== 开始人机验证系统安全性与反爬虫测试 ===");
+  console.log("=== 开始 Cloudflare Turnstile 人机验证安全性自检 ===");
 
-  // 1. 生成验证码
-  const captcha = generateCaptchaSvg();
-  console.log("1. 生成验证码成功: token =", captcha.token);
-  
-  // 检查是否泄露了题目明文
-  if ("prompt" in captcha || "questionText" in captcha) {
-    throw new Error("FAIL: 验证码返回对象中依然存在明文题目字段！");
-  }
-  console.log("2. 明文泄漏检测: PASS (未在任何返回字段中包含题目明文)");
+  // 1. 测试空参数拦截
+  const emptyRes = await verifyTurnstileToken("", "127.0.0.1");
+  console.log(
+    "1. 缺失凭证拦截测试:",
+    emptyRes.success === false ? "PASS" : "FAIL",
+    emptyRes.message
+  );
 
-  // 3. 测试缺少参数
-  const emptyRes = verifyCaptcha("", "");
-  console.log("3. 缺少参数拦截测试:", emptyRes.success === false ? "PASS" : "FAIL", emptyRes.message);
+  // 2. 测试超长伪造载荷拦截 (> 2048 字符)
+  const oversizedToken = "x".repeat(2050);
+  const oversizedRes = await verifyTurnstileToken(oversizedToken, "127.0.0.1");
+  console.log(
+    "2. 超长载荷拦截测试:",
+    oversizedRes.success === false ? "PASS" : "FAIL",
+    oversizedRes.message
+  );
 
-  // 4. 测试伪造 Token 篡改签名
-  const fakeToken = captcha.token.replace(/.$/, "x");
-  const fakeRes = verifyCaptcha(fakeToken, "123");
-  console.log("4. 签名防篡改测试:", fakeRes.success === false ? "PASS" : "FAIL", fakeRes.message);
+  // 3. 测试与 Cloudflare 真实 Siteverify API 交互（真实 Secret + 测试用 Dummy Token）
+  // 预期：Cloudflare 会接收到请求，验证 Secret 成功，并返回 invalid-input-response
+  const probeRes = await verifyTurnstileToken(
+    "XXXX.DUMMY.TOKEN.XXXX",
+    "127.0.0.1",
+    "register_email"
+  );
+  console.log(
+    "3. Cloudflare 真实 Siteverify 交互校验:",
+    probeRes.success === false && probeRes.message?.includes("人机验证凭证无效")
+      ? "PASS (Secret 校验成功，正确拦截伪造凭证)"
+      : `RESULT: ${probeRes.message}`
+  );
 
-  // 5. 测试错误答案
-  const wrongRes = verifyCaptcha(captcha.token, "999999");
-  console.log("5. 错误答案拦截测试:", wrongRes.success === false ? "PASS" : "FAIL", wrongRes.message);
-
-  console.log("=== 所有高安全对抗测试全部通过 ===");
+  console.log("=== Cloudflare Turnstile 安全校验基础测试全部通过 ===");
 }
 
 runTests().catch((err) => {

@@ -13,10 +13,10 @@ import {
     Heart,
     Lock,
     Medal,
-    Trophy
+    Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import {
     getContributionLeaderboard,
     getWeeklyBookmarkLeaderboard,
@@ -32,47 +32,59 @@ function seededRandom(seed: number) {
     return x - Math.floor(x);
 }
 
-const EMBER_COLORS = ["#ff6b35", "#ff8c42", "#ffa559", "#ffcc80"];
+const EMBER_COLORS = ["#f59e0b", "#fb923c", "#fbbf24", "#fde68a"];
 
 // 预计算粒子数据，确保服务端/客户端一致
-const EMBER_PARTICLES = Array.from({ length: 20 }).map((_, i) => {
+const EMBER_PARTICLES = Array.from({ length: 18 }).map((_, i) => {
     const s = (n: number) => seededRandom(i * 7 + n + 42);
     return {
-        width: s(0) * 4 + 2,
-        height: s(1) * 4 + 2,
+        width: s(0) * 3.5 + 1.5,
+        height: s(1) * 3.5 + 1.5,
         left: s(2) * 100,
-        bottom: s(3) * 20,
+        bottom: s(3) * 24,
         color: EMBER_COLORS[Math.floor(s(4) * 4)],
         delay: s(5) * 5,
-        duration: 3 + s(6) * 4,
-        opacity: s(7) * 0.8 + 0.2,
+        duration: 4 + s(6) * 4,
+        opacity: s(7) * 0.55 + 0.15,
     };
 });
 
 // ============================================================
-// 火焰背景组件
+// 120fps 光随鼠动 DOM CSS 变量注入（零重渲染）
 // ============================================================
-function FlameBackground() {
+function handleCardMouseMove(e: MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+}
+
+// ============================================================
+// 双模通透光学氛围背景（Light 温润琥珀微光 / Dark 深邃暖金与轻盈星火）
+// ============================================================
+function OpticalAtmosphereBackground() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
     return (
-        <div className="fixed inset-0 z-0 overflow-hidden bg-[#0a0a0f]">
-            {/* 基础暗色渐变 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-[#10080a] to-[#1a0c06]" />
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+            {/* 顶部天光漫射层（与 TrendingClient 保持统一光学节奏） */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[440px] bg-gradient-to-b from-zinc-200/40 via-zinc-100/20 to-transparent dark:from-zinc-800/20 dark:via-zinc-900/10 dark:to-transparent blur-3xl opacity-75" />
 
-            {/* 火焰渐变层1 - 底部橙色光晕 */}
-            <div className="absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-orange-900/30 via-orange-950/10 to-transparent animate-flame-pulse" />
+            {/* 左上温润琥珀微光晕 */}
+            <div className="absolute -top-32 left-1/4 w-96 h-96 bg-amber-500/[0.07] dark:bg-amber-500/[0.12] rounded-full blur-3xl" />
 
-            {/* 火焰渐变层2 - 侧面光效 */}
-            <div className="absolute bottom-0 left-1/4 w-1/2 h-[70%] bg-gradient-to-t from-amber-800/20 via-red-900/5 to-transparent animate-flame-sway blur-3xl" />
+            {/* 右上暖橙微光晕 */}
+            <div className="absolute -top-32 right-1/4 w-96 h-96 bg-orange-500/[0.06] dark:bg-orange-500/[0.10] rounded-full blur-3xl" />
 
-            {/* 粒子火星（仅客户端渲染，避免 SSR 水合不匹配） */}
+            {/* 底部荣耀暖金环境漫射 */}
+            <div className="absolute -bottom-28 left-1/2 -translate-x-1/2 w-[680px] h-[320px] bg-amber-400/[0.06] dark:bg-amber-600/[0.12] rounded-full blur-3xl animate-flame-sway" />
+
+            {/* 轻盈星火粒子（Dark 模式清晰星火，Light 模式极柔微尘，仅客户端渲染避免水合差异） */}
             {mounted &&
                 EMBER_PARTICLES.map((p, i) => (
                     <div
                         key={i}
-                        className="absolute rounded-full animate-ember-rise"
+                        className="absolute rounded-full animate-ember-rise opacity-25 dark:opacity-100"
                         style={{
                             width: `${p.width}px`,
                             height: `${p.height}px`,
@@ -81,28 +93,15 @@ function FlameBackground() {
                             background: `radial-gradient(circle, ${p.color}, transparent)`,
                             animationDelay: `${p.delay}s`,
                             animationDuration: `${p.duration}s`,
-                            opacity: p.opacity,
                         }}
                     />
                 ))}
-
-            {/* 顶部暗化遮罩 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] via-transparent to-transparent opacity-60" />
-
-            {/* 网格线效果 */}
-            <div
-                className="absolute inset-0 opacity-[0.03]"
-                style={{
-                    backgroundImage: `linear-gradient(rgba(255,165,0,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,165,0,0.3) 1px, transparent 1px)`,
-                    backgroundSize: "60px 60px",
-                }}
-            />
         </div>
     );
 }
 
 // ============================================================
-// 榜一 · 王者卡片
+// 榜一 · 王者卡片（琥珀金微光晕 + 120fps 纯白物理漫反射）
 // ============================================================
 function TopChampionCard({
     entry,
@@ -115,109 +114,118 @@ function TopChampionCard({
 }) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: -40, scale: 0.8 }}
+            initial={{ opacity: 0, y: -32, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
             className="relative mb-8"
         >
-            {/* 外层光环 */}
-            <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/30 to-amber-500/20 blur-xl animate-champion-glow" />
+            {/* 单色温润琥珀金环境微光晕（Ambient Aura Glow） */}
+            <div className="pointer-events-none absolute -inset-3 rounded-3xl bg-amber-500/[0.12] dark:bg-amber-500/[0.18] blur-2xl" />
 
-            <div className="relative rounded-2xl border border-amber-500/30 bg-gradient-to-br from-[#1a1206]/90 via-[#1c1008]/90 to-[#1a0c06]/90 backdrop-blur-xl overflow-hidden p-6 sm:p-8">
-                {/* 顶部金色光带 */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-shimmer-bar" />
+            <div
+                onMouseMove={handleCardMouseMove}
+                className="group relative rounded-3xl border-0 bg-white/80 hover:bg-white/90 dark:bg-zinc-900/55 dark:hover:bg-zinc-900/65 backdrop-blur-2xl overflow-hidden p-6 sm:p-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-6px_rgba(245,158,11,0.18),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_12px_40px_-6px_rgba(245,158,11,0.22),0_8px_32px_-4px_rgba(0,0,0,0.45)] transition-all duration-300"
+            >
+                {/* 120fps 光随鼠动纯白无色物理漫射层 */}
+                <div
+                    className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 dark:group-hover:opacity-35 transition-opacity duration-300"
+                    style={{
+                        background:
+                            "radial-gradient(280px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.6), transparent 80%)",
+                    }}
+                />
 
-                <div className="flex flex-col items-center pt-6">
-                    {/* 皇冠动画 */}
+                {/* 顶部菲涅尔渐变消融微光缝 */}
+                <div className="pointer-events-none absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 dark:via-amber-400/40 to-transparent" />
+
+                <div className="relative z-10 flex flex-col items-center pt-3">
+                    {/* 皇冠微浮动画 */}
                     <motion.div
-                        className="mb-2"
-                        animate={{ y: [0, -6, 0], rotate: [0, 3, -3, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="mb-2.5"
+                        animate={{ y: [0, -5, 0], rotate: [0, 2.5, -2.5, 0] }}
+                        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
                     >
-                        <Crown className="h-10 w-10 text-amber-400 drop-shadow-[0_0_16px_rgba(251,191,36,0.6)]" />
+                        <Crown className="h-9 w-9 text-amber-500 dark:text-amber-400 drop-shadow-[0_4px_12px_rgba(245,158,11,0.35)]" />
                     </motion.div>
-                    {/* 头像 */}
+
+                    {/* 头像与琥珀柔光晕 */}
                     <div className="relative mb-4">
-                        <motion.div
-                            className="absolute -inset-3 rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400"
-                            animate={{ rotate: 360 }}
-                            transition={{
-                                duration: 8,
-                                repeat: Infinity,
-                                ease: "linear",
-                            }}
-                            style={{ padding: "3px" }}
-                        />
-                        <Avatar className="relative h-24 w-24 ring-2 ring-amber-400/50 z-10">
+                        <div className="pointer-events-none absolute -inset-2.5 rounded-full bg-amber-400/25 dark:bg-amber-500/25 blur-md" />
+                        <Avatar className="relative h-24 w-24 rounded-full border-0 shadow-[0_8px_24px_-4px_rgba(245,158,11,0.32),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_8px_24px_-4px_rgba(245,158,11,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.25)] z-10">
                             <AvatarImage src={entry.avatarUrl} />
-                            <AvatarFallback className="text-2xl bg-gradient-to-br from-amber-700 to-orange-800 text-amber-100 font-bold">
+                            <AvatarFallback className="text-2xl bg-amber-500/15 dark:bg-amber-500/25 text-amber-700 dark:text-amber-200 font-bold">
                                 {entry.username?.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
 
-                        {/* 锁定特效 */}
+                        {/* 锁定徽章胶囊 */}
                         {entry.isLocked && (
                             <motion.div
-                                className="absolute -top-1 -right-1 z-20 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full p-1.5 shadow-lg shadow-amber-500/40"
-                                animate={{ scale: [1, 1.2, 1] }}
+                                className="absolute -top-1 -right-1 z-20 bg-amber-500 text-white rounded-full border-0 p-1.5 shadow-[0_4px_12px_rgba(245,158,11,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
+                                animate={{ scale: [1, 1.12, 1] }}
                                 transition={{
-                                    duration: 2,
+                                    duration: 2.2,
                                     repeat: Infinity,
                                     ease: "easeInOut",
                                 }}
                             >
-                                <Lock className="h-4 w-4 text-white" />
+                                <Lock className="h-3.5 w-3.5" />
                             </motion.div>
                         )}
                     </div>
 
                     {/* 用户名 */}
                     <Link href={`/user/${entry.userId}`}>
-                        <h3 className="text-2xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent hover:from-amber-200 hover:to-yellow-100 transition-all">
+                        <h3 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 hover:text-amber-600 dark:hover:text-amber-300 transition-colors">
                             {entry.username}
                         </h3>
                     </Link>
 
-                    {/* 锁定标签 */}
+                    {/* 锁定标签水滴胶囊 */}
                     {entry.isLocked && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0 }}
+                            initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.5 }}
-                            className="mt-2 flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full px-3 py-1"
+                            transition={{ delay: 0.3 }}
+                            className="mt-2 flex items-center gap-1.5 rounded-full border-0 bg-amber-500/[0.14] dark:bg-amber-500/[0.18] px-3.5 py-1 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_10px_rgba(245,158,11,0.18)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_2px_10px_rgba(245,158,11,0.22)]"
                         >
-                            <Lock className="h-3 w-3 text-amber-400" />
-                            <span className="text-xs font-bold text-amber-300 tracking-wider uppercase">
+                            <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300 tracking-wide">
                                 项目开发者
                             </span>
                         </motion.div>
                     )}
 
+                    {/* 渐变消融内部光缝 */}
+                    <div className="h-[1px] w-48 max-w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-4" />
+
                     {/* 分数 */}
-                    <div className="mt-4 flex items-center gap-2">
-                        <Icon className="h-5 w-5 text-amber-400" />
-                        <span className="text-3xl font-black text-white tabular-nums">
+                    <div className="flex items-center gap-2">
+                        <Icon className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+                        <span className="text-3xl font-bold text-zinc-900 dark:text-white tabular-nums">
                             {entry.score.toLocaleString()}
                         </span>
-                        <span className="text-amber-400/70 text-sm">{label}</span>
+                        <span className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
+                            {label}
+                        </span>
                     </div>
 
-                    {/* 排名标识 */}
-                    <div className="mt-3 flex items-center gap-1.5 text-amber-500/60 text-xs font-semibold">
-                        <Trophy className="h-4 w-4" />
-                        <span>👑 至高无上 · 第一名</span>
+                    {/* 排名标识胶囊 */}
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border-0 bg-amber-500/[0.12] dark:bg-amber-500/[0.16] px-3.5 py-1 text-amber-700 dark:text-amber-300 text-xs font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.14)]">
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>至高无上 · 第一名</span>
                     </div>
                 </div>
 
-                {/* 底部装饰线 */}
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+                {/* 底部渐变消融光缝 */}
+                <div className="pointer-events-none absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-amber-400/40 dark:via-amber-500/35 to-transparent" />
             </div>
         </motion.div>
     );
 }
 
 // ============================================================
-// 二三名 · 卡片
+// 二三名 · 卡片（月光银 / 暖铜单色微光晕 + 120fps 纯白物理漫射）
 // ============================================================
 function RunnerUpCard({
     entry,
@@ -231,86 +239,99 @@ function RunnerUpCard({
     icon: React.ElementType;
 }) {
     const isSecond = position === 2;
-    const borderColor = isSecond
-        ? "border-slate-300/30"
-        : "border-amber-700/30";
-    const gradientFrom = isSecond ? "from-slate-400" : "from-amber-600";
-    const gradientTo = isSecond ? "to-slate-200" : "to-amber-400";
-    const bgGradient = isSecond
-        ? "from-[#12141a]/90 via-[#161920]/90 to-[#12141a]/90"
-        : "from-[#1a1510]/90 via-[#1c1610]/90 to-[#1a1510]/90";
-    const ringColor = isSecond ? "ring-slate-400/40" : "ring-amber-600/40";
-    const medalColor = isSecond ? "text-slate-300" : "text-amber-600";
+
+    // 单色温润微光晕：第二名月光银 (Slate/Silver)，第三名暖铜 (Warm Copper/Bronze)
+    const auraClass = isSecond
+        ? "bg-slate-400/[0.14] dark:bg-slate-400/[0.12]"
+        : "bg-amber-600/[0.12] dark:bg-amber-600/[0.16]";
+
+    const cardShadowClass = isSecond
+        ? "shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_10px_32px_-6px_rgba(148,163,184,0.20),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.14),0_10px_32px_-6px_rgba(148,163,184,0.16),0_8px_32px_-4px_rgba(0,0,0,0.4)]"
+        : "shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_10px_32px_-6px_rgba(217,119,6,0.16),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.14),0_10px_32px_-6px_rgba(180,83,9,0.22),0_8px_32px_-4px_rgba(0,0,0,0.4)]";
+
+    const pillClass = isSecond
+        ? "bg-slate-500/[0.12] dark:bg-slate-400/[0.14] text-slate-700 dark:text-slate-300"
+        : "bg-amber-700/[0.12] dark:bg-amber-600/[0.18] text-amber-800 dark:text-amber-300";
+
+    const medalColor = isSecond
+        ? "text-slate-500 dark:text-slate-300"
+        : "text-amber-700 dark:text-amber-500";
+
+    const avatarFallbackClass = isSecond
+        ? "bg-slate-500/15 dark:bg-slate-400/20 text-slate-700 dark:text-slate-200"
+        : "bg-amber-700/15 dark:bg-amber-600/20 text-amber-800 dark:text-amber-200";
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            initial={{ opacity: 0, y: 24, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{
                 duration: 0.6,
-                delay: position === 2 ? 0.2 : 0.35,
+                delay: position === 2 ? 0.15 : 0.28,
                 ease: [0.16, 1, 0.3, 1],
             }}
-            className="relative group"
+            className="relative"
         >
-            {/* 外层微光 */}
+            {/* 悬浮时浮现的单色温润微光晕 */}
             <div
-                className={`absolute -inset-2 rounded-2xl bg-gradient-to-r ${isSecond
-                    ? "from-slate-400/10 to-slate-300/10"
-                    : "from-amber-700/10 to-amber-600/10"
-                    } blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                className={`pointer-events-none absolute -inset-2 rounded-3xl ${auraClass} blur-xl opacity-60 transition-opacity duration-500`}
             />
 
             <div
-                className={`relative rounded-xl border ${borderColor} bg-gradient-to-br ${bgGradient} backdrop-blur-xl overflow-hidden p-5`}
+                onMouseMove={handleCardMouseMove}
+                className={`group relative rounded-3xl border-0 bg-white/75 hover:bg-white/88 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/62 backdrop-blur-2xl overflow-hidden p-5 sm:p-6 ${cardShadowClass} hover:-translate-y-0.5 transition-all duration-300`}
             >
-                {/* 排名角标 */}
-                <div className="absolute top-3 right-3">
-                    <Medal className={`h-6 w-6 ${medalColor}`} />
+                {/* 120fps 光随鼠动纯白无色物理漫射层 */}
+                <div
+                    className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 dark:group-hover:opacity-35 transition-opacity duration-300"
+                    style={{
+                        background:
+                            "radial-gradient(220px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.55), transparent 80%)",
+                    }}
+                />
+
+                {/* 排名奖章角标 */}
+                <div className="absolute top-4 right-4 z-10">
+                    <Medal className={`h-5 w-5 ${medalColor}`} />
                 </div>
 
-                <div className="flex flex-col items-center">
+                <div className="relative z-10 flex flex-col items-center">
                     {/* 头像 */}
                     <div className="relative mb-3">
-                        <Avatar className={`h-16 w-16 ring-2 ${ringColor}`}>
+                        <Avatar className="h-16 w-16 rounded-full border-0 shadow-[0_6px_20px_-4px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] dark:shadow-[0_6px_20px_-4px_rgba(0,0,0,0.45),inset_0_1px_0.5px_rgba(255,255,255,0.2)]">
                             <AvatarImage src={entry.avatarUrl} />
-                            <AvatarFallback
-                                className={`text-lg bg-gradient-to-br ${isSecond
-                                    ? "from-slate-600 to-slate-700"
-                                    : "from-amber-800 to-amber-900"
-                                    } text-white font-bold`}
-                            >
+                            <AvatarFallback className={`text-lg font-bold ${avatarFallbackClass}`}>
                                 {entry.username?.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                     </div>
 
-                    {/* 排名 */}
+                    {/* 排名水滴胶囊 */}
                     <div
-                        className={`text-xs font-bold mb-1 bg-gradient-to-r ${gradientFrom} ${gradientTo} bg-clip-text text-transparent`}
+                        className={`rounded-full border-0 px-2.5 py-0.5 text-[11px] font-medium mb-1.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] ${pillClass}`}
                     >
-                        第{position}名
+                        第 {position} 名
                     </div>
 
                     {/* 用户名 */}
-                    <Link href={`/user/${entry.userId}`}>
-                        <h4
-                            className={`font-bold text-lg bg-gradient-to-r ${gradientFrom} ${gradientTo} bg-clip-text text-transparent hover:opacity-80 transition-opacity`}
-                        >
+                    <Link href={`/user/${entry.userId}`} className="max-w-full">
+                        <h4 className="font-semibold text-base sm:text-lg text-zinc-900 dark:text-zinc-100 hover:text-amber-600 dark:hover:text-amber-300 transition-colors truncate">
                             {entry.username}
                         </h4>
                     </Link>
 
+                    {/* 渐变消融内部光缝 */}
+                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-3" />
+
                     {/* 分数 */}
-                    <div className="mt-2 flex items-center gap-1.5">
-                        <Icon
-                            className={`h-4 w-4 ${isSecond ? "text-slate-400" : "text-amber-600"
-                                }`}
-                        />
-                        <span className="text-xl font-bold text-white tabular-nums">
+                    <div className="flex items-center gap-1.5">
+                        <Icon className={`h-4 w-4 ${medalColor}`} />
+                        <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50 tabular-nums">
                             {entry.score.toLocaleString()}
                         </span>
-                        <span className="text-white/40 text-xs">{label}</span>
+                        <span className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">
+                            {label}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -319,7 +340,7 @@ function RunnerUpCard({
 }
 
 // ============================================================
-// 列表排名项
+// 列表排名项（无边框液态玻璃条目）
 // ============================================================
 function LeaderboardRow({
     entry,
@@ -334,41 +355,38 @@ function LeaderboardRow({
 }) {
     return (
         <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay, ease: "easeOut" }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay, ease: "easeOut" }}
             className="group relative"
         >
-            <div className="relative flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm px-4 py-3 hover:bg-white/[0.06] hover:border-orange-500/20 transition-all duration-300">
-                {/* 排名数字 */}
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
-                    <span className="text-sm font-bold text-white/60 tabular-nums">
+            <div className="relative flex items-center gap-4 rounded-2xl border-0 bg-white/75 hover:bg-white/88 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/65 backdrop-blur-2xl px-4 py-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_8px_32px_-4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 transition-all duration-300">
+                {/* 排名水滴胶囊 */}
+                <div className="flex-shrink-0 w-8 h-8 rounded-full border-0 bg-zinc-200/55 dark:bg-white/[0.07] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)] flex items-center justify-center select-none">
+                    <span className="text-xs font-bold font-mono text-zinc-600 dark:text-zinc-300 tabular-nums">
                         {entry.rank}
                     </span>
                 </div>
 
                 {/* 头像 */}
-                <Avatar className="h-10 w-10 ring-1 ring-white/10">
+                <Avatar className="h-10 w-10 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.14),0_2px_8px_rgba(0,0,0,0.3)]">
                     <AvatarImage src={entry.avatarUrl} />
-                    <AvatarFallback className="text-sm bg-white/10 text-white/70 font-semibold">
+                    <AvatarFallback className="text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold">
                         {entry.username?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                 </Avatar>
 
                 {/* 用户名 */}
-                <Link
-                    href={`/user/${entry.userId}`}
-                    className="flex-1 min-w-0"
-                >
-                    <span className="font-medium text-white/80 group-hover:text-white transition-colors truncate block">
+                <Link href={`/user/${entry.userId}`} className="flex-1 min-w-0">
+                    <span className="font-medium text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-950 dark:group-hover:text-white transition-colors truncate block">
                         {entry.username}
                     </span>
                 </Link>
 
-                {/* 分数 */}
-                <div className="flex items-center gap-1.5 text-white/50">
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="font-semibold tabular-nums text-white/70">
+                {/* 分数药丸 */}
+                <div className="flex items-center gap-1.5 rounded-full border-0 bg-zinc-200/40 dark:bg-white/[0.05] px-3 py-1 text-zinc-600 dark:text-zinc-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
+                    <Icon className="h-3.5 w-3.5 text-amber-500/80 dark:text-amber-400/80" />
+                    <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200 text-sm">
                         {entry.score.toLocaleString()}
                     </span>
                     <span className="text-xs hidden sm:inline">{label}</span>
@@ -379,24 +397,24 @@ function LeaderboardRow({
 }
 
 // ============================================================
-// 加载骨架屏
+// 加载骨架态
 // ============================================================
 function LoadingSkeleton() {
     return (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-20 rounded-3xl border-0 bg-white/65 dark:bg-zinc-900/45 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_8px_32px_-4px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1),0_8px_32px_-4px_rgba(0,0,0,0.3)]">
             <motion.div
                 animate={{
                     y: [0, -8, 0],
-                    scale: [1, 1.15, 1],
-                    opacity: [0.6, 1, 0.6],
+                    scale: [1, 1.12, 1],
+                    opacity: [0.65, 1, 0.65],
                 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             >
-                <Flame className="h-12 w-12 text-orange-500/60 drop-shadow-[0_0_20px_rgba(249,115,22,0.3)]" />
+                <Flame className="h-12 w-12 text-amber-500 drop-shadow-[0_4px_16px_rgba(245,158,11,0.3)]" />
             </motion.div>
             <motion.p
-                className="mt-4 text-white/40 text-sm"
-                animate={{ opacity: [0.4, 1, 0.4] }}
+                className="mt-4 text-zinc-500 dark:text-zinc-400 text-sm font-medium"
+                animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2, repeat: Infinity }}
             >
                 正在加载排行榜...
@@ -406,24 +424,24 @@ function LoadingSkeleton() {
 }
 
 // ============================================================
-// 空状态
+// 空状态面板
 // ============================================================
 function EmptyState() {
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-20"
+            className="text-center py-16 px-8 rounded-3xl border-0 bg-white/75 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.4)]"
         >
-            <Trophy className="h-16 w-16 mx-auto text-white/20 mb-4" />
-            <h3 className="text-lg font-medium text-white/40 mb-2">
+            <Trophy className="h-14 w-14 mx-auto text-zinc-400 dark:text-zinc-500 mb-4" />
+            <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
                 暂无排名数据
             </h3>
-            <p className="text-sm text-white/25">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 快来发布帖子，成为第一个上榜的学者吧！
             </p>
             <Link href="/posts/new">
-                <Button className="mt-6 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-0">
+                <Button className="mt-6 rounded-full border-0 px-6 font-medium">
                     发布帖子
                 </Button>
             </Link>
@@ -465,7 +483,7 @@ function LeaderboardDisplay({
 
             {/* 二三名 */}
             {(second || third) && (
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     {second ? (
                         <RunnerUpCard
                             entry={second}
@@ -474,7 +492,7 @@ function LeaderboardDisplay({
                             icon={icon}
                         />
                     ) : (
-                        <div />
+                        <div className="hidden sm:block" />
                     )}
                     {third ? (
                         <RunnerUpCard
@@ -484,20 +502,20 @@ function LeaderboardDisplay({
                             icon={icon}
                         />
                     ) : (
-                        <div />
+                        <div className="hidden sm:block" />
                     )}
                 </div>
             )}
 
             {/* 其余排名 */}
             {rest.length > 0 && (
-                <div className="space-y-2">
-                    <div className="flex items-center gap-2 mb-3 px-1">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                        <span className="text-xs text-white/30 font-medium">
-                            — 一人之下，万人之上 —
+                <div className="space-y-2.5">
+                    <div className="flex items-center gap-3 my-4 px-2">
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium select-none">
+                            群星璀璨 · 学术先锋
                         </span>
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
                     </div>
                     {rest.map((entry, index) => (
                         <LeaderboardRow
@@ -505,7 +523,7 @@ function LeaderboardDisplay({
                             entry={entry}
                             label={label}
                             icon={icon}
-                            delay={0.4 + index * 0.06}
+                            delay={0.3 + index * 0.05}
                         />
                     ))}
                 </div>
@@ -564,7 +582,6 @@ export default function LeaderboardPage() {
 
     // 初始加载
     useEffect(() => {
-        // 大幅延长过渡界面停留时间至 3500ms，确保史诗级动画每一幕完整展现
         const timer = setTimeout(() => setShowContent(true), 3500);
         fetchTab("likes");
         return () => clearTimeout(timer);
@@ -582,123 +599,123 @@ export default function LeaderboardPage() {
         icon: React.ElementType;
         scoreLabel: string;
     }[] = [
-            { key: "likes", label: "🔥 周点赞榜", icon: Heart, scoreLabel: "获赞" },
-            {
-                key: "bookmarks",
-                label: "⭐ 周收藏榜",
-                icon: Bookmark,
-                scoreLabel: "收藏",
-            },
-            {
-                key: "contribution",
-                label: "🏆 社区贡献值",
-                icon: FileText,
-                scoreLabel: "发帖",
-            },
-        ];
+        { key: "likes", label: "周点赞榜", icon: Heart, scoreLabel: "获赞" },
+        {
+            key: "bookmarks",
+            label: "周收藏榜",
+            icon: Bookmark,
+            scoreLabel: "收藏",
+        },
+        {
+            key: "contribution",
+            label: "社区贡献值",
+            icon: FileText,
+            scoreLabel: "发帖",
+        },
+    ];
 
     const currentTabConfig = tabConfig.find((t) => t.key === activeTab)!;
 
     return (
-        <div className="relative min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
-            {/* 火焰背景 */}
+        <div className="relative min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 overflow-hidden selection:bg-zinc-200 dark:selection:bg-zinc-800">
+            {/* 双模通透光学氛围背景 */}
             <motion.div
                 className="absolute inset-0 z-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: showContent ? 1 : 0 }}
-                transition={{ duration: 1.5, ease: "easeInOut" }}
+                transition={{ duration: 1.2, ease: "easeInOut" }}
             >
-                <FlameBackground />
+                <OpticalAtmosphereBackground />
             </motion.div>
 
-            {/* 入场过渡 — 史诗感光影流转 */}
+            {/* 入场过渡 — 双模通透光影流转 */}
             <AnimatePresence>
                 {!showContent && (
                     <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-background"
-                        exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
-                        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-[#fafafa] dark:bg-[#09090b]"
+                        exit={{ opacity: 0, scale: 1.06, filter: "blur(10px)" }}
+                        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
                     >
-                        {/* 沉浸式变暗层：缓缓下沉入黑暗 (0s - 1.2s) */}
-                        <motion.div
-                            className="absolute inset-0 bg-[#0a0a0f]"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 1.2, ease: "easeInOut" }}
-                        />
-
-                        {/* 光网汇聚：大面积琥珀色光晕在黑暗中亮起 (0.8s - 3s) */}
+                        {/* 温润琥珀氛围汇聚 */}
                         <motion.div
                             className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: [0, 0.6, 1, 0.4], scale: [0.5, 1, 1.2, 1.5] }}
-                            transition={{ duration: 3.5, delay: 0.5, ease: "easeOut" }}
+                            initial={{ opacity: 0, scale: 0.6 }}
+                            animate={{
+                                opacity: [0, 0.65, 1, 0.5],
+                                scale: [0.6, 1, 1.18, 1.4],
+                            }}
+                            transition={{ duration: 3.4, delay: 0.4, ease: "easeOut" }}
                         >
-                            <div className="w-[100vw] h-[100vw] max-w-[1000px] max-h-[1000px] rounded-full blur-[100px]"
-                                style={{ background: "radial-gradient(circle, rgba(249,115,22,0.2) 0%, rgba(180,83,9,0.08) 50%, transparent 80%)" }}
+                            <div
+                                className="w-[100vw] h-[100vw] max-w-[960px] max-h-[960px] rounded-full blur-[100px]"
+                                style={{
+                                    background:
+                                        "radial-gradient(circle, rgba(245,158,11,0.18) 0%, rgba(249,115,22,0.06) 50%, transparent 80%)",
+                                }}
                             />
                         </motion.div>
 
                         {/* 核心降临：图标与文字阶段性渐显 */}
                         <div className="relative flex flex-col items-center">
-                            {/* 第一阶段：火焰标志点燃 (1.2s开始) */}
                             <motion.div
-                                initial={{ scale: 0.5, opacity: 0, filter: "brightness(0) blur(10px)" }}
-                                animate={{ scale: 1, opacity: 1, filter: "brightness(1) blur(0px)" }}
-                                transition={{ duration: 1.5, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                                initial={{
+                                    scale: 0.6,
+                                    opacity: 0,
+                                    filter: "blur(10px)",
+                                }}
+                                animate={{
+                                    scale: 1,
+                                    opacity: 1,
+                                    filter: "blur(0px)",
+                                }}
+                                transition={{
+                                    duration: 1.4,
+                                    delay: 0.9,
+                                    ease: [0.16, 1, 0.3, 1],
+                                }}
                             >
                                 <motion.div
                                     animate={{
-                                        y: [0, -15, 0],
+                                        y: [0, -12, 0],
                                         scale: [1, 1.05, 1],
-                                        filter: [
-                                            "drop-shadow(0 0 20px rgba(249,115,22,0.4))",
-                                            "drop-shadow(0 0 60px rgba(249,115,22,1))",
-                                            "drop-shadow(0 0 20px rgba(249,115,22,0.4))"
-                                        ]
                                     }}
                                     transition={{
                                         duration: 3,
                                         repeat: Infinity,
                                         ease: "easeInOut",
                                     }}
+                                    className="p-6 rounded-full bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-4px_rgba(245,158,11,0.22)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_12px_40px_-4px_rgba(245,158,11,0.3)]"
                                 >
-                                    <Flame className="h-28 w-28 text-orange-500" />
+                                    <Flame className="h-20 w-20 text-amber-500 fill-amber-500/20" />
                                 </motion.div>
                             </motion.div>
 
-                            {/* 第二阶段：排行榜大字浮现 (2.0s开始) */}
-                            <div className="overflow-hidden mt-8">
+                            <div className="overflow-hidden mt-7">
                                 <motion.h1
-                                    className="text-5xl sm:text-6xl font-black tracking-widest bg-gradient-to-r from-orange-400 via-amber-300 to-orange-400 bg-clip-text text-transparent pb-2"
-                                    initial={{ y: "150%", opacity: 0, scale: 0.9 }}
-                                    animate={{ y: 0, opacity: 1, scale: 1 }}
-                                    transition={{ duration: 1.2, delay: 2.0, ease: [0.16, 1, 0.3, 1] }}
+                                    className="text-4xl sm:text-5xl font-bold tracking-widest text-zinc-900 dark:text-zinc-50 pb-2"
+                                    initial={{ y: "140%", opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{
+                                        duration: 1.1,
+                                        delay: 1.7,
+                                        ease: [0.16, 1, 0.3, 1],
+                                    }}
                                 >
-                                    排行榜
+                                    学术排行榜
                                 </motion.h1>
                             </div>
 
-                            {/* 第三阶段：副标题光刃展开 (2.6s开始) */}
                             <motion.div
-                                className="mt-4 flex items-center gap-6"
-                                initial={{ opacity: 0, scale: 0.8, filter: "blur(5px)" }}
+                                className="mt-3 flex items-center gap-5"
+                                initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
                                 animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                                transition={{ duration: 1, delay: 2.6, ease: "easeOut" }}
+                                transition={{ duration: 0.9, delay: 2.3, ease: "easeOut" }}
                             >
-                                <motion.div className="h-[2px] w-16 bg-gradient-to-r from-transparent via-amber-500 to-amber-300"
-                                    initial={{ width: 0, opacity: 0 }}
-                                    animate={{ width: 64, opacity: 1 }}
-                                    transition={{ duration: 1, delay: 2.6, ease: "easeOut" }}
-                                />
-                                <p className="text-base font-bold tracking-[0.3em] text-amber-400 uppercase drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+                                <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
+                                <p className="text-sm font-medium tracking-[0.28em] text-amber-700 dark:text-amber-400">
                                     荣耀加冕时刻
                                 </p>
-                                <motion.div className="h-[2px] w-16 bg-gradient-to-l from-transparent via-amber-500 to-amber-300"
-                                    initial={{ width: 0, opacity: 0 }}
-                                    animate={{ width: 64, opacity: 1 }}
-                                    transition={{ duration: 1, delay: 2.6, ease: "easeOut" }}
-                                />
+                                <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
                             </motion.div>
                         </div>
                     </motion.div>
@@ -709,52 +726,65 @@ export default function LeaderboardPage() {
             <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 py-8">
                 {/* 头部 */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : -20 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
+                    initial={{ opacity: 0, y: -16 }}
+                    animate={{
+                        opacity: showContent ? 1 : 0,
+                        y: showContent ? 0 : -16,
+                    }}
+                    transition={{ duration: 0.5, delay: 0.15 }}
                     className="flex items-center gap-4 mb-8"
                 >
                     <Link href="/dashboard">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-white/60 hover:text-white hover:bg-white/10"
+                            className="h-10 w-10 rounded-full border-0 bg-white/75 dark:bg-zinc-900/50 backdrop-blur-2xl text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.4)] hover:scale-[1.03] active:scale-[0.97] transition-all cursor-pointer"
                         >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-black text-white flex items-center gap-2">
-                            <Flame className="h-6 w-6 text-orange-500 animate-pulse" />
-                            排行榜
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                            <Flame className="h-6 w-6 text-amber-500 fill-amber-500/20" />
+                            学术排行榜
                         </h1>
-                        <p className="text-white/40 text-sm mt-0.5">
+                        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-0.5">
                             荣耀属于最杰出的学者
                         </p>
                     </div>
                 </motion.div>
 
-                {/* Tab切换 */}
+                {/* Tab 切换（水滴胶囊无边框悬浮栏 + 恒定 font-medium 零布局跳动） */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: showContent ? 1 : 0, y: showContent ? 0 : 10 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
+                    animate={{
+                        opacity: showContent ? 1 : 0,
+                        y: showContent ? 0 : 10,
+                    }}
+                    transition={{ duration: 0.5, delay: 0.25 }}
                     className="mb-8"
                 >
                     <Tabs
                         value={activeTab}
                         onValueChange={(v) => setActiveTab(v as TabKey)}
                     >
-                        <TabsList className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl p-1 h-auto">
-                            {tabConfig.map((tab) => (
-                                <TabsTrigger
-                                    key={tab.key}
-                                    value={tab.key}
-                                    className="flex-1 text-xs sm:text-sm text-white/50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600/80 data-[state=active]:to-amber-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/20 rounded-lg py-2.5 transition-all duration-300"
-                                >
-                                    {tab.label}
-                                </TabsTrigger>
-                            ))}
+                        <TabsList
+                            indicatorClassName="bg-amber-500/[0.14] dark:bg-amber-500/[0.18] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_2px_12px_rgba(245,158,11,0.22)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.16),0_2px_12px_rgba(245,158,11,0.25)]"
+                            className="w-full h-auto p-1.5 rounded-full border-0 bg-white/75 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.4)] flex gap-1.5"
+                        >
+                            {tabConfig.map((tab) => {
+                                const TabIcon = tab.icon;
+                                return (
+                                    <TabsTrigger
+                                        key={tab.key}
+                                        value={tab.key}
+                                        className="flex-1 rounded-full border-0 py-2 px-3 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-400 data-[state=active]:text-amber-800 dark:data-[state=active]:text-amber-300 flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                                    >
+                                        <TabIcon className="h-3.5 w-3.5 shrink-0" />
+                                        <span>{tab.label}</span>
+                                    </TabsTrigger>
+                                );
+                            })}
                         </TabsList>
                     </Tabs>
                 </motion.div>
@@ -763,7 +793,7 @@ export default function LeaderboardPage() {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: showContent ? 1 : 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
+                    transition={{ duration: 0.5, delay: 0.35 }}
                 >
                     <AnimatePresence mode="wait">
                         {loading && !loaded[activeTab] ? (

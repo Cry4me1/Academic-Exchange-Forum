@@ -7,18 +7,22 @@ import { useI18n } from "@/i18n/context";
 import { cn } from "@/lib/utils";
 import { DIVIDER_H, DIVIDER_V, GLASS, SERIF_STACK, trackPointer } from "./liquid-glass";
 
-export function Footer() {
+interface FooterProps {
+    isAuthenticated?: boolean;
+}
+
+export function Footer({ isAuthenticated = false }: FooterProps) {
     const { t, isZh } = useI18n();
 
     return (
-        <footer className="relative overflow-hidden bg-[#fafafc] pb-14 pt-8 dark:bg-[#07090e] transition-colors duration-700">
+        <footer className="relative overflow-hidden bg-[#fafafc] pb-14 pt-6 dark:bg-[#07090e] transition-colors duration-700">
             {/* 底部温润微光衬底 */}
             <div
                 aria-hidden
                 className="pointer-events-none absolute bottom-0 left-1/2 h-[320px] w-[760px] -translate-x-1/2 rounded-full bg-amber-400/[0.06] blur-[140px] dark:bg-amber-400/[0.04]"
             />
 
-            <div className="relative z-10 mx-auto max-w-7xl px-6">
+            <div className="relative z-10 mx-auto max-w-7xl 2xl:max-w-[88rem] px-6">
                 {/* 悬浮大曲率液态玻璃面板 */}
                 <div
                     onMouseMove={trackPointer}
@@ -65,28 +69,51 @@ export function Footer() {
                             </p>
                         </div>
 
-                        {/* 快速链接 */}
+                        {/* 快速链接（已登录时展示工作台与前沿热榜，避免无效跳回） */}
                         <div className="md:col-span-3">
                             <h4 className="mb-4 text-xs font-medium tracking-wider uppercase text-zinc-400 dark:text-zinc-500">
                                 {t.landing.quickLinks}
                             </h4>
                             <ul className="space-y-2.5 text-sm font-medium">
-                                <li>
-                                    <Link
-                                        href="/login"
-                                        className="inline-flex items-center rounded-full py-0.5 text-zinc-600 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-300 transition-colors"
-                                    >
-                                        {t.landing.login}
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link
-                                        href="/register"
-                                        className="inline-flex items-center rounded-full py-0.5 text-zinc-600 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-300 transition-colors"
-                                    >
-                                        {t.landing.register}
-                                    </Link>
-                                </li>
+                                {isAuthenticated ? (
+                                    <>
+                                        <li>
+                                            <Link
+                                                href="/dashboard"
+                                                className="inline-flex items-center rounded-full py-0.5 text-zinc-600 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-300 transition-colors"
+                                            >
+                                                {t.landing.workspace}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link
+                                                href="/trending"
+                                                className="inline-flex items-center rounded-full py-0.5 text-zinc-600 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-300 transition-colors"
+                                            >
+                                                {t.landing.trending}
+                                            </Link>
+                                        </li>
+                                    </>
+                                ) : (
+                                    <>
+                                        <li>
+                                            <Link
+                                                href="/login"
+                                                className="inline-flex items-center rounded-full py-0.5 text-zinc-600 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-300 transition-colors"
+                                            >
+                                                {t.landing.login}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link
+                                                href="/register"
+                                                className="inline-flex items-center rounded-full py-0.5 text-zinc-600 hover:text-amber-700 dark:text-zinc-300 dark:hover:text-amber-300 transition-colors"
+                                            >
+                                                {t.landing.register}
+                                            </Link>
+                                        </li>
+                                    </>
+                                )}
                                 <li>
                                     <Link
                                         href="/updates"

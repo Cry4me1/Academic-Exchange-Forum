@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import {
     Activity,
+    BarChart3,
+    Database,
     ArrowLeft,
     AtSign,
     Award,
@@ -56,70 +58,308 @@ export const metadata: Metadata = {
 
 export default function UpdatesPage() {
     return (
-        <div className="relative min-h-screen">
+        <div className="relative min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-foreground">
             {/* ═══════════════════════════════════════════════════════  */}
-            {/* Animated Background Layer – CSS-only floating particles */}
+            {/* Apple Liquid Glass 环境微光漫反射背景                    */}
             {/* ═══════════════════════════════════════════════════════  */}
             <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-                {/* Large blurred gradient orbs that slowly drift */}
-                <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-primary/10 blur-[120px] animate-[drift_18s_ease-in-out_infinite_alternate]" />
-                <div className="absolute -right-32 top-1/3 h-[400px] w-[400px] rounded-full bg-violet-500/10 blur-[100px] animate-[drift_22s_ease-in-out_infinite_alternate-reverse]" />
-                <div className="absolute -bottom-32 left-1/3 h-[350px] w-[350px] rounded-full bg-amber-500/8 blur-[100px] animate-[drift_20s_ease-in-out_infinite_alternate]" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-[420px] bg-gradient-to-b from-sky-500/[0.04] via-indigo-500/[0.02] to-transparent blur-3xl" />
+                <div className="absolute top-1/3 -right-32 w-96 h-96 rounded-full bg-purple-500/[0.03] blur-3xl" />
             </div>
 
-            <div className="container mx-auto max-w-4xl py-12 px-4 sm:px-6">
-                {/* Back button */}
+            <div className="container mx-auto max-w-4xl py-10 px-4 sm:px-6">
+                {/* 顶部微晶水滴返回按钮 */}
                 <div className="mb-8">
-                    <Button variant="ghost" asChild className="pl-0 hover:bg-transparent hover:text-primary">
-                        <Link href="/dashboard" className="flex items-center gap-2 text-muted-foreground">
-                            <ArrowLeft className="w-4 h-4" />
-                            返回控制台
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white bg-white/80 dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-1.5 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.3)] transition-all cursor-pointer h-8.5"
+                    >
+                        <Link href="/dashboard" className="flex items-center gap-2">
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            <span>返回控制台</span>
                         </Link>
                     </Button>
                 </div>
 
                 {/* ═══════════════════════════════════════════  */}
-                {/* Hero Header with animated gradient text      */}
+                {/* 页面主标题：纯物理晶体字效与微光胶囊           */}
                 {/* ═══════════════════════════════════════════  */}
-                <div className="relative mb-16 text-center space-y-6">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm animate-[fadeInDown_0.6s_ease-out]">
-                        <Rocket className="w-4 h-4" />
-                        正式版发布
+                <div className="relative mb-16 text-center space-y-4">
+                    <div className="inline-flex items-center gap-2 rounded-full border-0 bg-sky-500/10 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_0_16px_rgba(14,165,233,0.18)] px-4 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300 backdrop-blur-xl">
+                        <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                        <span>创世里程碑 · v2.0.0 正式发布</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl animate-[fadeInDown_0.8s_ease-out]">
-                        <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
-                            更新日志
-                        </span>
+                    <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground">
+                        更新日志
                     </h1>
-                    <p className="text-muted-foreground text-lg max-w-2xl mx-auto animate-[fadeInUp_0.8s_ease-out]">
-                        Scholarly 的演进历程与最新功能发布 —— 从内测走向正式，感谢每一位先行者的陪伴
+                    <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto leading-relaxed font-normal">
+                        Scholarly 的演进历程与最新功能发布 —— 从内测走向次时代学术生态
                     </p>
                 </div>
 
                 {/* Timeline */}
-                <div className="relative border-l-2 border-zinc-200 dark:border-zinc-800 ml-4 md:ml-6 space-y-12">
+                <div className="relative ml-4 md:ml-6 space-y-12">
+                    <div className="pointer-events-none absolute left-0 top-3 bottom-3 w-[1.5px] bg-gradient-to-b from-sky-500/60 via-zinc-300/40 dark:via-zinc-700/40 to-transparent" />
+
+                    {/* ╔══════════════════════════════════════════════════════════════╗ */}
+                    {/* ║  v2.0.0 – 创世大版本：设计系统、数据看板、Landing与架构同步 🚀 ║ */}
+                    {/* ╚══════════════════════════════════════════════════════════════╝ */}
+                    <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
+                        {/* 脉冲时间轴光节点 */}
+                        <div className="absolute -left-[7px] top-2 flex items-center justify-center">
+                            <span className="absolute h-4 w-4 rounded-full bg-sky-500/40 animate-ping" />
+                            <span className="relative h-3.5 w-3.5 rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 ring-4 ring-background shadow-lg shadow-sky-500/30" />
+                        </div>
+
+                        <div className="flex flex-col gap-3 mb-6">
+                            <time className="text-xs text-muted-foreground font-mono font-medium tracking-wider uppercase">2026-10-25</time>
+                            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
+                                <span className="text-foreground">v2.0.0 正式版</span>
+                                <span className="text-muted-foreground text-base md:text-xl font-medium">— 界面美学革命、多元学术数据可视化、全站 Liquid Glass 体系与数据库架构全量同步</span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/15 text-sky-700 dark:text-sky-300 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_0_14px_rgba(14,165,233,0.25)]">
+                                    <Sparkles className="w-3.5 h-3.5 text-sky-500" />
+                                    创世里程碑大版本
+                                </span>
+                            </h2>
+                            <p className="text-muted-foreground text-sm leading-relaxed max-w-3xl font-normal">
+                                Scholarly 正式迈入 2.0 时代！本次里程碑大版本完整集成了近期开展的四大核心工程突破：从 <strong>Landing 首页次时代流体美学与 120fps 动效重塑</strong>，到 <strong>个人主页多元活跃分析看板（学术热力图、原生六维领域雷达图与学者画像）</strong>；从 <strong>全站 Apple Liquid Glass 无边框设计系统与专栏/对决精细化体验升级</strong>，到底层 <strong>数据库架构全量同步（Database Schema Synchronization）、学者等级体系与企业级生产安全加固</strong> —— 构筑起理性、通透、高效与安全的顶尖学术殿堂。
+                            </p>
+                        </div>
+
+                        {/* 主卡片：大曲率无边框液态毛玻璃面板 */}
+                        <div className="relative group mb-14">
+                            <div className="rounded-3xl border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-8 overflow-hidden">
+                                
+                                {/* 顶栏标题 */}
+                                <div className="flex items-center gap-2.5 pb-2">
+                                    <div className="w-8 h-8 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12)]">
+                                        <Rocket className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-foreground">v2.0.0 四大核心支柱与全景重构</h3>
+                                        <p className="text-xs text-muted-foreground">凝聚四大专项课题的完整落地，涵盖前台首屏、个人主页、全局系统与底层架构</p>
+                                    </div>
+                                </div>
+
+                                {/* 支柱 1: Landing / Hero 页面次时代美学优化与流光动效 */}
+                                <div className="space-y-3">
+                                    <h4 className="text-base font-bold flex items-center gap-2.5 text-foreground">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)]">
+                                            <Sparkles className="w-4 h-4" />
+                                        </span>
+                                        一、Hero 页面次时代美学优化与流光动效（Hero Aesthetic Revolution）
+                                    </h4>
+                                    <div className="pl-9 text-xs sm:text-sm text-muted-foreground space-y-2 leading-relaxed">
+                                        <p>重构平台门面与第一视觉印象，全面贯彻次时代 Apple Liquid Glass 物理流光规范：</p>
+                                        <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                            <li><strong>Landing 首屏全景液态毛玻璃化</strong>：顶栏导航、Hero 视窗、核心特性矩阵（Features Grid）与页脚彻底废弃硬质边框，采用高斯磨砂与表面张力内高光重塑。</li>
+                                            <li><strong>120fps 光随鼠动与悬浮学术字形</strong>：集成原生 <code>cursor-follower</code> 鼠标光晕追随算法，与 <code>floating-glyphs</code> 优雅浮动的物理学术字形背景，呈现沉浸式数字学术质感。</li>
+                                            <li><strong>水合防抖与性能调优</strong>：彻底解决 SSR 与客户端 Hydration 错位问题，优化关键帧动画管线，确保首屏加载零布局抖动（Zero Layout Shift）。</li>
+                                            <li><strong>多语言微晶水滴药丸切换器</strong>：集成自研极简水滴药丸交互切换，实现中英文学术界面无缝切换。</li>
+                                        </ul>
+
+                                        {/* Screenshots: Landing & Hero */}
+                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                            <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                                <div className="relative aspect-[1150/639] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v2-0-0/landing-hero-liquid-glass.png"
+                                                        alt="Landing 首屏全景 Apple Liquid Glass 视觉与精选卡片"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 560px"
+                                                        caption="Landing 首屏全景：无边框胶囊顶栏、衬线主视觉、精选学术卡片与多语言微晶切换器"
+                                                    />
+                                                </div>
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
+                                                    <span>▲ Landing 首屏液态流光主视觉与精选卡片</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                                <div className="relative aspect-[1150/623] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v2-0-0/landing-features-marquee.png"
+                                                        alt="学术全景双轨跑马灯与 KaTeX 公式展示卡片"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 560px"
+                                                        caption="学术全景特性矩阵：零跳动雾透打字机与双轨无边框流光学术卡片（支持 KaTeX 与代码高亮）"
+                                                    />
+                                                </div>
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
+                                                    <span>▲ 学术全景特性矩阵与公式/代码流光卡片</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 消融内部微光缝 */}
+                                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
+                                {/* 支柱 2: 个人主页多元活跃分析看板与数据可视化 */}
+                                <div className="space-y-3">
+                                    <h4 className="text-base font-bold flex items-center gap-2.5 text-foreground">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)]">
+                                            <BarChart3 className="w-4 h-4" />
+                                        </span>
+                                        二、个人主页多元学术数据可视化看板（Scholar Profile Analytics & Heatmap）
+                                    </h4>
+                                    <div className="pl-9 text-xs sm:text-sm text-muted-foreground space-y-2 leading-relaxed">
+                                        <p>为学者打造专属学术影响力中枢，实现多维学术贡献与活跃画像可视化：</p>
+                                        <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                            <li><strong>年度学术贡献活跃热力图（AcademicHeatmapCard）</strong>：全年轻量化贡献点阵呈现学者发帖、研讨与共创足迹，配备通透毛玻璃交互气泡（GlassHoverTooltip）。</li>
+                                            <li><strong>自研原生 SVG 领域能力雷达图（DomainRadarCard）</strong>：原生矢量多边形雷达，直观解构学者在基础理论、算法工程、前沿交叉等多个学科维度的学术造诣与造诣深度。</li>
+                                            <li><strong>活跃脉冲与学者画像分析（ActivityPulseCard）</strong>：多维感知学者的发帖黄金时段、学术倾向与互动偏好，动态生成专属学者画像印章。</li>
+                                            <li><strong>实时在线感知流光胶囊（OnlineStatusPill）</strong>：深度集成 Supabase Presence 机制，毫秒级感知学者在线状态并辅以柔和呼吸流光。</li>
+                                            <li><strong>主页个性化装扮与四季自然飘落粒子</strong>：支持学者自定义 Banner 宽幅横幅上传，并实装四季流光粒子动效（落樱、细雨、秋叶、初雪）。</li>
+                                        </ul>
+
+                                        {/* Screenshots: Profile Analytics & Banner */}
+                                        <div className="mt-4 space-y-4 pt-1">
+                                            <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-2xl">
+                                                <div className="relative aspect-[1150/575] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v2-0-0/profile-banner-and-status.png"
+                                                        alt="个人主页宽幅横幅、四季落樱粒子与在线感知水滴胶囊"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 760px"
+                                                        caption="个人主页顶部视窗：自定义宽幅横幅、自然落樱粒子动效、系统角色徽标与实时在线感知水滴胶囊"
+                                                    />
+                                                </div>
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
+                                                    <span>▲ 个人主页宽幅横幅、落樱粒子动效与在线感知胶囊</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-2xl">
+                                                <div className="relative aspect-[1150/831] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v2-0-0/profile-analytics-bento.png"
+                                                        alt="个人主页年度热力图、原生 SVG 六维领域雷达图与活跃画像"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 760px"
+                                                        caption="非对称 Bento 学术分析看板：左栏年度贡献热力图与微缩封面文章流，右栏原生 SVG 六维领域能力雷达图与 24h 活跃画像"
+                                                    />
+                                                </div>
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
+                                                    <span>▲ 个人主页多元分析看板：年度热力图、原生 SVG 六维领域雷达与活跃画像</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 消融内部微光缝 */}
+                                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
+                                {/* 支柱 3: 数据库架构全量同步与底层数据模型加固 */}
+                                <div className="space-y-3">
+                                    <h4 className="text-base font-bold flex items-center gap-2.5 text-foreground">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-500/10 text-purple-500 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)]">
+                                            <Database className="w-4 h-4" />
+                                        </span>
+                                        三、数据库架构全量同步与底层数据模型加固（Database Schema Synchronization）
+                                    </h4>
+                                    <div className="pl-9 text-xs sm:text-sm text-muted-foreground space-y-2 leading-relaxed">
+                                        <p>全面梳理并严格同步生产数据库核心模型，筑牢高并发与数据一致性基石：</p>
+                                        <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                            <li><strong>公共枚举与规范化类型定义</strong>：在 Schema 顶层建立公共审核枚举（<code>post_review_status</code>、<code>post_risk_level</code>），彻底消除字符串硬编码歧义。</li>
+                                            <li><strong>学者等级体系（Lv1–Lv6）与经验模型</strong>：在 <code>profiles</code> 深度集成学者经验值 <code>scholar_exp</code>、有效成果量、获赞总数及贡献度计数器，支撑全站荣誉阶梯。</li>
+                                            <li><strong>学术质量评估指标（PQS）与隔离机制</strong>：在 <code>posts</code> 扩充质量评分 <code>pqs_score</code> 与精细化风控隔离字段，确保优质学术成果优先曝光。</li>
+                                            <li><strong>新一代前沿架构数据表同步</strong>：全面集成行间划线协同批注表（<code>post_annotations</code>）、AI 算法沙盒实验（<code>ai_sandbox_experiments</code>）与代码快照缓存（<code>code_execution_cache</code>）。</li>
+                                            <li><strong>全表 RLS 行级安全与 Supabase Realtime 广播</strong>：加固全表行级安全策略，配置 Supabase Realtime 实时频道，杜绝越权访问。</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* 消融内部微光缝 */}
+                                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
+                                {/* 支柱 4: 全栈 Apple Liquid Glass 体系与网站综合改良 */}
+                                <div className="space-y-3">
+                                    <h4 className="text-base font-bold flex items-center gap-2.5 text-foreground">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500/10 text-sky-500 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)]">
+                                            <Layers className="w-4 h-4" />
+                                        </span>
+                                        四、Apple Liquid Glass 全栈无边框体系与网站综合改良（Website Improvement System）
+                                    </h4>
+                                    <div className="pl-9 text-xs sm:text-sm text-muted-foreground space-y-2 leading-relaxed">
+                                        <p>以最严苛标准重塑全站界面物理质感，完成业务关键路径的深度体验改良：</p>
+                                        <ul className="list-disc list-outside ml-4 space-y-1.5">
+                                            <li><strong>彻底无边框化与原子组件重塑</strong>：全站坚决执行 <code>border-0</code>，深度重塑 17 个底层基础 UI 原子组件（Button、Card、Dialog、Tooltip、Input、Select、Badge 等），三层光学质感统一。</li>
+                                            <li><strong>专栏详情页重构为宽屏精致 Banner 范式</strong>：废除原本 450px 压迫感全屏巨图，改为精致宽屏 Banner（<code>h-44 sm:h-52 md:h-56</code>），引入悬浮重叠微缩徽标视窗，目录首屏即达，文章列表全量毛玻璃化并注入 120fps 光随鼠动。</li>
+                                            <li><strong>学术对决评分卡排版微调与字距校准</strong>：彻底移除 <code>text-justify</code> 杜绝齿状字距拉扯，气泡宽度收拢至 <code>w-[260px]</code> 根治文字偏左与右侧留白问题，补齐满分分母（如 <code>+4/5</code>、<code>+2/3</code>）明确相对权重。</li>
+                                            <li><strong>企业级生产安全防护封堵</strong>：从中间件移除 <code>/debug</code> 与测试路由公开白名单，非 <code>super_admin</code> 严格 404 隔离，敏感信息全面脱敏，清理历史残留测试脚本。</li>
+                                        </ul>
+
+                                        {/* Screenshots: Wide-Banner Collection & Calibrated DuelScoreCard */}
+                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 pt-1 items-start">
+                                            <div className="md:col-span-7 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                                <div className="relative aspect-[1150/840] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v2-0-0/collection-wide-banner.png"
+                                                        alt="专栏详情页个人主页式宽屏精致 Banner 与首屏目录"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 560px"
+                                                        caption="专栏详情页新范式：宽屏精致比例横幅、半重叠大曲率微缩徽标视窗与首屏直达的毛玻璃章节目录"
+                                                    />
+                                                </div>
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
+                                                    <span>▲ 专栏详情页宽屏精致 Banner 与首屏章节目录</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-5 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                                <div className="relative aspect-[920/503] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
+                                                    <ZoomableImage
+                                                        src="/updates/v2-0-0/duel-score-card-calibrated.png"
+                                                        alt="校准后的学术对决 AI 裁判评分悬浮气泡"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 420px"
+                                                        caption="校准后的 AI 裁判评分卡：补齐 +5/5、+3/3、+2/2 满分分母，收拢宽度消除偏左留白与字距空档"
+                                                    />
+                                                </div>
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
+                                                    <span>▲ 校准后的 AI 裁判评分气泡</span>
+                                                    <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
 
                     {/* ╔══════════════════════════════════════════════════╗ */}
                     {/* ║  v1.1.9 – 学术共创实验室、3D几何与行间学术批注 🚀 ║ */}
                     {/* ╚══════════════════════════════════════════════════╝ */}
-                    <div className="relative pl-8 md:pl-12 animate-[fadeInUp_0.7s_ease-out]">
-                        {/* Pulsing timeline dot for the latest version */}
-                        <div className="absolute -left-[7px] top-2 flex items-center justify-center">
-                            <span className="absolute h-4 w-4 rounded-full bg-primary/40 animate-ping" />
-                            <span className="relative h-3.5 w-3.5 rounded-full bg-gradient-to-br from-primary to-violet-500 ring-4 ring-background shadow-lg shadow-primary/30" />
-                        </div>
+                    <div className="relative pl-8 md:pl-12">
+                        {/* Static timeline dot */}
+                        <div className="absolute -left-1.5 top-2 w-3 h-3 rounded-full bg-primary/40 ring-4 ring-background" />
 
                         <div className="flex flex-col gap-3 mb-5">
                             <time className="text-sm text-muted-foreground font-mono">2026-10-07</time>
                             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center gap-3">
-                                <span className="bg-gradient-to-r from-primary via-violet-500 to-amber-500 bg-clip-text text-transparent bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite]">
+                                <span className="text-foreground">
                                     v1.1.9
                                 </span>
                                 <span className="text-foreground">— 学术共创实验室、Yjs CRDT 实时推演、3D 立体几何模型与行间划线学术批注</span>
-                                <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 animate-[pulse_2s_ease-in-out_infinite] text-xs px-3 py-1">
-                                    <Sparkles className="w-3 h-3 mr-1" />
-                                    最新版本
-                                </Badge>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-200/50 dark:bg-white/[0.06] text-muted-foreground">历史里程碑</span>
                             </h2>
                             <p className="text-muted-foreground text-sm leading-relaxed max-w-xl">
                                 开启多人学术共创与高维空间推演的全新纪元。v1.1.9 重磅推出「学术共创实验室」，搭载自由分屏文献同读视口与基于 Yjs CRDT 的毫秒级多人在线笔记与公式推演工作台，支持学术成果联合署名发帖；编辑器迎来革命性的「3D 立体几何模型」引擎，在长文中直接嵌入可 360° 旋转、带空间透视遮挡与 LaTeX 标签的三维几何结构；全新上线「行间学术批注与边注微线程研讨」，支持正文与公式划词展开四维学术语义探讨；同时构建 AI 审稿 AST 内容快照与违规隔离申诉闭环防御体系。
@@ -128,9 +368,7 @@ export default function UpdatesPage() {
 
                         {/* Main Card with gradient border effect */}
                         <div className="relative group mb-12">
-                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
 
                                 <CardHeader className="pt-8">
                                     <CardTitle className="text-xl flex items-center gap-2">
@@ -163,7 +401,7 @@ export default function UpdatesPage() {
 
                                             {/* Screenshots: Lab */}
                                             <div className="mt-4 space-y-4">
-                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-2xl">
+                                                <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-2xl">
                                                     <div className="relative aspect-[1024/355] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-9/lab-lobby-and-card.png"
@@ -174,14 +412,14 @@ export default function UpdatesPage() {
                                                             caption="学术共创实验室大厅：支持密码加密、全能研讨与实时成员状态追踪"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 学术共创实验室大厅：房间卡片、密码加密准入与研讨形态分类</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                     </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                         <div className="relative aspect-[1024/519] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                             <ZoomableImage
                                                                 src="/updates/v1-1-9/lab-coreading-and-collab-workspace.png"
@@ -192,13 +430,13 @@ export default function UpdatesPage() {
                                                                 caption="实验室双栏工作台：文献同读视口与 Yjs CRDT 协同推演区自由分屏"
                                                             />
                                                         </div>
-                                                        <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                             <span>▲ 实验室双栏工作台：文献共读与协同推演</span>
                                                             <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                         </div>
                                                     </div>
 
-                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                         <div className="relative aspect-[1024/519] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                             <ZoomableImage
                                                                 src="/updates/v1-1-9/lab-multiuser-presence-and-collab.png"
@@ -209,7 +447,7 @@ export default function UpdatesPage() {
                                                                 caption="双学者同屏协同推演实测：实时在席游标、无冲突公式推演与自动保存"
                                                             />
                                                         </div>
-                                                        <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                             <span>▲ 双学者同屏协同实测：实时游标与公式推演</span>
                                                             <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                         </div>
@@ -219,7 +457,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 2: 3D 立体几何模型插入与空间渲染引擎 */}
                                     <div className="space-y-3">
@@ -241,7 +479,7 @@ export default function UpdatesPage() {
 
                                             {/* Screenshots: 3D Solid Geometry */}
                                             <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                                                <div className="md:col-span-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="md:col-span-4 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[256/330] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-9/editor-insert-solid-geometry-menu.png"
@@ -252,13 +490,13 @@ export default function UpdatesPage() {
                                                             caption="编辑器快捷插入 3D 立体几何模型：内置正方体、正四面体、三棱柱等经典数理模型"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 3D 模型快捷插入面板</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="md:col-span-8 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="md:col-span-8 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[1024/426] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-9/solid-geometry-interactive-canvas.png"
@@ -269,7 +507,7 @@ export default function UpdatesPage() {
                                                             caption="3D 立体几何模型 360° 交互画布：空间虚实遮挡、LaTeX 标签与截面透视着色"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 3D 几何模型 360° 交互画布与截面着色渲染</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                     </div>
@@ -278,7 +516,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 3: 学术行间划线批注与边注微线程研讨系统 */}
                                     <div className="space-y-3">
@@ -304,7 +542,7 @@ export default function UpdatesPage() {
 
                                             {/* Screenshots: Inline Annotations */}
                                             <div className="mt-4 space-y-4">
-                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-xl">
+                                                <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-xl">
                                                     <div className="relative aspect-[816/186] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-9/inline-annotation-selection-bubble.png"
@@ -315,14 +553,14 @@ export default function UpdatesPage() {
                                                             caption="正文与公式划词即刻唤出「添加批注 ✨」黑曜石毛玻璃悬浮胶囊"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 划选正文与公式唤出「添加批注 ✨」悬浮胶囊</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                     </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                                                    <div className="md:col-span-5 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                    <div className="md:col-span-5 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                         <div className="relative aspect-[520/517] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                             <ZoomableImage
                                                                 src="/updates/v1-1-9/inline-annotation-composer-modal.png"
@@ -333,14 +571,14 @@ export default function UpdatesPage() {
                                                                 caption="行间学术批注编辑弹窗：四维学术研讨分类、LaTeX 公式支持与实时预览"
                                                             />
                                                         </div>
-                                                        <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                        <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                             <span>▲ 行间学术批注编辑弹窗与四维分类</span>
                                                             <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                         </div>
                                                     </div>
 
                                                     <div className="md:col-span-7 space-y-4">
-                                                        <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                        <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                             <div className="relative aspect-[1024/384] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                                 <ZoomableImage
                                                                     src="/updates/v1-1-9/inline-annotation-thread-sidebar.png"
@@ -351,13 +589,13 @@ export default function UpdatesPage() {
                                                                     caption="正文划线微光高亮与侧边栏「行间研讨」面板双向联动微线程流"
                                                                 />
                                                             </div>
-                                                            <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                            <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                                 <span>▲ 正文划线高亮与侧边栏研讨微线程流</span>
                                                                 <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                             </div>
                                                         </div>
 
-                                                        <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-sm">
+                                                        <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-sm">
                                                             <div className="relative aspect-[348/289] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                                 <ZoomableImage
                                                                     src="/updates/v1-1-9/inline-annotation-empty-panel.png"
@@ -368,7 +606,7 @@ export default function UpdatesPage() {
                                                                     caption="侧边栏行间研讨空状态与研讨状态生命周期筛选（全部/探讨中/已结题）"
                                                                 />
                                                             </div>
-                                                            <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                            <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                                 <span>▲ 侧边栏行间研讨生命周期筛选</span>
                                                                 <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                             </div>
@@ -379,7 +617,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 4: AI 审稿内容快照与合规隔离防御体系 */}
                                     <div className="space-y-3">
@@ -399,7 +637,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 5: 全栈架构加固与 Apple Liquid Glass 极致视觉 */}
                                     <div className="space-y-3">
@@ -448,9 +686,7 @@ export default function UpdatesPage() {
 
                         {/* Main Card with gradient border effect */}
                         <div className="relative group mb-12">
-                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
 
                                 <CardHeader className="pt-8">
                                     <CardTitle className="text-xl flex items-center gap-2">
@@ -481,7 +717,7 @@ export default function UpdatesPage() {
                                             </ul>
 
                                             {/* Screenshot: @ Mention */}
-                                            <div className="mt-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-sm">
+                                            <div className="mt-4 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-sm">
                                                 <div className="relative aspect-[293/329] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                     <ZoomableImage
                                                         src="/updates/v1-1-8/comment-mention-popover.png"
@@ -492,7 +728,7 @@ export default function UpdatesPage() {
                                                         caption="评论区 @ 提及学者与官方 Scholarly AI 助手 Bento 磨砂浮窗"
                                                     />
                                                 </div>
-                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                     <span>▲ 评论区 @ 提及浮窗：常驻置顶 Scholarly AI 与学者全字段模糊匹配</span>
                                                     <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                 </div>
@@ -500,7 +736,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 2 */}
                                     <div className="space-y-3">
@@ -521,7 +757,7 @@ export default function UpdatesPage() {
                                             </ul>
 
                                             {/* Screenshot: Scholarly AI Reply */}
-                                            <div className="mt-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-2xl">
+                                            <div className="mt-4 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-2xl">
                                                 <div className="relative aspect-[800/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                     <ZoomableImage
                                                         src="/updates/v1-1-8/scholarly-ai-comment-reply.png"
@@ -532,7 +768,7 @@ export default function UpdatesPage() {
                                                         caption="Scholarly AI 在评论区针对算法推导与文章论点展开透彻解答"
                                                     />
                                                 </div>
-                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                     <span>▲ Scholarly AI 评论区专业学术答疑实况：深度解析文章核心算法、定理与严谨推导</span>
                                                     <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                 </div>
@@ -540,7 +776,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 3 */}
                                     <div className="space-y-3">
@@ -560,7 +796,7 @@ export default function UpdatesPage() {
 
                                             {/* Screenshots: Toolbar and Quick Formula */}
                                             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[1024/565] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-8/editor-quick-toolbar.png"
@@ -571,13 +807,13 @@ export default function UpdatesPage() {
                                                             caption="帖子编辑器全新学术快捷工具栏：定理证明、公式模板与数学函数一键唤出"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 帖子编辑器全新学术快捷工具栏布局</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[494/612] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-8/quick-formula-popover.png"
@@ -588,7 +824,7 @@ export default function UpdatesPage() {
                                                             caption="零基础公式模板与可视化助手：点选即插，支持分数、根号与上下标"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 零基础公式模板与可视化助手面板</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                     </div>
@@ -597,7 +833,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 4 */}
                                     <div className="space-y-3">
@@ -616,7 +852,7 @@ export default function UpdatesPage() {
                                             </ul>
 
                                             {/* Screenshot: Math Symbols */}
-                                            <div className="mt-4 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs max-w-md">
+                                            <div className="mt-4 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] max-w-md">
                                                 <div className="relative aspect-[444/426] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                     <ZoomableImage
                                                         src="/updates/v1-1-8/math-symbols-popover.png"
@@ -627,7 +863,7 @@ export default function UpdatesPage() {
                                                         caption="数学函数与符号面板：莫比乌斯函数、欧拉函数等经典数论函数一键插入"
                                                     />
                                                 </div>
-                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                     <span>▲ 数学函数与符号面板：分类聚合经典数论与分析函数，支持名称即搜即用</span>
                                                     <span className="text-[10px] text-primary/80 font-medium">（点击放大）</span>
                                                 </div>
@@ -635,7 +871,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 5 */}
                                     <div className="space-y-3">
@@ -685,9 +921,7 @@ export default function UpdatesPage() {
 
                         {/* Main Card with gradient border effect */}
                         <div className="relative group mb-12">
-                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
 
                                 <CardHeader className="pt-8">
                                     <CardTitle className="text-xl flex items-center gap-2">
@@ -718,7 +952,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 2 */}
                                     <div className="space-y-3">
@@ -737,7 +971,7 @@ export default function UpdatesPage() {
                                             </ul>
 
                                             {/* Screenshot: 封面图与编辑器 */}
-                                            <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                            <div className="mt-3 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                 <div className="relative aspect-[1024/507] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                     <ZoomableImage
                                                         src="/updates/v1-1-7/editor-cover-uploader.png"
@@ -748,7 +982,7 @@ export default function UpdatesPage() {
                                                         caption="帖子编辑器 16:9 封面图上传与正文智能配图提取面板"
                                                     />
                                                 </div>
-                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                     <span>▲ 帖子编辑器中集成的 16:9 封面图上传、网络链接与正文智能配图提取面板</span>
                                                     <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
                                                 </div>
@@ -756,7 +990,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 3 */}
                                     <div className="space-y-3">
@@ -776,7 +1010,7 @@ export default function UpdatesPage() {
 
                                             {/* Screenshots for Dashboard & Profile */}
                                             <div className="mt-4 space-y-4">
-                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[1024/508] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-7/dashboard-redesign.png"
@@ -787,13 +1021,13 @@ export default function UpdatesPage() {
                                                             caption="控制台主页 (Dashboard) 现代化毛玻璃瀑布流与双语切换"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 控制台主页 (Dashboard) 现代化毛玻璃瀑布流、双语切换与多模块交互设计</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[1024/509] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-7/profile-banner-redesign.png"
@@ -804,7 +1038,7 @@ export default function UpdatesPage() {
                                                             caption="个人主页 (Profile) 学术 Banner 渐变更换与成就勋章"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 个人主页 (Profile) 学术 Banner 渐变更换、战力徽章与帖子归档展示</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
                                                     </div>
@@ -813,7 +1047,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 4 */}
                                     <div className="space-y-3">
@@ -835,7 +1069,7 @@ export default function UpdatesPage() {
                                             <div className="mt-4 space-y-2">
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                                     {/* Step 1 */}
-                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs flex flex-col">
+                                                    <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] flex flex-col">
                                                         <div className="relative aspect-[920/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                             <ZoomableImage
                                                                 src="/updates/v1-1-7/onboarding-step1-guidelines.png"
@@ -853,7 +1087,7 @@ export default function UpdatesPage() {
                                                     </div>
 
                                                     {/* Step 2 */}
-                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs flex flex-col">
+                                                    <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] flex flex-col">
                                                         <div className="relative aspect-[841/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                             <ZoomableImage
                                                                 src="/updates/v1-1-7/onboarding-step2-profile.png"
@@ -871,7 +1105,7 @@ export default function UpdatesPage() {
                                                     </div>
 
                                                     {/* Step 3 */}
-                                                    <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs flex flex-col">
+                                                    <div className="overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] flex flex-col">
                                                         <div className="relative aspect-[884/1024] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                             <ZoomableImage
                                                                 src="/updates/v1-1-7/onboarding-step3-theme.png"
@@ -894,7 +1128,7 @@ export default function UpdatesPage() {
                                                 </div>
 
                                                 {/* Screenshot: 新手实真实训营 */}
-                                                <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                                <div className="mt-3 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                     <div className="relative aspect-[986/1024] w-full max-w-2xl mx-auto overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                         <ZoomableImage
                                                             src="/updates/v1-1-7/tutorial-camp.png"
@@ -905,7 +1139,7 @@ export default function UpdatesPage() {
                                                             caption="Scholarly 学术社区 全真实操训练营 (Step 1 学术创作技能实战)"
                                                         />
                                                     </div>
-                                                    <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                    <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                         <span>▲ 1:1 真实业务沙盒驱动的 6 步新手实操训练营交互界面</span>
                                                         <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
                                                     </div>
@@ -914,7 +1148,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 5 */}
                                     <div className="space-y-3">
@@ -934,7 +1168,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 6 */}
                                     <div className="space-y-3">
@@ -952,7 +1186,7 @@ export default function UpdatesPage() {
                                             </ul>
 
                                             {/* Screenshot: 用户搜索卡片 */}
-                                            <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-xs">
+                                            <div className="mt-3 overflow-hidden rounded-2xl border-0 bg-zinc-100/70 dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
                                                 <div className="relative aspect-[1024/637] w-full overflow-hidden bg-zinc-950/5 dark:bg-zinc-950/40">
                                                     <ZoomableImage
                                                         src="/updates/v1-1-7/user-search-card.png"
@@ -963,7 +1197,7 @@ export default function UpdatesPage() {
                                                         caption="学者用户搜索卡片 (UserSearchCard) 与即时关注互动"
                                                     />
                                                 </div>
-                                                <div className="py-1.5 px-3 border-t border-border/40 bg-background/60 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                                                <div className="py-2 px-3 bg-zinc-200/40 dark:bg-white/[0.03] text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.05)]">
                                                     <span>▲ 全局搜索结果中呈现的学者学术名片卡 (UserSearchCard) 与即时关注互动</span>
                                                     <span className="text-[10px] text-primary/80 font-medium">（支持双击放大查看）</span>
                                                 </div>
@@ -999,9 +1233,7 @@ export default function UpdatesPage() {
 
                         {/* Main Card with gradient border effect */}
                         <div className="relative group mb-12">
-                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
 
                                 <CardHeader className="pt-8">
                                     <CardTitle className="text-xl flex items-center gap-2">
@@ -1032,7 +1264,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 2 */}
                                     <div className="space-y-3">
@@ -1052,7 +1284,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 3 */}
                                     <div className="space-y-3">
@@ -1072,7 +1304,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 4 */}
                                     <div className="space-y-3">
@@ -1092,7 +1324,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 5 */}
                                     <div className="space-y-3">
@@ -1140,9 +1372,7 @@ export default function UpdatesPage() {
 
                         {/* Main Card with gradient border effect */}
                         <div className="relative group mb-12">
-                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
 
                                 <CardHeader className="pt-8">
                                     <CardTitle className="text-xl flex items-center gap-2">
@@ -1173,7 +1403,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 2 */}
                                     <div className="space-y-3">
@@ -1192,7 +1422,7 @@ export default function UpdatesPage() {
                                         </div>
                                     </div>
 
-                                    <Separator className="bg-border/60" />
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-6" />
 
                                     {/* Feature 3 */}
                                     <div className="space-y-3">
@@ -1241,9 +1471,7 @@ export default function UpdatesPage() {
 
                         {/* Main Card with gradient border effect */}
                         <div className="relative group mb-12">
-                            <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
-                                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
 
                                 <CardHeader className="pt-8">
                                     <CardTitle className="text-xl flex items-center gap-2">
@@ -1347,7 +1575,7 @@ export default function UpdatesPage() {
                         {/* Main Card with gradient border effect */}
                         <div className="relative group">
                             <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-primary/50 via-violet-500/50 to-amber-500/50 opacity-60 blur-sm group-hover:opacity-100 transition-opacity duration-500" />
-                            <Card className="relative border-0 bg-card/80 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden">
+                            <Card className="relative border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] rounded-3xl overflow-hidden">
                                 {/* Subtle gradient overlay at top */}
                                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-amber-500" />
 
@@ -1704,60 +1932,63 @@ export default function UpdatesPage() {
                 </div>
 
                 {/* ═══════════════════════════════════════════════════════  */}
-                {/*  🎉 欢迎语模块                                          */}
+                {/*  🎉 致谢与欢迎模块 (Apple Liquid Glass 极简通透美学)       */}
                 {/* ═══════════════════════════════════════════════════════  */}
-                <div className="mt-20 relative overflow-hidden rounded-2xl border border-primary/20">
-                    {/* Gradient background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-violet-500/5 to-amber-500/10" />
-                    <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary/15 blur-3xl" />
-                    <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
+                <div className="mt-20 max-w-2xl mx-auto relative overflow-hidden rounded-3xl border-0 bg-white/75 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-[inset_0_1px_1.5px_rgba(255,255,255,1),0_16px_48px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_16px_48px_-8px_rgba(0,0,0,0.45)] p-8 sm:p-10 text-center space-y-6">
+                    {/* 温润微光环境漫反射 */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-36 bg-gradient-to-b from-rose-500/[0.06] via-sky-500/[0.04] to-transparent rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="relative px-8 py-12 text-center space-y-5">
-                        <div className="flex justify-center">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-violet-500 text-white shadow-xl shadow-primary/25 animate-[bounce_3s_ease-in-out_infinite]">
-                                <Heart className="w-8 h-8" />
-                            </div>
+                    {/* 轻盈水滴微晶爱心印章 (彻底告别死黑色块) */}
+                    <div className="flex justify-center relative z-10">
+                        <div className="w-12 h-12 rounded-full border-0 bg-gradient-to-br from-rose-500/15 via-rose-500/10 to-transparent flex items-center justify-center text-rose-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_4px_16px_rgba(244,63,94,0.16)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2),0_4px_16px_rgba(244,63,94,0.25)]">
+                            <Heart className="w-5 h-5 fill-rose-500 text-rose-500 animate-pulse" />
                         </div>
+                    </div>
 
-                        <div className="space-y-3 max-w-lg mx-auto">
-                            <h3 className="text-2xl font-extrabold tracking-tight">
-                                欢迎来到{" "}
-                                <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
-                                    Scholarly
-                                </span>
-                            </h3>
-                            <p className="text-muted-foreground leading-relaxed">
-                                感谢每一位在内测阶段陪伴我们的先行者，你们的反馈让 Scholarly 走到了今天。
-                                今天，我们正式向所有学术爱好者敞开大门——
-                            </p>
-                            <p className="text-lg font-semibold text-foreground">
-                                无论你是学生、老师，还是对知识充满好奇的探索者，
-                                <br />
-                                <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
-                                    Scholarly 都是属于你的学术家园。
-                                </span>
-                            </p>
-                            <p className="text-muted-foreground text-sm italic">
-                                &ldquo;知识因分享而永恒，思想因碰撞而闪光。&rdquo;
-                            </p>
-                        </div>
+                    {/* 文案排版：纯粹、通透、富有诗意 */}
+                    <div className="space-y-3 relative z-10">
+                        <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                            欢迎来到 Scholarly
+                        </h3>
+                        <p className="text-xs sm:text-sm font-serif italic text-muted-foreground/80 tracking-wide select-none">
+                            “ 思想因碰撞而闪光，真理因分享而永恒 ”
+                        </p>
+                    </div>
 
-                        <div className="pt-4">
-                            <Button asChild size="lg" className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/25 group">
-                                <Link href="/dashboard" className="flex items-center gap-2">
-                                    开始探索
-                                    <Rocket className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                </Link>
-                            </Button>
-                        </div>
+                    {/* 渐变消融极细微光缝 */}
+                    <div className="h-[1px] w-28 mx-auto bg-gradient-to-r from-transparent via-zinc-300/80 dark:via-zinc-700/80 to-transparent my-2" />
+
+                    <div className="space-y-3 max-w-lg mx-auto relative z-10 text-xs sm:text-sm text-muted-foreground leading-relaxed font-normal">
+                        <p>
+                            感谢每一位在学术求索之路上陪伴我们的先行者，你们的每一条反馈让 Scholarly 走到了今天。
+                        </p>
+                        <p className="text-foreground/90 font-medium">
+                            无论你是青年学子、前沿学者，还是对未知抱有好奇的漫游者 —— 这里永远是属于你的理性家园。
+                        </p>
+                    </div>
+
+                    {/* 核心行动点：轻灵精致的水滴晶体流光按钮 */}
+                    <div className="pt-2 relative z-10">
+                        <Button
+                            asChild
+                            size="sm"
+                            className="h-10 px-6 rounded-full border-0 font-medium text-xs sm:text-sm bg-zinc-950/90 hover:bg-zinc-900 text-white shadow-[0_4px_16px_rgba(0,0,0,0.18),inset_0_1px_1px_rgba(255,255,255,0.35)] dark:bg-white/95 dark:hover:bg-white dark:text-zinc-950 dark:shadow-[0_4px_20px_rgba(255,255,255,0.2),inset_0_1px_1.5px_rgba(255,255,255,1)] backdrop-blur-xl transition-all cursor-pointer group"
+                        >
+                            <Link href="/dashboard" className="flex items-center gap-2">
+                                <span>开启学术探索</span>
+                                <Rocket className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 
                 {/* Made by signature */}
-                <div className="mt-12 pb-4 text-center">
-                    <p className="text-sm text-muted-foreground/60 flex items-center justify-center gap-1.5">
-                        Made with <Heart className="w-3.5 h-3.5 text-pink-500 animate-pulse" /> by{" "}
-                        <span className="font-semibold bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
+                <div className="mt-10 pb-4 text-center">
+                    <p className="text-xs text-muted-foreground/60 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-zinc-200/40 dark:bg-white/[0.05] border-0 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.7)] select-none font-medium">
+                        <span>Made with</span>
+                        <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
+                        <span>by</span>
+                        <span className="font-semibold text-foreground/80">
                             Hansszh
                         </span>
                     </p>

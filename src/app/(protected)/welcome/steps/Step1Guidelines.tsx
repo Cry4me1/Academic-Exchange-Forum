@@ -112,17 +112,17 @@ export function Step1Guidelines({ onNext }: Step1GuidelinesProps) {
 
                     {/* 双 Tab 切换 */}
                     <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full pt-2">
-                        <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/60 border border-border/50 rounded-xl h-auto">
+                        <TabsList className="grid w-full grid-cols-2 p-1 rounded-full h-auto border-0">
                             <TabsTrigger
                                 value="terms"
-                                className="py-2 px-3 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all"
+                                className="py-2 px-3 rounded-full font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5"
                             >
                                 <ScrollText className="w-4 h-4 text-primary" />
                                 <span>{tStep.termsTab}</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="guidelines"
-                                className="py-2 px-3 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all"
+                                className="py-2 px-3 rounded-full font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5"
                             >
                                 <HeartHandshake className="w-4 h-4 text-emerald-500" />
                                 <span>{tStep.guidelinesTab}</span>

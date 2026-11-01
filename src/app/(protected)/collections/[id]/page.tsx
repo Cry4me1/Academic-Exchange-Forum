@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit, Eye, FileText, Heart, Settings, Clock, User } from "lucide-react";
+import { ArrowLeft, Edit, Eye, FileText, Heart, Settings, Clock, User, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -98,12 +99,14 @@ export default function CollectionDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-background pb-12">
-                <Skeleton className="w-full h-[400px] sm:h-[450px]" />
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8 space-y-4">
-                    <Skeleton className="w-full h-24 rounded-xl" />
-                    <Skeleton className="w-full h-24 rounded-xl" />
-                    <Skeleton className="w-full h-24 rounded-xl" />
+            <div className="min-h-screen bg-gradient-to-b from-zinc-100/70 via-background to-zinc-100/40 dark:from-zinc-950 dark:via-background dark:to-zinc-950 py-6 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-5xl mx-auto space-y-6">
+                    <Skeleton className="w-24 h-8 rounded-full border-0" />
+                    <Skeleton className="w-full h-80 rounded-3xl border-0" />
+                    <div className="space-y-4 pt-4">
+                        <Skeleton className="w-full h-32 rounded-3xl border-0" />
+                        <Skeleton className="w-full h-32 rounded-3xl border-0" />
+                    </div>
                 </div>
             </div>
         );
@@ -111,217 +114,261 @@ export default function CollectionDetailPage() {
 
     if (error || !collection) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
-                <p className="text-xl text-muted-foreground mb-4">{error}</p>
-                <Button onClick={() => router.back()}>返回</Button>
+            <div className="min-h-screen bg-gradient-to-b from-zinc-100/70 via-background to-zinc-100/40 dark:from-zinc-950 dark:via-background dark:to-zinc-950 flex flex-col items-center justify-center p-8">
+                <div className="rounded-3xl border-0 p-10 text-center bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.4)] max-w-md w-full">
+                    <p className="text-lg font-medium text-muted-foreground mb-6">{error}</p>
+                    <Button
+                        onClick={() => router.back()}
+                        className="h-9 px-6 rounded-full border-0 font-medium text-xs sm:text-sm bg-zinc-950/85 hover:bg-zinc-900/95 text-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:bg-white/90 dark:text-zinc-950 dark:shadow-[0_4px_20px_-2px_rgba(255,255,255,0.22),inset_0_1px_1.5px_rgba(255,255,255,1)] backdrop-blur-xl transition-all cursor-pointer"
+                    >
+                        返回上一页
+                    </Button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background pb-16">
-            {/* Hero Section */}
-            <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="relative w-full min-h-[380px] sm:min-h-[420px] flex flex-col justify-between overflow-hidden shadow-2xl"
-            >
-                {/* 沉浸式学术全景矢量背景层 */}
-                <div className="absolute inset-0 z-0">
-                    <CollectionCover
-                        coverUrl={collection.cover_url}
-                        coverStyle={collection.cover_style}
-                        size="hero"
-                        showEmblem={false}
-                        showWatermark={true}
-                    />
-                </div>
+        <div className="min-h-screen bg-gradient-to-b from-zinc-100/70 via-background to-zinc-100/40 dark:from-zinc-950 dark:via-background dark:to-zinc-950 pb-20 relative selection:bg-zinc-200 dark:selection:bg-zinc-800">
+            {/* 顶部微弱环境漫反射光晕 */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[360px] bg-gradient-to-b from-sky-500/[0.04] via-purple-500/[0.02] to-transparent blur-3xl pointer-events-none" />
 
-                {/* 复合防眩高保真遮罩 */}
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/55 to-black/35 pointer-events-none" />
-
-                {/* 顶部导航 */}
-                <div className="relative z-20 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-6 flex items-center justify-between">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => router.back()} 
-                        className="bg-white/10 hover:bg-white/20 text-white/95 backdrop-blur-xl border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.25)] rounded-full px-4 transition-all"
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 relative z-10">
+                {/* 顶部轻量快捷返回栏 */}
+                <div className="flex items-center justify-between gap-3">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.back()}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white bg-white/80 dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-1.5 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_4px_16px_-2px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_4px_16px_-2px_rgba(0,0,0,0.3)] transition-all cursor-pointer h-8.5"
                     >
-                        <ArrowLeft className="mr-1.5 h-4 w-4" />
-                        返回
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        <span>返回</span>
                     </Button>
-
-                    <div className="flex items-center gap-2">
-                        <Badge 
-                            variant="secondary" 
-                            className="bg-white/15 text-white backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.3)] px-3.5 py-1 text-xs font-medium rounded-full flex items-center gap-1.5"
-                        >
-                            <PresetIcon className="w-3.5 h-3.5" style={{ color: preset.accentColor }} />
-                            <span>{preset.name}</span>
-                        </Badge>
-                        {collection.only_show_lead_post_in_feed ? (
-                            <Badge 
-                                variant="secondary" 
-                                className="bg-sky-500/25 text-sky-100 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4),0_0_12px_rgba(14,165,233,0.3)] px-3 py-1 text-xs rounded-full font-medium"
-                            >
-                                主页仅展示导读篇
-                            </Badge>
-                        ) : (
-                            <Badge 
-                                variant="secondary" 
-                                className="bg-white/10 text-white/80 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2)] px-3 py-1 text-xs rounded-full font-normal"
-                            >
-                                主页展示全部篇章
-                            </Badge>
-                        )}
-                        {!collection.is_public && (
-                            <Badge 
-                                variant="outline" 
-                                className="bg-amber-500/20 text-amber-200 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.3)] backdrop-blur-xl px-3 py-1 text-xs rounded-full"
-                            >
-                                私密专栏
-                            </Badge>
-                        )}
-                    </div>
                 </div>
 
-                {/* 底部专栏元数据与操作 */}
-                <div className="relative z-20 w-full px-4 sm:px-6 pb-8 pt-12">
-                    <div className="max-w-5xl mx-auto">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                            {/* 左侧：标题、描述与元信息 */}
-                            <div className="space-y-4 flex-1 min-w-0">
-                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] leading-tight">
-                                    {collection.name}
-                                </h1>
+                {/* 主专栏卡片容器 (个人主页 Banner 范式) */}
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="rounded-3xl border-0 bg-white/80 dark:bg-zinc-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_12px_40px_-8px_rgba(0,0,0,0.4)] backdrop-blur-2xl overflow-hidden"
+                >
+                    {/* 1. Header: 固定精致比例 Cover 横幅 (h-44 sm:h-52 md:h-56) */}
+                    <div className="w-full h-44 sm:h-52 md:h-56 relative transition-all duration-500 overflow-hidden bg-slate-950">
+                        <CollectionCover
+                            coverUrl={collection.cover_url}
+                            coverStyle={collection.cover_style}
+                            size="hero"
+                            showEmblem={false}
+                            showWatermark={false}
+                        />
 
-                                {collection.description && (
-                                    <p className="text-sm sm:text-base md:text-lg text-white/90 max-w-3xl leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] line-clamp-3 font-normal">
-                                        {collection.description}
-                                    </p>
-                                )}
+                        {/* 柔和半透明暗光渐变层，轻盈通透 */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent pointer-events-none" />
 
-                                {/* 液态玻璃元信息胶囊栏 */}
-                                <div className="flex items-center flex-wrap gap-2.5 pt-1">
-                                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/95 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
-                                        <Avatar className="h-5 w-5 border border-white/40">
-                                            <AvatarImage src={collection.author?.avatar_url || ""} />
-                                            <AvatarFallback className="bg-white/20 text-white text-[10px]">
-                                                <User className="h-3 w-3" />
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span className="font-medium">{collection.author?.username || '未知学者'}</span>
-                                    </div>
+                        {/* 优雅网格微纹理叠加 */}
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff12_1px,transparent_1px),linear-gradient(to_bottom,#ffffff12_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
 
-                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
-                                        <FileText className="h-3.5 w-3.5 text-white/80" />
-                                        <span>{collection.post_count ?? posts.length} 篇内容</span>
-                                    </div>
+                        {/* 右上角专栏属性徽标胶囊浮层 */}
+                        <div className="absolute top-3.5 right-3.5 z-20 flex items-center flex-wrap gap-2">
+                            <Badge 
+                                variant="secondary" 
+                                className="bg-black/35 text-white/95 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.35)] px-3 py-1 text-xs font-medium rounded-full flex items-center gap-1.5"
+                            >
+                                <PresetIcon className="w-3.5 h-3.5" style={{ color: preset.accentColor }} />
+                                <span>{preset.name}</span>
+                            </Badge>
+                            {collection.only_show_lead_post_in_feed ? (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="bg-sky-500/35 text-sky-100 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4),0_0_12px_rgba(14,165,233,0.3)] px-3 py-1 text-xs rounded-full font-medium"
+                                >
+                                    主页仅展示导读篇
+                                </Badge>
+                            ) : (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="bg-black/30 text-white/90 backdrop-blur-xl border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.3)] px-3 py-1 text-xs rounded-full font-medium"
+                                >
+                                    主页展示全部篇章
+                                </Badge>
+                            )}
+                            {!collection.is_public && (
+                                <Badge 
+                                    variant="secondary" 
+                                    className="bg-amber-500/35 text-amber-100 border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4),0_0_12px_rgba(245,158,11,0.25)] backdrop-blur-xl px-3 py-1 text-xs rounded-full font-medium"
+                                >
+                                    私密专栏
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
 
-                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
-                                        <Eye className="h-3.5 w-3.5 text-white/80" />
-                                        <span>{collection.view_count ?? 0} 浏览</span>
-                                    </div>
-
-                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
-                                        <Heart className="h-3.5 w-3.5 text-white/80" />
-                                        <span>{collection.follower_count ?? 0} 关注</span>
-                                    </div>
-
-                                    <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm text-white/90 shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
-                                        <Clock className="h-3.5 w-3.5 text-white/80" />
-                                        <span>更新于 {format(new Date(collection.updated_at), 'yyyy-MM-dd')}</span>
-                                    </div>
+                    {/* 2. 专栏核心档案信息区 */}
+                    <div className="px-5 sm:px-8 pb-7 pt-0">
+                        {/* 悬浮重叠微缩徽标与右侧操作按钮栏 */}
+                        <div className="flex items-end justify-between gap-4 -mt-10 sm:-mt-12 mb-4">
+                            {/* 专栏封面徽标视窗：大曲率圆角，半悬浮重叠，带菲涅尔光晕 */}
+                            <div className="relative inline-block shrink-0 select-none">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl border-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_32px_-4px_rgba(0,0,0,0.18)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.2),0_12px_32px_-4px_rgba(0,0,0,0.5)] ring-4 ring-white/95 dark:ring-zinc-900/95 overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center">
+                                    {collection.cover_url ? (
+                                        <div className="relative w-full h-full">
+                                            <Image
+                                                src={collection.cover_url}
+                                                alt={collection.name}
+                                                fill
+                                                sizes="96px"
+                                                className="object-cover"
+                                                priority
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: preset.primaryOrb }}>
+                                            <PresetIcon className="w-9 h-9 sm:w-11 sm:h-11" style={{ color: preset.accentColor }} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* 右侧：操作栏 */}
-                            <div className="flex flex-col items-end gap-3 shrink-0">
-                                {/* 非作者：关注按钮 */}
+                            {/* 右侧主操作按钮 */}
+                            <div className="flex items-center gap-2.5 pb-1">
                                 {!isAuthor && currentUserId && (
                                     <FollowCollectionButton
                                         collectionId={collectionId}
                                         initialFollowed={isFollowing}
                                         followerCount={collection.follower_count ?? 0}
-                                        variant="hero"
+                                        variant="default"
                                     />
                                 )}
 
-                                {/* 作者：管理操作 */}
                                 {isAuthor && (
-                                    <div className="flex items-center gap-2.5 bg-black/45 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-xl">
+                                    <div className="flex items-center gap-2 bg-zinc-100/70 dark:bg-white/[0.06] backdrop-blur-xl p-1 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
                                         <Button 
                                             variant="ghost" 
                                             size="sm" 
-                                            className="bg-white/15 hover:bg-white/25 text-white border border-white/20 shadow-sm font-medium transition-all"
+                                            className="h-8 px-3.5 rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.06)] text-xs font-medium transition-all cursor-pointer"
                                             onClick={() => setIsEditOpen(true)}
                                         >
-                                        <Edit className="mr-1.5 h-4 w-4" />
-                                        编辑专栏
-                                    </Button>
-                                    <Button 
-                                        variant={isManageMode ? "default" : "ghost"} 
-                                        size="sm" 
-                                        className={
-                                            isManageMode 
-                                                ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-md" 
-                                                : "bg-white/15 hover:bg-white/25 text-white border border-white/20 shadow-sm font-medium transition-all"
-                                        }
-                                        onClick={() => setIsManageMode(!isManageMode)}
-                                    >
-                                        <Settings className="mr-1.5 h-4 w-4" />
-                                        {isManageMode ? "完成管理" : "管理帖子"}
-                                    </Button>
-                                </div>
+                                            <Edit className="mr-1.5 h-3.5 w-3.5" />
+                                            编辑专栏
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className={
+                                                isManageMode 
+                                                    ? "h-8 px-3.5 rounded-full border-0 bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 font-medium text-xs shadow-[0_2px_10px_rgba(0,0,0,0.2)] transition-all cursor-pointer" 
+                                                    : "h-8 px-3.5 rounded-full border-0 bg-white/80 hover:bg-white dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.06)] text-xs font-medium transition-all cursor-pointer"
+                                            }
+                                            onClick={() => setIsManageMode(!isManageMode)}
+                                        >
+                                            <Settings className="mr-1.5 h-3.5 w-3.5" />
+                                            {isManageMode ? "完成管理" : "管理文章"}
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
-                    </div>
-                </div>
-            </motion.div>
 
-            {/* Post List Section */}
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/60">
-                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-primary" />
-                        专栏目录
-                        <span className="text-xs text-muted-foreground font-normal">
-                            (共 {posts.length} 篇)
-                        </span>
-                    </h2>
-                    {isAuthor && isManageMode && (
-                        <p className="text-xs text-primary font-medium animate-pulse">
-                            管理模式已开启：可使用上下箭头调整文章次序或移出专栏
-                        </p>
-                    )}
-                </div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15, duration: 0.3 }}
-                >
-                    {posts.length > 0 ? (
-                        <CollectionPostList 
-                            collectionId={collectionId}
-                            posts={posts}
-                            isAuthor={isAuthor}
-                            onlyShowLeadPostInFeed={collection.only_show_lead_post_in_feed}
-                            onSetLeadPost={handleSetLeadPost}
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border-0 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.06)]">
-                            <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />
-                            <h3 className="text-lg font-semibold text-foreground mb-1.5">暂无内容</h3>
-                            <p className="text-sm text-muted-foreground max-w-sm">
-                                这个专栏还没有添加任何帖子，你可以在发布新帖或编辑已有帖子时将其归入本专栏。
-                            </p>
+                        {/* 标题与描述 */}
+                        <div className="space-y-2 mb-4">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
+                                {collection.name}
+                            </h1>
+                            {collection.description && (
+                                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-3xl font-normal">
+                                    {collection.description}
+                                </p>
+                            )}
                         </div>
-                    )}
+
+                        {/* 消融内部微光缝 */}
+                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent my-3.5" />
+
+                        {/* 元数据胶囊群 */}
+                        <div className="flex items-center flex-wrap gap-2.5">
+                            <div className="inline-flex items-center gap-2 bg-zinc-100/70 dark:bg-white/[0.05] px-3.5 py-1.5 rounded-full border-0 text-xs sm:text-sm text-foreground shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                <Avatar className="h-4.5 w-4.5 border-0">
+                                    <AvatarImage src={collection.author?.avatar_url || ""} />
+                                    <AvatarFallback className="text-[10px]">
+                                        <User className="h-3 w-3" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium">{collection.author?.username || '未知学者'}</span>
+                            </div>
+
+                            <div className="inline-flex items-center gap-1.5 bg-zinc-100/70 dark:bg-white/[0.05] px-3 py-1.5 rounded-full border-0 text-xs text-muted-foreground font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                <FileText className="h-3.5 w-3.5" />
+                                <span>{collection.post_count ?? posts.length} 篇内容</span>
+                            </div>
+
+                            <div className="inline-flex items-center gap-1.5 bg-zinc-100/70 dark:bg-white/[0.05] px-3 py-1.5 rounded-full border-0 text-xs text-muted-foreground font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                <Eye className="h-3.5 w-3.5" />
+                                <span>{collection.view_count ?? 0} 浏览</span>
+                            </div>
+
+                            <div className="inline-flex items-center gap-1.5 bg-zinc-100/70 dark:bg-white/[0.05] px-3 py-1.5 rounded-full border-0 text-xs text-muted-foreground font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                <Heart className="h-3.5 w-3.5 text-rose-500" />
+                                <span>{collection.follower_count ?? 0} 关注</span>
+                            </div>
+
+                            <div className="inline-flex items-center gap-1.5 bg-zinc-100/70 dark:bg-white/[0.05] px-3 py-1.5 rounded-full border-0 text-xs text-muted-foreground font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>更新于 {format(new Date(collection.updated_at), 'yyyy-MM-dd')}</span>
+                            </div>
+                        </div>
+                    </div>
                 </motion.div>
+
+                {/* 专栏目录区 */}
+                <div className="space-y-4 pt-2">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-foreground flex items-center gap-2.5">
+                            <span className="w-8 h-8 rounded-full bg-sky-500/[0.12] text-sky-600 dark:text-sky-400 flex items-center justify-center shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.14)]">
+                                <FileText className="h-4 w-4" />
+                            </span>
+                            <span>专栏目录</span>
+                            <span className="text-xs text-muted-foreground font-medium px-2.5 py-0.5 rounded-full bg-zinc-200/40 dark:bg-white/[0.05] shadow-[inset_0_0.5px_0.5px_rgba(255,255,255,0.8)]">
+                                共 {posts.length} 篇
+                            </span>
+                        </h2>
+                        {isAuthor && isManageMode && (
+                            <span className="px-3.5 py-1 rounded-full border-0 bg-amber-500/[0.14] text-amber-700 dark:text-amber-300 text-xs font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8),0_2px_12px_rgba(245,158,11,0.2)]">
+                                管理模式已开启：可使用卡片右侧箭头调整文章次序或移出专栏
+                            </span>
+                        )}
+                    </div>
+                    
+                    {/* 消融内部微光缝 */}
+                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1, duration: 0.3 }}
+                    >
+                        {posts.length > 0 ? (
+                            <CollectionPostList 
+                                collectionId={collectionId}
+                                posts={posts}
+                                isAuthor={isAuthor}
+                                onlyShowLeadPostInFeed={collection.only_show_lead_post_in_feed}
+                                onSetLeadPost={handleSetLeadPost}
+                            />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-3xl border-0 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.95),0_12px_40px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_12px_40px_-4px_rgba(0,0,0,0.4)]">
+                                <div className="w-14 h-14 rounded-full bg-zinc-200/50 dark:bg-white/[0.06] flex items-center justify-center mb-4 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
+                                    <FileText className="h-6 w-6 text-muted-foreground/60" />
+                                </div>
+                                <h3 className="text-lg font-bold text-foreground mb-1.5">暂无内容</h3>
+                                <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                                    这个专栏还没有添加任何帖子，你可以在发布新帖或编辑已有帖子时将其归入本专栏。
+                                </p>
+                            </div>
+                        )}
+                    </motion.div>
+                </div>
             </div>
 
             {/* Edit Dialog */}
