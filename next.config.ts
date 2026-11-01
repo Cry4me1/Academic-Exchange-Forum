@@ -87,6 +87,18 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // 同源反向代理：将 /supabase-api 请求转发至 Supabase 官方后端，消除浏览器端跨域预检 (CORS OPTIONS) 与跨海直连丢包
+  async rewrites() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) return [];
+    return [
+      {
+        source: "/supabase-api/:path*",
+        destination: `${supabaseUrl}/:path*`,
+      },
+    ];
+  },
+
   // 自定义响应头 - 字体长缓存 + DNS 预解析
   async headers() {
     return [

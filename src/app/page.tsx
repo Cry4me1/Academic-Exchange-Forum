@@ -1,35 +1,16 @@
-import { cookies } from "next/headers";
 import { Hero } from "@/components/landing/hero";
 import { Features } from "@/components/landing/features";
 import { Footer } from "@/components/landing/footer";
 import { CursorFollower } from "@/components/landing/cursor-follower";
 import { getCachedLandingShowcase, getCachedStats } from "@/lib/cache";
-import { createClient } from "@/lib/supabase/server";
 
-/**
- * 轻量判定当前访客是否已登录：
- * - 匿名访客无 sb- Cookie，0ms 直接返回 false，不触发任何额外鉴权网络请求；
- * - 携带会话 Cookie 时通过 Supabase SSR Client 校验真实登录态。
- */
-async function resolveIsAuthenticated(): Promise<boolean> {
-  try {
-    const cookieStore = await cookies();
-    const hasAuthCookie = cookieStore.getAll().some((c) => c.name.startsWith("sb-"));
-    if (!hasAuthCookie) return false;
-
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    return Boolean(data.user);
-  } catch {
-    return false;
-  }
-}
+// 启用 ISR 静态重新验证（60秒），解除对 Cookie 的强依赖，恢复全站与落地页 CDN 边缘 0ms 极速静态缓存
+export const revalidate = 60;
 
 export default async function Home() {
-  const [stats, showcase, isAuthenticated] = await Promise.all([
+  const [stats, showcase] = await Promise.all([
     getCachedStats(),
     getCachedLandingShowcase(),
-    resolveIsAuthenticated(),
   ]);
 
   return (
@@ -41,11 +22,10 @@ export default async function Home() {
         postsCount={stats.postsCount}
         tagsCount={stats.tagsCount}
         usersCount={stats.usersCount}
-        isAuthenticated={isAuthenticated}
         hotTopics={showcase.heroPosts}
       />
       <Features posts={showcase.showcasePosts} />
-      <Footer isAuthenticated={isAuthenticated} />
+      <Footer />
     </main>
   );
 }

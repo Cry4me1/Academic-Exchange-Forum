@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 // ============================
 // Types
 // ============================
-interface TrendingPost {
+export interface TrendingPost {
     id: string;
     title: string;
     like_count: number;
@@ -33,31 +33,41 @@ interface TrendingPost {
     };
 }
 
-interface WeeklyTopPoster {
+export interface WeeklyTopPoster {
     id: string;
     username: string;
     avatar_url?: string;
     post_count: number;
 }
 
-type SlideItem =
+export type SlideItem =
     | { type: "trending"; data: TrendingPost }
     | { type: "topPoster"; data: WeeklyTopPoster }
     | { type: "emptyWeekly" };
 
+export interface StoryBannerProps {
+    initialSlides?: SlideItem[];
+}
+
 // ============================
 // 主组件
 // ============================
-export function StoryBanner() {
+export function StoryBanner({ initialSlides }: StoryBannerProps = {}) {
     const { isZh } = useI18n();
-    const [slides, setSlides] = useState<SlideItem[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [slides, setSlides] = useState<SlideItem[]>(initialSlides || []);
+    const [loading, setLoading] = useState(!initialSlides || initialSlides.length === 0);
     const scrollRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
 
-    // 获取数据
+    // 获取数据：若已服务端预注入精选帖子与轮播数据，跳过客户端并发大查询
     useEffect(() => {
+        if (initialSlides && initialSlides.length > 0) {
+            setSlides(initialSlides);
+            setLoading(false);
+            return;
+        }
+
         async function fetchData() {
             const supabase = createClient();
 
@@ -135,7 +145,7 @@ export function StoryBanner() {
         }
 
         fetchData();
-    }, [isZh]);
+    }, [isZh, initialSlides]);
 
     // 滚动控制与状态更新
     const updateScrollState = useCallback(() => {
@@ -382,4 +392,3 @@ function EmptyWeeklySlide({ isZh }: { isZh: boolean }) {
         </div>
     );
 }
-

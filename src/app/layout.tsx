@@ -1,8 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
 import { I18nProvider } from "@/i18n/context";
-import { cookies } from "next/headers";
-import type { Locale } from "@/i18n/types";
 import "katex/dist/katex.min.css";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
@@ -39,24 +37,18 @@ export const metadata: Metadata = {
   description: "现代化学术交流平台，支持 LaTeX 公式、代码高亮和图表渲染",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const localeCookie =
-    cookieStore.get("NEXT_LOCALE")?.value ||
-    cookieStore.get("scholarly_lang")?.value;
-  const initialLocale: Locale = localeCookie === "en" ? "en" : "zh";
-
   return (
-    <html lang={initialLocale} suppressHydrationWarning>
+    <html lang="zh" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <I18nProvider initialLocale={initialLocale}>
+        <I18nProvider initialLocale="zh">
           {children}
         </I18nProvider>
         <AuthRedirectHandler />

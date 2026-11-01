@@ -6,10 +6,14 @@ import { TrendingUp, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/i18n/context";
 
-interface TagData {
+export interface TagData {
     name: string;
     count: number;
     heat: "hot" | "warm" | "normal";
+}
+
+export interface TagCloudProps {
+    initialTags?: TagData[];
 }
 
 const heatStyles = {
@@ -18,12 +22,19 @@ const heatStyles = {
     normal: "bg-white/60 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)] hover:bg-white/85 dark:hover:bg-zinc-800/85",
 };
 
-export function TagCloud() {
+export function TagCloud({ initialTags }: TagCloudProps = {}) {
     const { t, isZh } = useI18n();
-    const [tags, setTags] = useState<TagData[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [tags, setTags] = useState<TagData[]>(initialTags || []);
+    const [loading, setLoading] = useState(!initialTags || initialTags.length === 0);
 
     useEffect(() => {
+        // 若服务端已预取注入热门标签，跳过客户端全量扫描大查询
+        if (initialTags && initialTags.length > 0) {
+            setTags(initialTags);
+            setLoading(false);
+            return;
+        }
+
         async function fetchTags() {
             const supabase = createClient();
 
@@ -61,7 +72,7 @@ export function TagCloud() {
         }
 
         fetchTags();
-    }, []);
+    }, [initialTags]);
 
     return (
         <div className="rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl p-3.5 sm:p-5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.18),0_8px_32px_-4px_rgba(0,0,0,0.4)]">

@@ -17,6 +17,7 @@ export default async function ProtectedLayout({
   let supabase;
 
   try {
+    // 复用 React.cache() 单次请求单例客户端与鉴权缓存，杜绝下游子组件与页面重复串行发起鉴权网络往返
     supabase = await createClient();
     const { data } = await supabase.auth.getUser();
     user = data?.user || null;

@@ -16,7 +16,9 @@ import {
     StoryBanner,
     TagCloud,
     WelcomeModal,
-    type FeedFilter
+    type FeedFilter,
+    type SlideItem,
+    type TagData,
 } from "@/components/dashboard";
 import { NotificationCenter } from "@/components/notifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -66,6 +68,8 @@ export interface DashboardInitialData {
     };
     creditBalance: number;
     initialPosts?: any[];
+    initialTags?: TagData[];
+    initialSlides?: SlideItem[];
 }
 
 // 积分紧凑格式化辅助函数
@@ -398,7 +402,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
                         {/* Mobile/Tablet only: 轻量学科胶囊横滑条（不再堆积巨幅发帖卡片） */}
                         <div className="xl:hidden mb-3.5">
-                            <TagCloud />
+                            <TagCloud initialTags={initialData.initialTags} />
                         </div>
 
                         {/* 新手实操训练营微光引导条 */}
@@ -406,7 +410,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
                         {/* 动态横幅 StoryBanner */}
                         <motion.div variants={fadeInUp} className="mb-4 sm:mb-6">
-                            <StoryBanner />
+                            <StoryBanner initialSlides={initialData.initialSlides} />
                         </motion.div>
 
                         {/* Tabs 筛选器 */}
@@ -448,7 +452,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
                             {/* 热门话题 */}
                             <motion.div variants={itemVariants}>
                                 <Suspense fallback={<div className="h-32 rounded-2xl bg-white/40 dark:bg-zinc-900/30 animate-pulse border-0" />}>
-                                    <TagCloud />
+                                    <TagCloud initialTags={initialData.initialTags} />
                                 </Suspense>
                             </motion.div>
                         </motion.div>

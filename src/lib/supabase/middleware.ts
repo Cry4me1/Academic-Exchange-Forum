@@ -54,6 +54,30 @@ export async function updateSession(request: NextRequest) {
         },
     });
 
+    // 检查请求中是否携带 Supabase 认证 Token Cookie
+    const allCookies = request.cookies.getAll();
+    const hasAuthToken = allCookies.some(
+        (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token")
+    );
+
+    // 0ms 快速路径：未登录/无凭证的纯匿名访客，彻底消除向 Supabase 发起的跨海鉴权网络往返 (RTT)
+    if (!hasAuthToken) {
+        if (isPublicRoute(pathname)) {
+            // 公开路由直接放行，0ms 响应
+            return supabaseResponse;
+        }
+
+        // 受保护路由直接拦截并重定向到登录页，0ms 快速拦截
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        if (pathname !== "/" && pathname !== "/dashboard") {
+            url.searchParams.set("redirectedFrom", pathname);
+        }
+        return NextResponse.redirect(url, {
+            headers: requestHeaders,
+        });
+    }
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -99,8 +123,8 @@ export async function updateSession(request: NextRequest) {
         return redirectResponse;
     }
 
-    // 2. 未登录游客直接在地址栏敲入受保护路由（如 /dashboard, /friends, /messages, /settings 等）
-    // 在中间件第一道防线直接以 <5ms 极速拦截并 307 重定向到 /login，彻底杜绝请求穿透到服务端组件引发的 Layout 与 Page 并发竞态冲突与 502 崩溃！
+    // 2. 未登录游客（Cookie 凭证已过期或无效）访问受保护路由（如 /dashboard, /friends, /messages, /settings 等）
+    // 在中间件第一道防线直接拦截并 307 重定向到 /login，彻底杜绝请求穿透到服务端组件引发的 Layout 与 Page 并发竞态冲突与 502 崩溃！
     if (!user && !isPublicRoute(pathname)) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";

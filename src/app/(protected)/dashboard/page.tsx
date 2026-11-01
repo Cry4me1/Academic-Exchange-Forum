@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getPosts } from "@/app/(protected)/posts/actions";
+import { getCachedFeaturedPosts, getCachedPopularTags } from "@/lib/cache";
 import DashboardClient from "./DashboardClient";
 import type { DashboardInitialData } from "./DashboardClient";
 
@@ -12,6 +13,7 @@ export default async function DashboardPage() {
     let user = null;
 
     try {
+        // 利用 React.cache() 单次请求生命周期内的单例客户端与鉴权缓存，杜绝重复串行发起鉴权网络往返
         supabase = await createClient();
         const { data } = await supabase.auth.getUser();
         user = data?.user || null;
@@ -27,6 +29,8 @@ export default async function DashboardPage() {
                     user: { id: "", username: null, email: null, avatar_url: null, created_at: new Date().toISOString() },
                     creditBalance: 0,
                     initialPosts: [],
+                    initialTags: [],
+                    initialSlides: [],
                 }}
             />
         );
@@ -35,6 +39,8 @@ export default async function DashboardPage() {
     let profile: any = null;
     let creditBalance = 0;
     let initialPosts: any[] = [];
+    let initialTags: any[] = [];
+    let initialSlides: any[] = [];
 
     try {
         // 安全超时熔断：若 1.2 秒内未完成，直接降级为空，由客户端异步骨架屏继续平滑加载
@@ -48,7 +54,7 @@ export default async function DashboardPage() {
             return { posts: [] };
         });
 
-        const [profileRes, creditsRes, postsRes] = await Promise.all([
+        const [profileRes, creditsRes, postsRes, popularTagsRes, featuredPostsRes] = await Promise.all([
             supabase
                 .from("profiles")
                 .select("username, email, avatar_url")
@@ -60,11 +66,45 @@ export default async function DashboardPage() {
                 .eq("user_id", user.id)
                 .maybeSingle(),
             fetchPostsWithTimeout,
+            getCachedPopularTags().catch((err) => {
+                console.warn("[DashboardPage] getCachedPopularTags SSR 降级:", err);
+                return [];
+            }),
+            getCachedFeaturedPosts().catch((err) => {
+                console.warn("[DashboardPage] getCachedFeaturedPosts SSR 降级:", err);
+                return [];
+            }),
         ]);
 
         profile = profileRes?.data || null;
         creditBalance = creditsRes?.data?.balance ?? 0;
         initialPosts = (postsRes?.posts || []) as any[];
+
+        // 服务端预先计算标签与热力状态，供 TagCloud 组件挂载时即时直出
+        initialTags = (popularTagsRes || []).slice(0, 10).map((t: any) => ({
+            name: t.name,
+            count: t.count,
+            heat: (t.count >= 10 ? "hot" : t.count >= 5 ? "warm" : "normal") as "hot" | "warm" | "normal",
+        }));
+
+        // 服务端预先注入精选帖子轮播，彻底消除客户端 StoryBanner 挂载时的并发大表查询
+        initialSlides = (featuredPostsRes || []).map((p: any) => {
+            const author = Array.isArray(p.author) ? p.author[0] : p.author;
+            return {
+                type: "trending" as const,
+                data: {
+                    id: p.id,
+                    title: p.title,
+                    like_count: p.like_count || 0,
+                    comment_count: p.comment_count || 0,
+                    view_count: p.view_count || 0,
+                    author: {
+                        username: author?.username || "未知学者",
+                        avatar_url: author?.avatar_url,
+                    },
+                },
+            };
+        });
     } catch (queryError) {
         console.warn("[DashboardPage] 服务端预取数据异常，降级回退:", queryError);
     }
@@ -95,6 +135,8 @@ export default async function DashboardPage() {
         },
         creditBalance,
         initialPosts,
+        initialTags,
+        initialSlides,
     };
 
     return <DashboardClient initialData={initialData} />;
