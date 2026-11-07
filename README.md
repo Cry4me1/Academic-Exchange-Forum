@@ -109,9 +109,6 @@ graph TD
   - 敏感操作全程审计日志。
 - **40+ 细粒度 Postgres RLS 策略**：数据权限层层隔离，严防越权与数据泄露。
 
-<p align="center">
-  <img src="docs/screenshots/invite_preview.png" alt="学术邀请码实时抢兑看板与原子防并发核销" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
-</p>
 
 <p align="center">
   <img src="docs/screenshots/updates_preview.png" alt="学术出版级 PDF 导出与平台演进全景" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />

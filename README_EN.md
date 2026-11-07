@@ -109,9 +109,6 @@ graph TD
   - Full audit logging of administrative actions.
 - **40+ Granular PostgreSQL RLS Policies**: Strict multi-tenant data isolation and anti-privilege escalation.
 
-<p align="center">
-  <img src="docs/screenshots/invite_preview.png" alt="Realtime Academic Invitation Board" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
-</p>
 
 <p align="center">
   <img src="docs/screenshots/updates_preview.png" alt="Academic Publishing Grade PDF Export and Updates Feed" width="900" style="border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />

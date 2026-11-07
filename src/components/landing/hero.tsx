@@ -22,7 +22,6 @@ import {
     Radio,
     Sigma,
     ThumbsUp,
-    Ticket,
     UserCheck,
     Workflow,
 } from "lucide-react";
@@ -305,7 +304,7 @@ export function Hero({
                         animate="visible"
                         className="lg:col-span-7 text-center lg:text-left"
                     >
-                        {/* 社区广播 + 820 通行码（服务端直出，零数字跳变） */}
+                        {/* 社区广播（服务端直出，零数字跳变） */}
                         <motion.div
                             variants={ITEM_VARIANTS}
                             className="mb-8 flex justify-center lg:justify-start"
@@ -313,7 +312,7 @@ export function Hero({
                             <div
                                 className={cn(
                                     GLASS,
-                                    "inline-flex flex-wrap items-center justify-center gap-2 rounded-full py-1.5 pl-3.5 pr-1.5"
+                                    "inline-flex flex-wrap items-center justify-center gap-2 rounded-full px-3.5 py-1.5"
                                 )}
                             >
                                 <span className="relative flex h-2 w-2">
@@ -333,15 +332,6 @@ export function Hero({
                                         tHero.badgeFallback
                                     )}
                                 </span>
-                                <span aria-hidden className={DIVIDER_V} />
-                                <Link
-                                    href="/invite-820"
-                                    className="group inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.12)] hover:bg-[rgba(245,158,11,0.2)] shadow-[0_0_16px_rgba(245,158,11,0.18)] transition-colors"
-                                >
-                                    <Ticket className="h-3.5 w-3.5" />
-                                    {tHero.inviteBanner}
-                                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                                </Link>
                             </div>
                         </motion.div>
 

@@ -247,7 +247,6 @@ export const en: TranslationDictionary = {
     hero: {
         badgePrefix: "Converging frontiers · Over ",
         badgeSuffix: " scholars researching here",
-        inviteBanner: "820 Invite Code Portal",
         subTitle: "Pure, Rigorous & Dynamic Academic Sanctuary",
         description: "Next-generation academic exchange platform crafted for researchers. Native support for LaTeX mathematical typesetting, multi-language code highlighting, and Mermaid topology graphs.",
         exploreBtn: "Start Exploring",

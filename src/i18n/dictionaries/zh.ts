@@ -247,7 +247,6 @@ export const zh: TranslationDictionary = {
     hero: {
         badgePrefix: "汇聚前沿思想 · 已有 ",
         badgeSuffix: " 位学者在此研讨",
-        inviteBanner: "820 邀请码先到先得看板",
         subTitle: "纯粹、严谨、灵动的学术殿堂",
         description: "专为研究者与学者打造的下一代学术交流平台。原生支持 LaTeX 深度数学排版、多语言算法高亮与 Mermaid 拓扑图谱，让思想的深邃自由绽放。",
         exploreBtn: "开启学术探索",

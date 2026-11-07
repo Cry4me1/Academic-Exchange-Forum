@@ -247,7 +247,6 @@ export interface TranslationDictionary {
     hero: {
         badgePrefix: string;
         badgeSuffix: string;
-        inviteBanner: string;
         subTitle: string;
         description: string;
         exploreBtn: string;

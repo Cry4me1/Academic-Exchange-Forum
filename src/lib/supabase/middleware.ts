@@ -13,7 +13,6 @@ const PUBLIC_EXACT_ROUTES = new Set([
     "/updates",
     "/rules",
     "/rule",
-    "/invite-820",
 ]);
 
 // 游客可访问的前缀匹配公开路由
@@ -22,7 +21,6 @@ const PUBLIC_PREFIXES = [
     "/rules/",
     "/rule/",
     "/announcements/",
-    "/invite-820/",
 ];
 
 // 判断路由是否是对游客公开开放的

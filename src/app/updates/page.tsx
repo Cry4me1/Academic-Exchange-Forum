@@ -1272,13 +1272,12 @@ export default function UpdatesPage() {
                                             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
                                                 <Lock className="w-4 h-4" />
                                             </span>
-                                            超级管理员专属学术邀请制体系与公开看板
+                                            超级管理员专属学术邀请制体系
                                         </h3>
                                         <div className="pl-10 text-sm text-muted-foreground space-y-2">
                                             <p>打造高质量严谨学术交流圈，保障高水平学者社区氛围：</p>
                                             <ul className="list-disc list-outside ml-4 space-y-1.5">
                                                 <li><strong>严谨邀请准入</strong>：全面启用邀请码注册制，支持邀请码批量生成、使用次数限制、有效期控制与管理员一键批量清理。</li>
-                                                <li><strong>公开可视化看板</strong>：上线 `/invite-820` 专属邀请状态看板与邀请链路追踪，直观掌握学术同仁的入驻轨迹。</li>
                                                 <li><strong>全模式智能登录</strong>：无缝融合邮箱登录、自定义用户名注册与洛谷 (Luogu) 凭证绑定，支持智能回填邀请码。</li>
                                             </ul>
                                         </div>
