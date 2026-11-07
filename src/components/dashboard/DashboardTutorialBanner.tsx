@@ -26,8 +26,8 @@ export function DashboardTutorialBanner() {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
                     setCompletedCount(parsed.length);
-                    // 如果已经全部通关5个模块，则默认不显示横幅
-                    if (parsed.length >= 5) return;
+                    // 如果已经全部通关 6 个模块，则默认不显示横幅
+                    if (parsed.length >= 6) return;
                 }
             }
             setIsVisible(true);
@@ -63,15 +63,15 @@ export function DashboardTutorialBanner() {
 
                         <div className="space-y-0.5">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h4 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                                <h4 className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100 tracking-tight">
                                     {isZh ? "Scholarly 研学者实操训练营" : "Scholarly Hands-on Training Camp"}
                                 </h4>
-                                <span className="text-[10px] py-0.2 px-2 rounded-full font-medium border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] bg-white/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                                <span className="text-[10px] py-0.5 px-2 rounded-full font-medium border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] bg-white/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                                     {isZh ? "1:1 全真沙盒" : "1:1 Interactive Sandbox"}
                                 </span>
                                 {completedCount > 0 && (
-                                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
-                                        ({isZh ? `已掌握 ${completedCount}/5 技能` : `${completedCount}/5 mastered`})
+                                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono tabular-nums">
+                                        ({isZh ? `已掌握 ${completedCount}/6 模块` : `${completedCount}/6 mastered`})
                                     </span>
                                 )}
                             </div>
@@ -83,7 +83,7 @@ export function DashboardTutorialBanner() {
 
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                         <Link href="/announcements/tutorials" prefetch={false}>
-                            <Button size="sm" className="h-7 text-xs px-3 rounded-full font-medium border-0 bg-zinc-950/85 text-white hover:bg-zinc-900/95 dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] gap-1 group">
+                            <Button size="sm" className="h-7 text-xs px-3 rounded-full font-medium border-0 bg-zinc-950/85 text-white hover:bg-zinc-900/95 dark:bg-white/90 dark:text-zinc-950 dark:hover:bg-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:shadow-[0_4px_16px_-2px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.9)] gap-1 group active:scale-[0.97] transition-transform duration-150">
                                 {t.dashboardComponents.tutorialBannerAction}
                                 <ArrowRight className="h-3 w-3 text-zinc-400 group-hover:translate-x-0.5 transition-transform" strokeWidth={1.75} />
                             </Button>
@@ -92,7 +92,7 @@ export function DashboardTutorialBanner() {
                         <button
                             type="button"
                             onClick={handleDismiss}
-                            className="h-7 w-7 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors border-0"
+                            className="h-7 w-7 rounded-full hover:bg-white/60 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors border-0 active:scale-[0.95]"
                             title={isZh ? "稍后再说" : "Dismiss"}
                         >
                             <X className="h-3.5 w-3.5" strokeWidth={1.75} />

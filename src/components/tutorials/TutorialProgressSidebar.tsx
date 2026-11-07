@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
     PenTool,
     BookOpen,
     Swords,
+    MessageSquare,
     Coins,
     ShieldAlert,
     CheckCircle2,
@@ -19,8 +19,6 @@ export interface TutorialModuleMeta {
     subtitle: string;
     icon: React.ElementType;
     badge: string;
-    color: string;
-    bgHover: string;
 }
 
 export const tutorialModules: TutorialModuleMeta[] = [
@@ -30,8 +28,6 @@ export const tutorialModules: TutorialModuleMeta[] = [
         subtitle: "Slash命令 · LaTeX公式 · 定理块",
         icon: PenTool,
         badge: "核心写作",
-        color: "text-blue-500",
-        bgHover: "hover:bg-blue-500/10",
     },
     {
         id: "publication",
@@ -39,8 +35,6 @@ export const tutorialModules: TutorialModuleMeta[] = [
         subtitle: "Nature双栏 · TOC脉冲 · PDF导出",
         icon: BookOpen,
         badge: "出版级",
-        color: "text-indigo-500",
-        bgHover: "hover:bg-indigo-500/10",
     },
     {
         id: "duels",
@@ -48,26 +42,27 @@ export const tutorialModules: TutorialModuleMeta[] = [
         subtitle: "1v1切磋 · LP下注 · 同行评议",
         icon: Swords,
         badge: "竞技模式",
-        color: "text-rose-500",
-        bgHover: "hover:bg-rose-500/10",
+    },
+    {
+        id: "messages",
+        title: "4. 私信与数据时效",
+        subtitle: "实时私聊 · 7天附件自动清理",
+        icon: MessageSquare,
+        badge: "即时研讨",
     },
     {
         id: "credits",
-        title: "4. 积分与数据时效",
-        subtitle: "Credits流转 · 7天附件清理",
+        title: "5. 积分与学者特权",
+        subtitle: "Credits流转 · VIP荣誉名片",
         icon: Coins,
         badge: "社区生态",
-        color: "text-amber-500",
-        bgHover: "hover:bg-amber-500/10",
     },
     {
         id: "moderation",
-        title: "5. 多模态 AI 审校",
-        subtitle: "AI语义评分 · 敏感词拦截 · 申诉",
+        title: "6. 多模态 AI 审稿",
+        subtitle: "深度推理 · 同行评审报告",
         icon: ShieldAlert,
-        badge: "安全合规",
-        color: "text-emerald-500",
-        bgHover: "hover:bg-emerald-500/10",
+        badge: "智能评审",
     },
 ];
 
@@ -84,44 +79,41 @@ export function TutorialProgressSidebar({
 }: TutorialProgressSidebarProps) {
     const totalCount = tutorialModules.length;
     const completedCount = completedModuleIds.length;
-    const isAllCompleted = completedCount === totalCount;
+    const isAllCompleted = completedCount >= totalCount;
 
     return (
         <div className="w-full space-y-4">
-            {/* 顶栏进度概览卡片 */}
-            <div className="rounded-2xl border border-border/60 bg-card/75 backdrop-blur-md p-4 shadow-sm space-y-2.5">
+            <div className="rounded-3xl border-0 bg-white/75 dark:bg-zinc-900/50 backdrop-blur-2xl p-4 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.42),inset_0_1px_1px_rgba(255,255,255,0.12)] space-y-3">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-600 text-white shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border-0 bg-zinc-950/90 text-white dark:bg-white/90 dark:text-zinc-950 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4)]">
                             <GraduationCap className="h-4 w-4" />
                         </div>
                         <div>
-                            <h3 className="text-xs font-bold text-foreground">研学者实训进度</h3>
-                            <p className="text-[10px] text-muted-foreground">完成实操点亮专属勋章</p>
+                            <h3 className="text-xs font-medium text-zinc-900 dark:text-zinc-100">研学者实训进度</h3>
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">完成实操点亮专属勋章</p>
                         </div>
                     </div>
-                    <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                    <span className="font-mono text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-200 bg-zinc-900/[0.05] dark:bg-white/[0.07] px-2.5 py-0.5 rounded-full border-0">
                         {completedCount} / {totalCount}
                     </span>
                 </div>
 
-                {/* 进度条 */}
-                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="w-full h-1.5 rounded-full border-0 bg-zinc-900/[0.06] dark:bg-white/[0.08] overflow-hidden">
                     <div
-                        className="h-full bg-gradient-to-r from-primary via-violet-500 to-emerald-500 transition-all duration-500"
-                        style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                        className="h-full bg-emerald-500/85 transition-transform duration-300 origin-left rounded-full"
+                        style={{ transform: `scaleX(${totalCount > 0 ? completedCount / totalCount : 0})` }}
                     />
                 </div>
 
                 {isAllCompleted && (
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
-                        <Sparkles className="h-3 w-3 animate-spin" />
-                        恭喜！已通关全部 5 大实操实训
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/12 px-3 py-1 rounded-full border-0">
+                        <Sparkles className="h-3 w-3 shrink-0" />
+                        恭喜！已通关全部 6 大实操实训
                     </div>
                 )}
             </div>
 
-            {/* 模块列表按钮组 */}
             <div className="space-y-1.5">
                 {tutorialModules.map((mod) => {
                     const isSelected = currentModuleId === mod.id;
@@ -134,38 +126,37 @@ export function TutorialProgressSidebar({
                             type="button"
                             onClick={() => onSelectModule(mod.id)}
                             className={cn(
-                                "w-full flex items-center justify-between gap-3 p-3 rounded-xl border text-left transition-all duration-200 group cursor-pointer",
+                                "w-full flex items-center justify-between gap-3 p-3 rounded-2xl border-0 text-left transition-[transform,background-color,box-shadow] duration-150 group cursor-pointer active:scale-[0.98]",
                                 isSelected
-                                    ? "bg-primary/10 border-primary text-primary shadow-sm font-bold ring-1 ring-primary/30"
-                                    : "bg-card/40 hover:bg-card border-border/40 text-foreground/80 hover:text-foreground"
+                                    ? "bg-white/95 dark:bg-zinc-800/90 text-zinc-950 dark:text-white shadow-[0_4px_20px_-2px_rgba(14,165,233,0.16),inset_0_1px_1px_rgba(255,255,255,0.95)]"
+                                    : "bg-white/55 hover:bg-white/80 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/65 text-zinc-700 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]"
                             )}
                         >
                             <div className="flex items-center gap-2.5 min-w-0">
                                 <div
                                     className={cn(
-                                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-0 transition-colors",
                                         isSelected
-                                            ? "bg-primary text-white border-primary"
-                                            : "bg-muted/60 text-muted-foreground border-border/50 group-hover:text-primary group-hover:border-primary/30"
+                                            ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                                            : "bg-zinc-900/[0.05] dark:bg-white/[0.07] text-zinc-500 dark:text-zinc-400"
                                     )}
                                 >
                                     <Icon className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-semibold truncate leading-tight">
+                                    <p className="text-xs font-medium truncate leading-tight">
                                         {mod.title}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                    <p className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
                                         {mod.subtitle}
                                     </p>
                                 </div>
                             </div>
 
-                            {/* 状态指示 */}
                             {isCompleted ? (
                                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                             ) : (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0 border border-border/50">
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border-0 bg-zinc-900/[0.045] dark:bg-white/[0.06] text-zinc-500 shrink-0">
                                     {mod.badge}
                                 </span>
                             )}

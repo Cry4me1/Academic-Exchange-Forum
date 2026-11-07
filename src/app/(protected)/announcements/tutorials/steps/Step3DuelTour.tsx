@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
+import { MathText } from "@/components/ui/math-text";
 import {
     Swords,
     Send,
@@ -18,129 +17,174 @@ import {
     ArrowLeft,
     ArrowRight,
     Brain,
-    Flame,
+    Sparkles,
+    AlertTriangle,
+    RotateCcw,
+    ExternalLink,
 } from "lucide-react";
 import { ReputationBadge } from "@/components/duel/ReputationBadge";
 import { DuelScoreCard } from "@/components/duel/DuelScoreCard";
 import { SpectatorBadge } from "@/components/duel/SpectatorBadge";
-import { DanmakuOverlay, DanmakuMessage } from "@/components/duel/DanmakuOverlay";
+import { DanmakuOverlay, type DanmakuMessage } from "@/components/duel/DanmakuOverlay";
 import { toast } from "sonner";
-import { TutorialTaskChecklist, TaskItem } from "@/components/tutorials/TutorialTaskChecklist";
+import { cn } from "@/lib/utils";
+import { TutorialTaskChecklist, type TaskItem } from "@/components/tutorials/TutorialTaskChecklist";
 
 interface Step3DuelTourProps {
     onPrev: () => void;
     onNext: () => void;
+    completedTaskIds: string[];
+    onCompleteTask: (taskId: string) => void;
+    onCompleteAllTasks: (taskIds: string[]) => void;
 }
 
-const initialTasks: TaskItem[] = [
-    {
-        id: "task-bet",
-        title: "1. 体验观战学术投注 (LP 下注)",
-        description: "在下方观战投注面板选择支持‘正方 (测试1)’或‘反方 (测试2)’，输入 LP 积分并确认下注体验赔率联动。",
-        isCompleted: false,
-    },
-    {
-        id: "task-danmaku",
-        title: "2. 发送一条实时学术观战弹幕",
-        description: "在弹幕输入框中输入您的学术见解，点击发送体验 4 轨道实时弹幕飘过与同行互动。",
-        isCompleted: false,
-    },
-    {
-        id: "task-inspect-round",
-        title: "3. 查阅真实辩论回合与 AI 裁判评分",
-        description: "阅读第 1 回合正反双方关于 k=7 最优停止策略与爱情不可逆性的交锋，以及 AI 裁判评分卡。",
-        isCompleted: false,
-    },
-];
-
-// 与真实辩题高度契合的学术观战弹幕池
-const mockPresetDanmakus: string[] = [
+const PRESET_DANMAKUS: string[] = [
     "数学推导太严谨了，k=7 确实是 20 个样本下的全局最优！",
-    "反方说得好，爱情怎么能被算力对冲？",
     "不可逆性与主体性直击要害，正方怎么回应？",
-    "前 7 个人只看不选，如果初恋就是真爱不就悲剧了？",
-    "苏格拉底麦田困境在概率论下有唯一解！",
-    "支持正方！算力是战胜选择焦虑的唯一武器",
-    "反方角度很刁钻，期待第 2 回合正方的反驳！",
+    "前 37% 样本只观察不决策，若完美伴侣在前 7 个出现怎么办？",
+    "支持动态贝叶斯更新！先验分布已知时阈值可以显著前移",
+    "算力对冲的是盲目试错成本，而非消解情感本身",
 ];
 
-export function Step3DuelTour({ onPrev, onNext }: Step3DuelTourProps) {
-    const [tasks, setTasks] = useState<TaskItem[]>(initialTasks);
+const QUICK_DANMAKU_CHIPS = [
+    "1/e 最优停止法则无懈可击！",
+    "亲密关系不满足独立同分布假设",
+    "期待引入贝叶斯先验修正模型",
+];
+
+type Round2SimulationMode = "idle" | "rigorous" | "fallacy";
+
+export function Step3DuelTour({
+    onPrev,
+    onNext,
+    completedTaskIds,
+    onCompleteTask,
+    onCompleteAllTasks,
+}: Step3DuelTourProps) {
     const [danmakuVisible, setDanmakuVisible] = useState(true);
     const [danmakuInput, setDanmakuInput] = useState("");
     const [latestDanmaku, setLatestDanmaku] = useState<DanmakuMessage | null>(null);
 
-    // 下注状态
-    const [betSide, setBetSide] = useState<"challenger" | "opponent" | null>(null);
-    const [betAmount, setBetAmount] = useState("50");
-    const [hasBet, setHasBet] = useState(false);
+    // 观战下注状态
+    const [betSide, setBetSide] = useState<"challenger" | "opponent">("challenger");
+    const [betAmount, setBetAmount] = useState("100");
+    const [totalStaked, setTotalStaked] = useState(0);
     const [userReputation, setUserReputation] = useState(1500);
 
-    // 真实数据库比分 (未结束第 1 轮得分)
-    const challengerScore = 10;
+    // 第 2 回合互动模拟状态
+    const [round2Mode, setRound2Mode] = useState<Round2SimulationMode>("idle");
+
+    const baseChallengerScore = 10;
     const opponentScore = 6;
-    const challengerLp = 100;
+    const challengerScore =
+        round2Mode === "rigorous"
+            ? baseChallengerScore + 11
+            : round2Mode === "fallacy"
+            ? baseChallengerScore - 3
+            : baseChallengerScore;
+    const challengerLp = round2Mode === "fallacy" ? 85 : 100;
     const opponentLp = 100;
 
-    const markTaskDone = (id: string) => {
-        setTasks((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, isCompleted: true } : t))
-        );
-    };
+    const currentOdds = betSide === "challenger" ? 1.85 : 2.1;
+    const parsedBet = Math.max(0, parseInt(betAmount || "0", 10) || 0);
+    const estimatedPayout = Math.round(parsedBet * currentOdds);
 
-    // 弹幕自动随机定时飘过 (模拟真实观战热度)
+    const taskDefs = useMemo<TaskItem[]>(
+        () => [
+            {
+                id: "task-bet",
+                title: "1. 体验观战声望质押 (LP 下注竞猜)",
+                description: "选择支持正方或反方学者，点击快捷筹码并确认质押，查看实时赔率与预计收益。",
+                isCompleted: completedTaskIds.includes("task-bet"),
+            },
+            {
+                id: "task-danmaku",
+                title: "2. 发射实时学术观战弹幕",
+                description: "输入学术见解或点击快捷观点胶囊，体验多轨道实时飘屏弹幕研讨。",
+                isCompleted: completedTaskIds.includes("task-danmaku"),
+            },
+            {
+                id: "task-inspect-round",
+                title: "3. 体验第 2 回合交锋与 AI 裁判谬误判分",
+                description: "查阅第 1 回合实录，并在底部亲手触发第 2 回合‘严谨引证 vs 逻辑谬误’实时裁决。",
+                isCompleted: completedTaskIds.includes("task-inspect-round"),
+            },
+        ],
+        [completedTaskIds]
+    );
+
     useEffect(() => {
         const interval = setInterval(() => {
             if (!danmakuVisible) return;
-            const randomText = mockPresetDanmakus[Math.floor(Math.random() * mockPresetDanmakus.length)];
-            const randomRole = Math.random() > 0.5 ? "challenger" : Math.random() > 0.3 ? "opponent" : "spectator";
+            const randomText = PRESET_DANMAKUS[Math.floor(Math.random() * PRESET_DANMAKUS.length)];
+            const roles: Array<"challenger" | "opponent" | "spectator"> = [
+                "challenger",
+                "opponent",
+                "spectator",
+            ];
+            const role = roles[Math.floor(Math.random() * roles.length)];
 
             setLatestDanmaku({
                 id: `danmaku-${Date.now()}-${Math.random()}`,
                 text: randomText,
                 userId: "spectator-bot",
-                username: randomRole === "challenger" ? "概率论研究员" : randomRole === "opponent" ? "哲学系学者" : "围观学者",
-                positionColor: randomRole as any,
+                username:
+                    role === "challenger"
+                        ? "概率论研究员"
+                        : role === "opponent"
+                        ? "伦理学学者"
+                        : "围观学者",
+                positionColor: role,
             });
-        }, 3200);
+        }, 3600);
 
         return () => clearInterval(interval);
     }, [danmakuVisible]);
 
-    // 发送弹幕
-    const handleSendDanmaku = () => {
-        if (!danmakuInput.trim()) return;
+    const sendDanmakuText = (rawText: string) => {
+        const trimmed = rawText.trim();
+        if (!trimmed) return;
 
-        const myDanmaku: DanmakuMessage = {
+        setLatestDanmaku({
             id: `danmaku-me-${Date.now()}`,
-            text: danmakuInput.trim(),
+            text: trimmed,
             userId: "me",
             username: "我 (研学者)",
-            positionColor: betSide === "challenger" ? "challenger" : betSide === "opponent" ? "opponent" : "spectator",
-        };
-
-        setLatestDanmaku(myDanmaku);
+            positionColor: betSide,
+        });
         setDanmakuInput("");
-        markTaskDone("task-danmaku");
-        toast.success("弹幕已实时发送至决斗竞技场");
+        onCompleteTask("task-danmaku");
+        toast.success("学术弹幕已实时推送至决斗观战席");
     };
 
-    // 观战下注
     const handleConfirmBet = () => {
-        if (!betSide) {
-            toast.error("请选择要支持的辩论选手");
+        if (parsedBet <= 0) {
+            toast.error("请输入大于 0 的有效质押积分数");
             return;
         }
-        const amt = parseInt(betAmount, 10);
-        if (isNaN(amt) || amt <= 0) {
-            toast.error("请输入有效的下注金额");
+        if (parsedBet > userReputation) {
+            toast.error(`可用钱包余额不足（当前剩余 ${userReputation} LP）`);
             return;
         }
 
-        setHasBet(true);
-        setUserReputation((prev) => prev - amt);
-        markTaskDone("task-bet");
-        toast.success(`下注成功！已质押 ${amt} LP 支持${betSide === "challenger" ? "正方 (测试1 · 算力派)" : "反方 (测试2 · 浪漫派)"}！`);
+        setUserReputation((prev) => prev - parsedBet);
+        setTotalStaked((prev) => prev + parsedBet);
+        onCompleteTask("task-bet");
+        toast.success(
+            `质押成功！已投入 ${parsedBet} LP 支持${
+                betSide === "challenger" ? "正方（算力派）" : "反方（主体派）"
+            }，预计获胜返还 ${estimatedPayout} LP`
+        );
+    };
+
+    const handleSimulateRound2 = (mode: "rigorous" | "fallacy") => {
+        setRound2Mode(mode);
+        onCompleteTask("task-inspect-round");
+        if (mode === "rigorous") {
+            toast.success("AI 裁判裁决完成：严谨贝叶斯修正引证获评 +11 分！");
+        } else {
+            toast.warning("AI 裁判触发逻辑谬误拦截：检测到稻草人谬误，扣除 15 LP 护盾与 3 分！");
+        }
     };
 
     const mockSpectators = [
@@ -150,277 +194,363 @@ export function Step3DuelTour({ onPrev, onNext }: Step3DuelTourProps) {
         { username: "概率探索者", avatar_url: "" },
     ];
 
-    const handleTaskClick = (taskId: string) => {
-        markTaskDone(taskId);
-        if (taskId === "task-bet") {
-            toast.success("✓ 已掌握观战下注功能！");
-        } else if (taskId === "task-danmaku") {
-            toast.success("✓ 已掌握学术弹幕互动！");
-        } else if (taskId === "task-inspect-round") {
-            toast.success("✓ 已查阅真实辩论与 AI 裁判评分！");
-        }
-    };
-
     return (
         <div className="space-y-6">
             {/* 顶栏实操任务清单卡片 */}
             <TutorialTaskChecklist
-                tasks={tasks}
-                onTaskClick={handleTaskClick}
-                stepTitle="Step 3 · 真实学术决斗场竞技全景 (Duel Arena)"
-                stepBadge="3 大实操子任务"
-                hintText="本页面直接整合真实决斗 #d0552765 数据，保留第 1 回合实录，第 2 回合进行中未结束。"
+                tasks={taskDefs}
+                onTaskClick={(id) => {
+                    onCompleteTask(id);
+                    toast.success("已标记该项决斗实操完成");
+                }}
+                onMarkAllDone={() =>
+                    onCompleteAllTasks(["task-bet", "task-danmaku", "task-inspect-round"])
+                }
+                stepTitle="Step 3 · 学术决斗竞技场全景实战 (Duel Arena)"
+                stepBadge="3 项实操体验"
+                hintText="还原平台真实 1v1 学术辩论交锋，支持 LP 赔率竞猜、多轨弹幕互动与 AI 裁判逻辑谬误实时判分。"
             />
 
-            {/* 决斗竞技场 1:1 全景容器 */}
-            <div className="rounded-3xl border border-border/80 bg-card/90 backdrop-blur-2xl shadow-xl overflow-hidden relative">
-                {/* 顶栏：辩题与观战状态栏 */}
-                <div className="px-5 sm:px-7 py-4 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <Badge className="bg-green-500/10 text-green-600 border-green-500/30 gap-1.5 text-xs py-1">
-                            <span className="animate-pulse">●</span>
-                            <span>进行中 · 第 2/3 回合 (激战中)</span>
-                        </Badge>
+            {/* 决斗竞技场无边框液态玻璃全景舱 */}
+            <div className="rounded-3xl border-0 bg-white/75 dark:bg-zinc-900/50 backdrop-blur-2xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.95)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.42),inset_0_1px_1px_rgba(255,255,255,0.12)] overflow-hidden">
+                {/* 顶栏：状态胶囊、观战头像列与真实大厅传送门 */}
+                <div className="px-5 sm:px-7 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-0 bg-emerald-500/[0.12] text-emerald-700 dark:text-emerald-300 text-xs font-medium shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)]">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>进行中 · 第 2/3 回合交锋</span>
+                        </span>
                         <SpectatorBadge spectators={mockSpectators} />
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
+                        <button
+                            type="button"
                             onClick={() => setDanmakuVisible(!danmakuVisible)}
-                            className="h-8 text-xs gap-1.5 rounded-xl bg-background"
+                            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full border-0 text-xs font-medium bg-zinc-900/[0.045] hover:bg-zinc-900/[0.08] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-zinc-700 dark:text-zinc-200 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer"
                         >
-                            {danmakuVisible ? <Eye className="h-3.5 w-3.5 text-primary" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
-                            <span>{danmakuVisible ? "弹幕已开启" : "弹幕已屏蔽"}</span>
-                        </Button>
+                            {danmakuVisible ? (
+                                <Eye className="h-3.5 w-3.5 text-sky-500" />
+                            ) : (
+                                <EyeOff className="h-3.5 w-3.5 text-zinc-400" />
+                            )}
+                            <span>{danmakuVisible ? "弹幕已开启" : "弹幕已静默"}</span>
+                        </button>
+
+                        <Link href="/duels" prefetch={false}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-3 rounded-full border-0 text-xs font-medium text-zinc-600 dark:text-zinc-300 bg-zinc-900/[0.04] hover:bg-zinc-900/[0.08] dark:bg-white/[0.05] gap-1.5 active:scale-[0.97] cursor-pointer"
+                            >
+                                <span>前往决斗大厅</span>
+                                <ExternalLink className="h-3 w-3" />
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
-                {/* 核心对战区域 (挂载弹幕覆盖层) */}
-                <div className="p-5 sm:p-7 space-y-6 relative overflow-hidden">
-                    {/* 实时弹幕层 */}
-                    <div className="relative min-h-[140px] pointer-events-none">
-                        <DanmakuOverlay newDanmaku={latestDanmaku} visible={danmakuVisible} />
+                {/* 渐变消融内部光缝 */}
+                <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
 
-                        {/* 真实辩题大标题 */}
+                <div className="p-5 sm:p-7 space-y-6 relative overflow-hidden">
+                    {/* 顶部弹幕舞台 + 辩题标题 */}
+                    <div className="relative min-h-[128px] pointer-events-none">
+                        <DanmakuOverlay newDanmaku={latestDanmaku} visible={danmakuVisible} />
                         <div className="text-center space-y-1.5 max-w-2xl mx-auto pt-2">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                                论题 #d0552765-f363-4cb7-aa9f-93e0f58ab534
+                            <span className="text-[11px] font-mono font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                                DUEL #D0552765 · 跨学科概率与伦理思辨
                             </span>
-                            <h2 className="text-xl sm:text-2xl font-extrabold text-foreground leading-snug">
+                            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-950 dark:text-white">
                                 北山的风吹不到南山尾
                             </h2>
-                            <p className="text-xs text-muted-foreground">
-                                核心争议：幸福需要算力（最优停止策略 k=7） vs 亲密关系的不可逆性与主体性
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                <MathText
+                                    text="核心交锋：最优停止策略 ($k = \lfloor n/e \rfloor = 7$) vs 亲密关系的不可逆性与主体性"
+                                    inlineOnly
+                                />
                             </p>
                         </div>
                     </div>
 
-                    {/* VS 对决比分大卡片 (与 /duels/[id] 真实数据 100% 一致) */}
-                    <Card className="rounded-2xl border border-border/70 bg-muted/15 shadow-sm overflow-hidden">
-                        <CardContent className="p-5 sm:p-6">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-                                {/* 正方：测试1 */}
-                                <div className="flex-1 text-center space-y-2">
-                                    <div className="relative inline-block">
-                                        <Avatar className="h-16 w-16 sm:h-18 sm:w-18 mx-auto ring-4 ring-blue-500/30">
-                                            <AvatarFallback className="bg-blue-500/10 text-blue-600 text-base font-bold">
-                                                测1
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </div>
-                                    <p className="font-bold text-sm sm:text-base text-foreground">
-                                        测试1
+                    {/* 1v1 对决比分水晶台 */}
+                    <div className="rounded-3xl border-0 bg-zinc-100/75 dark:bg-white/[0.035] p-5 sm:p-6 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03),inset_0_-1px_0.5px_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_3px_rgba(0,0,0,0.35),inset_0_1px_0.5px_rgba(255,255,255,0.06)]">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                            {/* 正方 */}
+                            <div className="flex-1 w-full text-center space-y-2.5">
+                                <Avatar className="h-15 w-15 mx-auto border-0 shadow-[0_0_0_3px_rgba(14,165,233,0.25),0_6px_16px_rgba(14,165,233,0.18)]">
+                                    <AvatarFallback className="bg-sky-500/15 text-sky-700 dark:text-sky-300 text-sm font-semibold">
+                                        测1
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="space-y-1">
+                                    <p className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+                                        测试1 · 概率决策组
                                     </p>
-                                    <Badge variant="outline" className="bg-blue-500/5 border-blue-500/30 text-blue-600 text-xs">
-                                        正方：爱情需要算力
-                                    </Badge>
-
-                                    <div className="flex justify-center pt-1">
-                                        <ReputationBadge score={110} wins={1} losses={0} size="sm" showStats />
-                                    </div>
-
-                                    {/* LP 进度条 */}
-                                    <div className="px-4 pt-1 space-y-1">
-                                        <div className="flex justify-between text-[11px] font-semibold text-muted-foreground">
-                                            <span className="flex items-center gap-1"><ShieldAlert className="h-3 w-3 text-blue-500" /> 逻辑值 LP</span>
-                                            <span className="text-emerald-600 font-bold">{challengerLp} / 100</span>
-                                        </div>
-                                        <Progress value={challengerLp} max={100} className="h-2" />
-                                    </div>
-
-                                    <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 font-mono pt-1">
-                                        {challengerScore} 分
-                                    </p>
+                                    <span className="inline-flex items-center px-3 py-0.5 rounded-full border-0 bg-sky-500/[0.12] text-sky-700 dark:text-sky-300 text-xs font-medium">
+                                        正方：幸福需要最优算力
+                                    </span>
                                 </div>
 
-                                {/* VS 交叉双剑 */}
-                                <div className="flex flex-col items-center px-4 py-2">
-                                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground shadow-inner">
-                                        <Swords className="h-5 w-5" />
-                                    </div>
-                                    <span className="text-xs font-extrabold text-muted-foreground mt-1">VS</span>
+                                <div className="flex justify-center">
+                                    <ReputationBadge score={110} wins={1} losses={0} size="sm" showStats />
                                 </div>
 
-                                {/* 反方：测试2 */}
-                                <div className="flex-1 text-center space-y-2">
-                                    <div className="relative inline-block">
-                                        <Avatar className="h-16 w-16 sm:h-18 sm:w-18 mx-auto ring-4 ring-red-500/30">
-                                            <AvatarFallback className="bg-red-500/10 text-red-600 text-base font-bold">
-                                                测2
-                                            </AvatarFallback>
-                                        </Avatar>
+                                {/* LP 逻辑值护盾条 */}
+                                <div className="max-w-[220px] mx-auto space-y-1">
+                                    <div className="flex justify-between text-[11px] font-medium text-zinc-500 tabular-nums">
+                                        <span className="flex items-center gap-1">
+                                            <ShieldAlert className="h-3 w-3 text-sky-500" />
+                                            逻辑护盾 LP
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                "font-mono",
+                                                challengerLp < 100
+                                                    ? "text-rose-500"
+                                                    : "text-emerald-600 dark:text-emerald-400"
+                                            )}
+                                        >
+                                            {challengerLp} / 100
+                                        </span>
                                     </div>
-                                    <p className="font-bold text-sm sm:text-base text-foreground">
-                                        测试2
-                                    </p>
-                                    <Badge variant="outline" className="bg-red-500/5 border-red-500/30 text-red-600 text-xs">
-                                        反方：反对爱情算法化
-                                    </Badge>
-
-                                    <div className="flex justify-center pt-1">
-                                        <ReputationBadge score={95} wins={0} losses={1} size="sm" showStats />
+                                    <div className="h-2 w-full rounded-full bg-zinc-900/[0.08] dark:bg-white/[0.08] overflow-hidden">
+                                        <div
+                                            className={cn(
+                                                "h-full rounded-full transition-transform duration-300 origin-left",
+                                                challengerLp < 100 ? "bg-rose-500" : "bg-sky-500"
+                                            )}
+                                            style={{ transform: `scaleX(${challengerLp / 100})` }}
+                                        />
                                     </div>
-
-                                    {/* LP 进度条 */}
-                                    <div className="px-4 pt-1 space-y-1">
-                                        <div className="flex justify-between text-[11px] font-semibold text-muted-foreground">
-                                            <span className="flex items-center gap-1"><ShieldAlert className="h-3 w-3 text-red-500" /> 逻辑值 LP</span>
-                                            <span className="text-emerald-600 font-bold">{opponentLp} / 100</span>
-                                        </div>
-                                        <Progress value={opponentLp} max={100} className="h-2" />
-                                    </div>
-
-                                    <p className="text-2xl sm:text-3xl font-extrabold text-red-600 font-mono pt-1">
-                                        {opponentScore} 分
-                                    </p>
                                 </div>
+
+                                <p className="text-2xl sm:text-3xl font-semibold text-sky-600 dark:text-sky-400 font-mono tabular-nums">
+                                    {challengerScore} 分
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
 
-                    {/* 观战下注面板 (SpectatorBetPanel) */}
-                    <div className="p-4 sm:p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
-                        <div className="flex items-center justify-between">
+                            {/* 中央双剑徽记 */}
+                            <div className="flex flex-col items-center px-2">
+                                <div className="h-11 w-11 rounded-full border-0 bg-white/90 dark:bg-zinc-800/90 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.9)]">
+                                    <Swords className="h-5 w-5" />
+                                </div>
+                                <span className="text-[11px] font-mono font-medium text-zinc-400 mt-1.5">
+                                    VS
+                                </span>
+                            </div>
+
+                            {/* 反方 */}
+                            <div className="flex-1 w-full text-center space-y-2.5">
+                                <Avatar className="h-15 w-15 mx-auto border-0 shadow-[0_0_0_3px_rgba(244,63,94,0.25),0_6px_16px_rgba(244,63,94,0.16)]">
+                                    <AvatarFallback className="bg-rose-500/15 text-rose-700 dark:text-rose-300 text-sm font-semibold">
+                                        测2
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="space-y-1">
+                                    <p className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+                                        测试2 · 现象学思辨组
+                                    </p>
+                                    <span className="inline-flex items-center px-3 py-0.5 rounded-full border-0 bg-rose-500/[0.12] text-rose-700 dark:text-rose-300 text-xs font-medium">
+                                        反方：反对亲密关系算法化
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-center">
+                                    <ReputationBadge score={95} wins={0} losses={1} size="sm" showStats />
+                                </div>
+
+                                <div className="max-w-[220px] mx-auto space-y-1">
+                                    <div className="flex justify-between text-[11px] font-medium text-zinc-500 tabular-nums">
+                                        <span className="flex items-center gap-1">
+                                            <ShieldAlert className="h-3 w-3 text-rose-500" />
+                                            逻辑护盾 LP
+                                        </span>
+                                        <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                                            {opponentLp} / 100
+                                        </span>
+                                    </div>
+                                    <div className="h-2 w-full rounded-full bg-zinc-900/[0.08] dark:bg-white/[0.08] overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full bg-rose-500 transition-transform duration-300 origin-left"
+                                            style={{ transform: `scaleX(${opponentLp / 100})` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <p className="text-2xl sm:text-3xl font-semibold text-rose-600 dark:text-rose-400 font-mono tabular-nums">
+                                    {opponentScore} 分
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 观战学者 LP 质押模拟器 */}
+                    <div className="p-4 sm:p-5 rounded-3xl border-0 bg-amber-500/[0.07] dark:bg-amber-500/[0.08] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] space-y-3.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                                 <Coins className="h-4 w-4 text-amber-500" />
-                                <h4 className="text-xs sm:text-sm font-bold text-foreground">
-                                    观战学者下注竞猜 (LP 质押)
+                                <h4 className="text-xs sm:text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                    观战学者声望质押竞猜 (Spectator LP Pool)
                                 </h4>
                             </div>
-                            <span className="text-xs text-muted-foreground font-mono">
-                                钱包余额：<strong className="text-amber-600 font-bold">{userReputation} LP</strong>
-                            </span>
+
+                            <div className="flex items-center gap-3 text-xs font-mono tabular-nums">
+                                {totalStaked > 0 && (
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                        已质押：{totalStaked} LP
+                                    </span>
+                                )}
+                                <span className="text-zinc-600 dark:text-zinc-300 font-medium">
+                                    可用余额：<strong className="text-amber-600 dark:text-amber-400">{userReputation} LP</strong>
+                                </span>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                            {/* 选择支持方 */}
-                            <div className="sm:col-span-6 grid grid-cols-2 gap-2">
-                                <Button
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                            {/* 选择阵营胶囊 */}
+                            <div className="lg:col-span-5 grid grid-cols-2 gap-2">
+                                <button
                                     type="button"
-                                    size="sm"
-                                    variant={betSide === "challenger" ? "default" : "outline"}
                                     onClick={() => setBetSide("challenger")}
-                                    className={`h-9 text-xs font-bold rounded-xl ${
-                                        betSide === "challenger" ? "bg-blue-600 text-white" : "border-blue-500/40 text-blue-600 hover:bg-blue-500/10"
-                                    }`}
+                                    className={cn(
+                                        "h-9 px-3 rounded-full border-0 text-xs font-medium transition-[transform,background-color,color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer",
+                                        betSide === "challenger"
+                                            ? "bg-sky-600 text-white shadow-[0_4px_14px_rgba(14,165,233,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.45)]"
+                                            : "bg-white/75 dark:bg-white/[0.06] text-sky-700 dark:text-sky-300"
+                                    )}
                                 >
-                                    支持正方 (测试1 · 赔率 1.85)
-                                </Button>
-
-                                <Button
+                                    支持正方 · 1.85x
+                                </button>
+                                <button
                                     type="button"
-                                    size="sm"
-                                    variant={betSide === "opponent" ? "default" : "outline"}
                                     onClick={() => setBetSide("opponent")}
-                                    className={`h-9 text-xs font-bold rounded-xl ${
-                                        betSide === "opponent" ? "bg-red-600 text-white" : "border-red-500/40 text-red-600 hover:bg-red-500/10"
-                                    }`}
+                                    className={cn(
+                                        "h-9 px-3 rounded-full border-0 text-xs font-medium transition-[transform,background-color,color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer",
+                                        betSide === "opponent"
+                                            ? "bg-rose-600 text-white shadow-[0_4px_14px_rgba(244,63,94,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.45)]"
+                                            : "bg-white/75 dark:bg-white/[0.06] text-rose-700 dark:text-rose-300"
+                                    )}
                                 >
-                                    支持反方 (测试2 · 赔率 2.10)
-                                </Button>
+                                    支持反方 · 2.10x
+                                </button>
                             </div>
 
-                            {/* 下注金额与确认 */}
-                            <div className="sm:col-span-6 flex items-center gap-2">
+                            {/* 快捷筹码 + 输入药丸 + 确认按钮 */}
+                            <div className="lg:col-span-7 flex flex-wrap items-center gap-2">
+                                {[50, 100, 250].map((chip) => (
+                                    <button
+                                        key={chip}
+                                        type="button"
+                                        onClick={() => setBetAmount(String(chip))}
+                                        className={cn(
+                                            "h-8 px-3 rounded-full border-0 text-xs font-mono font-medium tabular-nums transition-colors cursor-pointer active:scale-[0.96]",
+                                            betAmount === String(chip)
+                                                ? "bg-amber-500/20 text-amber-800 dark:text-amber-200"
+                                                : "bg-white/70 dark:bg-white/[0.05] text-zinc-600 dark:text-zinc-300 hover:bg-white"
+                                        )}
+                                    >
+                                        {chip}
+                                    </button>
+                                ))}
+
                                 <Input
                                     type="number"
+                                    min={10}
+                                    max={userReputation}
                                     value={betAmount}
                                     onChange={(e) => setBetAmount(e.target.value)}
-                                    placeholder="下注 LP"
-                                    className="h-9 text-xs bg-background rounded-xl w-28"
+                                    placeholder="LP"
+                                    className="h-9 w-24 rounded-full border-0 bg-white/85 dark:bg-zinc-900/80 text-xs font-mono tabular-nums text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]"
                                 />
+
                                 <Button
                                     size="sm"
                                     onClick={handleConfirmBet}
-                                    className="flex-1 h-9 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-sm"
+                                    className="flex-1 min-w-[140px] h-9 px-4 rounded-full border-0 text-xs font-medium bg-zinc-950/90 hover:bg-zinc-900 text-white dark:bg-white/92 dark:text-zinc-950 shadow-[0_4px_14px_rgba(0,0,0,0.22),inset_0_1px_1px_rgba(255,255,255,0.38)] active:scale-[0.97] cursor-pointer"
                                 >
-                                    {hasBet ? "追加下注" : "确认下注"}
+                                    <span>
+                                        确认质押 (预计 +{estimatedPayout} LP)
+                                    </span>
                                 </Button>
                             </div>
                         </div>
-
-                        {hasBet && (
-                            <p className="text-xs text-emerald-600 font-medium text-center animate-in fade-in">
-                                ✓ 已成功下注！决斗结束后若您支持的一方获胜，奖池将按赔率自动派发至您的账户。
-                            </p>
-                        )}
                     </div>
 
-                    {/* 实时弹幕发送控制条 */}
-                    <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-center gap-2">
-                        <Input
-                            value={danmakuInput}
-                            onChange={(e) => setDanmakuInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSendDanmaku();
-                            }}
-                            placeholder="发条学术弹幕参与实时研讨互动 (如：k=7 最优停止策略分析)..."
-                            className="h-9 text-xs bg-background/90 rounded-xl"
-                        />
-                        <Button
-                            size="sm"
-                            onClick={handleSendDanmaku}
-                            className="h-9 px-4 rounded-xl bg-gradient-to-r from-primary to-violet-600 text-white font-bold text-xs gap-1.5 shadow-sm shrink-0"
-                        >
-                            <Send className="h-3.5 w-3.5" />
-                            发送弹幕
-                        </Button>
-                    </div>
-
-                    {/* 真实辩论记录：保留第 1 回合 (删除后续已结束回合，呈现第 2 回合进行中) */}
-                    <div className="space-y-4 pt-2">
-                        <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                                辩论记录 (第 1 回合实录 · 第 2 回合激战中)
-                            </h3>
-                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                                1 回合已完成 / 共 3 回合
-                            </Badge>
+                    {/* 实时弹幕发射舱 + 快捷学术观点胶囊 */}
+                    <div className="p-3.5 rounded-3xl border-0 bg-zinc-900/[0.035] dark:bg-white/[0.04] space-y-2.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={danmakuInput}
+                                onChange={(e) => setDanmakuInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") sendDanmakuText(danmakuInput);
+                                }}
+                                placeholder="输入实时学术弹幕参与观战研讨..."
+                                className="h-9 rounded-full border-0 bg-white/85 dark:bg-zinc-900/80 px-4 text-xs shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]"
+                            />
+                            <Button
+                                size="sm"
+                                onClick={() => sendDanmakuText(danmakuInput)}
+                                className="h-9 px-4 rounded-full border-0 text-xs font-medium gap-1.5 bg-zinc-950/90 hover:bg-zinc-900 text-white dark:bg-white/92 dark:text-zinc-950 shrink-0 active:scale-[0.97] cursor-pointer"
+                            >
+                                <Send className="h-3.5 w-3.5" />
+                                <span>发射弹幕</span>
+                            </Button>
                         </div>
 
-                        {/* 第 1 回合：正方 测试1 真实发言 */}
+                        <div className="flex items-center gap-1.5 flex-wrap pl-1">
+                            <span className="text-[11px] font-medium text-zinc-400">一键观点：</span>
+                            {QUICK_DANMAKU_CHIPS.map((chip) => (
+                                <button
+                                    key={chip}
+                                    type="button"
+                                    onClick={() => sendDanmakuText(chip)}
+                                    className="px-2.5 py-1 rounded-full border-0 text-[11px] font-medium bg-white/75 hover:bg-white dark:bg-white/[0.06] dark:hover:bg-white/[0.11] text-zinc-600 dark:text-zinc-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer"
+                                >
+                                    {chip}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 辩论回合实录 + 第 2 回合互动裁决模拟器 */}
+                    <div className="space-y-4 pt-1">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-sky-500" />
+                                <span>辩论交锋记录与 AI 裁判同行评议</span>
+                            </h3>
+                            <span className="text-[11px] font-mono font-medium text-zinc-400 tabular-nums">
+                                {round2Mode === "idle" ? "1 / 3 回合已裁决" : "2 / 3 回合已裁决"}
+                            </span>
+                        </div>
+
+                        {/* 第 1 回合：正方立论（含真实 KaTeX 数学公式渲染） */}
                         <div
-                            onClick={() => markTaskDone("task-inspect-round")}
-                            className="rounded-2xl border-l-4 border-l-blue-500 border border-border/60 bg-background/70 p-4 sm:p-5 space-y-3 cursor-pointer hover:border-primary/40 transition-colors"
+                            onClick={() => onCompleteTask("task-inspect-round")}
+                            className="rounded-3xl border-0 bg-sky-500/[0.05] dark:bg-sky-500/[0.06] p-4 sm:p-5 space-y-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] cursor-pointer"
                         >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5">
-                                    <Avatar className="h-8 w-8 border">
-                                        <AvatarFallback className="bg-blue-500/20 text-blue-600 text-xs font-bold">测1</AvatarFallback>
+                                    <Avatar className="h-8 w-8 border-0">
+                                        <AvatarFallback className="bg-sky-500/20 text-sky-700 dark:text-sky-300 text-xs font-semibold">
+                                            测1
+                                        </AvatarFallback>
                                     </Avatar>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-foreground">测试1</span>
-                                            <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/30 text-[10px]">正方 · 第 1 回合立论</Badge>
+                                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                                                测试1
+                                            </span>
+                                            <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full border-0 bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                                                正方 · 第 1 回合立论
+                                            </span>
                                         </div>
-                                        <span className="text-[10px] text-muted-foreground">2026-06-19 · 论据充分</span>
                                     </div>
                                 </div>
 
-                                {/* 真实 DuelScoreCard 评分卡 */}
                                 <DuelScoreCard
                                     evidenceScore={5}
                                     citationScore={3}
@@ -428,44 +558,48 @@ export function Step3DuelTour({ onPrev, onNext }: Step3DuelTourProps) {
                                     fallacyPenalty={0}
                                     totalScore={10}
                                     hasFallacy={false}
+                                    analysis="基于秘书问题的最优停止推导完整严谨。"
                                 />
                             </div>
 
-                            <div className="text-xs text-foreground/90 leading-relaxed space-y-2">
-                                <p className="font-semibold text-primary">
-                                    “爱情需要心动，但幸福需要算力。我方坚决支持晓冬使用 <span className="font-mono font-bold">$k=7$</span> 的最优停止策略。”
+                            <div className="text-xs text-zinc-700 dark:text-zinc-200 leading-relaxed space-y-2">
+                                <p className="font-medium text-sky-700 dark:text-sky-300">
+                                    <MathText
+                                        text="“爱情需要心动，但幸福需要算力。我方支持在样本空间 $n=20$ 下采用 $k=7$ 的最优停止策略。”"
+                                        inlineOnly
+                                    />
                                 </p>
-                                <p>
-                                    晓冬要从 <span className="font-mono">$n=20$</span> 个人中选最优伴侣。策略是在前 <span className="font-mono">$k$</span> 个观察，从 <span className="font-mono">$k+1$</span> 开始选择。选到最优伴侣的概率公式为：
-                                    <span className="font-mono block my-1 p-2 rounded bg-muted/60 text-center font-bold">
-                                        P(k) = (k/n) ∑ (1/i) ≈ (k/20) ln(20/k)
-                                    </span>
-                                    对 f(x) = (x/20) ln(20/x) 求导令其为 0，可得 x = 20/e ≈ 7.36。最优解取整数即为 <strong>k=7</strong>。苏格拉底的麦田困境本质是信息不对称下的选择焦虑，算法是把人从“盲目试错”和“终身错过”中解救出来的唯一武器！
-                                </p>
+                                <MathText
+                                    as="div"
+                                    text="前 $k$ 个样本仅做基准观测，从第 $k+1$ 个开始选取首个优于历史极值的伴侣，命中全局最优的概率为：$$P(k) = \frac{k}{n}\sum_{i=k}^{n-1}\frac{1}{i} \approx \frac{k}{20}\ln\left(\frac{20}{k}\right)$$令一阶导数为零可得 $x^* = 20/e \approx 7.36$，取整即为 $k=7$（胜率约 $37.9\%$）。苏格拉底麦田困境本质是信息不对称下的序列决策问题！"
+                                />
                             </div>
 
-                            <div className="p-2.5 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[11px] text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                                <Brain className="h-3.5 w-3.5 shrink-0" />
-                                <span>AI 裁判评语：数学推导严谨，结合概率论与生活比喻，紧扣原题求解，表现出色（得分：10分）。</span>
+                            <div className="p-2.5 rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/60 text-[11px] text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                                <Brain className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+                                <span>AI 裁判评语：概率建模清晰，求导极值验证准确，论据扎实（悬停右上角分数胶囊可查看细项得分）。</span>
                             </div>
                         </div>
 
-                        {/* 第 1 回合：反方 测试2 真实发言 */}
+                        {/* 第 1 回合：反方驳论 */}
                         <div
-                            onClick={() => markTaskDone("task-inspect-round")}
-                            className="rounded-2xl border-r-4 border-r-red-500 border border-border/60 bg-background/70 p-4 sm:p-5 space-y-3 cursor-pointer hover:border-primary/40 transition-colors"
+                            onClick={() => onCompleteTask("task-inspect-round")}
+                            className="rounded-3xl border-0 bg-rose-500/[0.05] dark:bg-rose-500/[0.06] p-4 sm:p-5 space-y-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)] cursor-pointer"
                         >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5">
-                                    <Avatar className="h-8 w-8 border">
-                                        <AvatarFallback className="bg-red-500/20 text-red-600 text-xs font-bold">测2</AvatarFallback>
+                                    <Avatar className="h-8 w-8 border-0">
+                                        <AvatarFallback className="bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                                            测2
+                                        </AvatarFallback>
                                     </Avatar>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-foreground">测试2</span>
-                                            <Badge className="bg-red-500/10 text-red-600 border-red-500/30 text-[10px]">反方 · 第 1 回合驳论</Badge>
-                                        </div>
-                                        <span className="text-[10px] text-muted-foreground">2026-06-19 · 理论反击</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                                            测试2
+                                        </span>
+                                        <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full border-0 bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                                            反方 · 第 1 回合驳论
+                                        </span>
                                     </div>
                                 </div>
 
@@ -476,56 +610,135 @@ export function Step3DuelTour({ onPrev, onNext }: Step3DuelTourProps) {
                                     fallacyPenalty={0}
                                     totalScore={6}
                                     hasFallacy={false}
+                                    analysis="精准指出经典秘书问题不可撤回假设在人类情感中的局限。"
                                 />
                             </div>
 
-                            <div className="text-xs text-foreground/90 leading-relaxed space-y-2">
-                                <p className="font-semibold text-red-600">
-                                    “把爱情量化为麦穗，是数学家最浪漫的误解；而把爱人视为淘汰的样本，是亲密关系中最残忍的冷血。”
+                            <div className="text-xs text-zinc-700 dark:text-zinc-200 leading-relaxed space-y-2">
+                                <p className="font-medium text-rose-700 dark:text-rose-300">
+                                    “把爱人抽象为独立同分布样本，是数学家最浪漫的误解；将前 7 人设为纯垫脚石，则违背了康德人是目的而非手段的伦理准则。”
                                 </p>
                                 <p>
-                                    我方坚决反对将爱情“算法化”。正方看似用 <span className="font-mono">$k=7$</span> 找到了最优解，但你忽略了爱情最核心的特质：<strong>不可逆性与主体性</strong>。请问被晓冬列入前 7 次“只看不用”的女孩是冷冰冰的数字吗？如果前 7 次遇到了真正灵魂共振的完美伴侣，却因为“算法规定现在只能观察”而强行克制离开，难道不是人为制造悲剧？心动若可以用公式延迟满足，那叫“风险对冲型资产配置”，绝非真正的爱情。
+                                    <MathText
+                                        text="经典秘书问题假设观测过程零情感沉没成本且单向不可逆。但若灵魂共振恰发生在 $i \le 7$ 阶段，机械执行‘只看不选’将直接以 $35\%$ 概率错失真爱！"
+                                        inlineOnly
+                                    />
                                 </p>
                             </div>
-
-                            <div className="p-2.5 rounded-xl bg-red-500/5 border border-red-500/20 text-[11px] text-red-700 dark:text-red-300 flex items-center gap-2">
-                                <Brain className="h-3.5 w-3.5 shrink-0" />
-                                <span>AI 裁判评语：有效回应了正方的算法策略，提出了‘不可逆性与主体性’的批判，但缺乏具体论据支撑（得分：6分）。</span>
-                            </div>
                         </div>
 
-                        {/* 第 2 回合激战进行中 (删除后续结束回合，呈现进行中) */}
-                        <div className="p-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 text-center space-y-1.5">
-                            <div className="flex items-center justify-center gap-2 text-xs font-bold text-primary">
-                                <Swords className="h-4 w-4 animate-bounce" />
-                                <span>第 2 回合攻守交锋正在进行中...</span>
+                        {/* 第 2 回合互动沙盒：亲手体验严谨辩论 vs 逻辑谬误判罚 */}
+                        {round2Mode === "idle" ? (
+                            <div className="p-5 rounded-3xl border-0 bg-zinc-900/[0.035] dark:bg-white/[0.04] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)] space-y-3 text-center">
+                                <div className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-800 dark:text-zinc-100">
+                                    <Sparkles className="h-4 w-4 text-amber-500" />
+                                    <span>第 2 回合实操体验：请代表正方选择一种回应策略，观察 AI 裁判如何判分</span>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => handleSimulateRound2("rigorous")}
+                                        className="h-9 px-4 rounded-full border-0 text-xs font-medium bg-zinc-950/90 hover:bg-zinc-900 text-white dark:bg-white/92 dark:text-zinc-950 shadow-[0_4px_14px_rgba(0,0,0,0.2)] gap-1.5 active:scale-[0.97] cursor-pointer"
+                                    >
+                                        <Brain className="h-3.5 w-3.5 text-sky-400 dark:text-sky-600" />
+                                        <span>出招 A：提交贝叶斯先验修正模型 (+高分引证)</span>
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSimulateRound2("fallacy")}
+                                        className="h-9 px-4 rounded-full border-0 text-xs font-medium bg-rose-500/[0.12] hover:bg-rose-500/[0.18] text-rose-700 dark:text-rose-300 gap-1.5 active:scale-[0.97] cursor-pointer"
+                                    >
+                                        <AlertTriangle className="h-3.5 w-3.5" />
+                                        <span>出招 B：测试稻草人逻辑谬误 (触发扣 LP 警报)</span>
+                                    </Button>
+                                </div>
                             </div>
-                            <p className="text-[11px] text-muted-foreground">
-                                正方测试1 正在撰写第 2 回合反驳论点，观战学者可继续下注竞猜或发送实时弹幕。
-                            </p>
-                        </div>
+                        ) : (
+                            <div
+                                className={cn(
+                                    "rounded-3xl border-0 p-4 sm:p-5 space-y-3 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85)]",
+                                    round2Mode === "rigorous"
+                                        ? "bg-emerald-500/[0.08] dark:bg-emerald-500/[0.1]"
+                                        : "bg-rose-500/[0.09] dark:bg-rose-500/[0.11]"
+                                )}
+                            >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                                            第 2 回合模拟裁决结果
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRound2Mode("idle")}
+                                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border-0 text-[11px] font-medium bg-white/75 dark:bg-white/[0.08] text-zinc-600 dark:text-zinc-300 cursor-pointer active:scale-[0.96]"
+                                        >
+                                            <RotateCcw className="h-3 w-3" />
+                                            <span>换一种出招重试</span>
+                                        </button>
+                                    </div>
+
+                                    {round2Mode === "rigorous" ? (
+                                        <DuelScoreCard
+                                            evidenceScore={5}
+                                            citationScore={4}
+                                            logicScore={2}
+                                            fallacyPenalty={0}
+                                            totalScore={11}
+                                            hasFallacy={false}
+                                            analysis="引入 Gilbert & Mosteller (1966) 全信息模型有效化解前7人冷血质疑。"
+                                        />
+                                    ) : (
+                                        <DuelScoreCard
+                                            evidenceScore={1}
+                                            citationScore={0}
+                                            logicScore={1}
+                                            fallacyPenalty={5}
+                                            totalScore={-3}
+                                            hasFallacy={true}
+                                            fallacyType="稻草人谬误 (Strawman Fallacy)"
+                                            analysis="曲解反方主体性论点为盲目冲动，触发逻辑护盾惩罚 -15 LP。"
+                                        />
+                                    )}
+                                </div>
+
+                                <p className="text-xs text-zinc-700 dark:text-zinc-200 leading-relaxed">
+                                    {round2Mode === "rigorous" ? (
+                                        <MathText
+                                            text="正方引入 Gilbert-Mosteller 全信息贝叶斯修正：当主体拥有内在效用先验分布 $F(u)$ 时，无需机械跳过前 7 人，而是采用动态分位阈值 $\tau_i$，一旦早期样本满足 $u_i > \tau_i$ 即可立即双向奔赴。AI 裁判判定引证严密，总分升至 21 分！"
+                                            inlineOnly
+                                        />
+                                    ) : (
+                                        "“反方反对算法，难道是主张闭着眼睛随便抓一个人闪婚吗？” —— AI 裁判实时识别出【稻草人谬误】，自动扣除 5 分谬误罚分与 15 点逻辑护盾 LP（当一方 LP 归零将直接触发学术破防判负）！"
+                                    )}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* 底部导航操作条 */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1">
                 <Button
                     variant="ghost"
                     size="lg"
                     onClick={onPrev}
-                    className="h-11 px-5 rounded-2xl text-muted-foreground hover:text-foreground gap-2 cursor-pointer"
+                    className="h-11 px-5 rounded-full border-0 text-xs sm:text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white bg-zinc-900/[0.04] hover:bg-zinc-900/[0.08] dark:bg-white/[0.05] gap-2 active:scale-[0.97] cursor-pointer"
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    上一步：论文排版
+                    <span>上一步：论文排版</span>
                 </Button>
 
                 <Button
                     size="lg"
                     onClick={onNext}
-                    className="h-11 px-6 rounded-2xl bg-gradient-to-r from-primary to-violet-600 text-white font-bold shadow-lg shadow-primary/25 gap-2 hover:opacity-95 cursor-pointer"
+                    className="h-11 px-6 rounded-full border-0 font-medium text-xs sm:text-sm bg-zinc-950/90 hover:bg-zinc-900 text-white shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:bg-white/92 dark:hover:bg-white dark:text-zinc-950 gap-2 active:scale-[0.97] cursor-pointer"
                 >
-                    下一步：私信与数据时效
+                    <span>下一步：私信与数据时效</span>
                     <ArrowRight className="h-4 w-4" />
                 </Button>
             </div>
