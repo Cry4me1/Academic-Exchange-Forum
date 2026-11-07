@@ -23,6 +23,22 @@ export async function createLabRoom(formData: {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: "请先登录" };
 
+    // Lv4 特权校验：解锁创建协作实验室
+    const [{ data: profile }, { data: adminRole }] = await Promise.all([
+        supabase.from("profiles").select("vip_level").eq("id", user.id).maybeSingle(),
+        supabase.from("admin_roles").select("role").eq("user_id", user.id).maybeSingle(),
+    ]);
+
+    const isAdmin = !!adminRole;
+    const userLevel = profile?.vip_level ?? 1;
+
+    if (!isAdmin && userLevel < 4) {
+        return {
+            error: `创建协作实验室需学者等级达到 Lv4 解锁（您当前为 Lv${userLevel}）`,
+            code: "REQUIRES_SCHOLAR_LV4",
+        };
+    }
+
     const insertData: Record<string, unknown> = {
         name: formData.name,
         description: formData.description || null,

@@ -528,7 +528,17 @@ export default function PostDetailClient({
                 color,
             });
 
-            if (res.error) {
+            if ((res as any).code === "REQUIRES_SCHOLAR_LV2") {
+                toast.info(res.error || "边缘学术批注权限需学者等级达到 Lv2 解锁", {
+                    description: "通过发表高质量文章与获得同行认可即可快速晋升 Lv2。",
+                    action: {
+                        label: "查看特权",
+                        onClick: () => {
+                            window.location.href = "/vip";
+                        },
+                    },
+                });
+            } else if (res.error) {
                 toast.error(res.error);
             } else if (res.data) {
                 setAnnotations((prev) => [...prev, res.data!]);
@@ -546,7 +556,17 @@ export default function PostDetailClient({
     // 回复微线程
     const handleReplyAnnotation = async (annotationId: string, content: string) => {
         const res = await createAnnotationReply(annotationId, post.id, content);
-        if (res.error) {
+        if ((res as any).code === "REQUIRES_SCHOLAR_LV2") {
+            toast.info(res.error || "边缘学术批注与回复权限需学者等级达到 Lv2 解锁", {
+                description: "通过发表高质量文章与获得同行认可即可快速晋升 Lv2。",
+                action: {
+                    label: "查看特权",
+                    onClick: () => {
+                        window.location.href = "/vip";
+                    },
+                },
+            });
+        } else if (res.error) {
             toast.error(res.error);
         } else if (res.data) {
             setAnnotations((prev) =>

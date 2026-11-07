@@ -64,27 +64,31 @@ export async function getMyCredits() {
             const commentLikes = (userComments || []).reduce((acc, c) => acc + (c.like_count || 0), 0);
             const acceptedCount = (userComments || []).filter((c) => c.is_accepted).length;
 
-            // 3. 统计同行评审
+            // 3. 统计同行评审（Lv5+ 学者享受 1.5 倍同行评审权威系数加成）
             const { count: peerReviewCount } = await supabase
                 .from("peer_reviews")
                 .select("id", { count: "exact", head: true })
                 .eq("user_id", user.id);
 
+            const currentLvl = profile?.vip_level ?? 1;
+            const peerReviewWeight = currentLvl >= 5 ? 1.5 : 1.0;
+            const weightedPeerReviews = Math.round((peerReviewCount || 0) * peerReviewWeight);
+            const peerReviewExp = Math.round((peerReviewCount || 0) * 25 * peerReviewWeight);
+
             const duelWins = profile?.duel_wins || 0;
 
             validPostCount = postCount || 0;
             totalLikesReceived = postLikes + commentLikes;
-            communityContributionsCount = acceptedCount + (peerReviewCount || 0) + duelWins;
+            communityContributionsCount = acceptedCount + weightedPeerReviews + duelWins;
 
             scholarExp = (validPostCount * 15) 
                 + (postLikes * 5) 
                 + (commentLikes * 3) 
                 + (acceptedCount * 30) 
-                + ((peerReviewCount || 0) * 25) 
+                + peerReviewExp 
                 + (duelWins * 20);
 
             // 保底当前等级门槛经验，避免出现“等级是最高级 Lv6 但经验条全空为 0”的脱节
-            const currentLvl = profile?.vip_level ?? 1;
             const minExpThresholds: Record<number, number> = { 1: 0, 2: 100, 3: 400, 4: 1200, 5: 3000, 6: 8000 };
             if (scholarExp < (minExpThresholds[currentLvl] ?? 0)) {
                 scholarExp = Math.max(scholarExp, minExpThresholds[currentLvl] ?? 0);

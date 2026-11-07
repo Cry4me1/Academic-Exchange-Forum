@@ -21,6 +21,7 @@ import {
     ShieldCheck,
     Scale,
     Cpu,
+    Lock,
 } from "lucide-react";
 import type { JSONContent } from "novel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,6 +50,8 @@ export default function PeerReviewPanel({
 }: PeerReviewPanelProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [creditBalance, setCreditBalance] = useState<number | null>(null);
+    const [userLevel, setUserLevel] = useState<number>(1);
+    const [authorityWeight, setAuthorityWeight] = useState<number>(1.0);
     const [showReasoning, setShowReasoning] = useState(false);
     const [showDeduction, setShowDeduction] = useState(false);
     const [deductedAmount, setDeductedAmount] = useState<number>(0);
@@ -58,10 +61,16 @@ export default function PeerReviewPanel({
     const [isPublic, setIsPublic] = useState(false);
     const [isLoadingDb, setIsLoadingDb] = useState(true);
 
-    // 加载积分余额
+    // 加载积分余额与学者等级
     const refreshCredits = useCallback(async () => {
         const result = await getMyCredits();
         const newBalance = result.balance;
+        const level = ("scholarLevel" in result ? (result.scholarLevel as number) : (result as any).vipLevel) || 1;
+        setUserLevel(level);
+        if (level >= 5) {
+            setAuthorityWeight(1.5);
+        }
+
         if (
             prevBalanceRef.current !== null &&
             newBalance < prevBalanceRef.current
@@ -75,10 +84,10 @@ export default function PeerReviewPanel({
     }, []);
 
     useEffect(() => {
-        if (isExpanded && isAuthor) {
+        if (isAuthor) {
             refreshCredits();
         }
-    }, [isExpanded, isAuthor, refreshCredits]);
+    }, [isAuthor, refreshCredits]);
 
     // 初始化时从 localStorage 恢复数据 (仅作者防丢失备用，且忽略通用占位符标题)
     const [initialMessages] = useState(() => {
@@ -132,6 +141,21 @@ export default function PeerReviewPanel({
         },
         onError: (err: Error) => {
             if (
+                err.message.includes("403") ||
+                err.message.includes("REQUIRES_SCHOLAR_LV3")
+            ) {
+                toast.info("撰写同行评审资格需学者等级达到 Lv3 解锁", {
+                    description: `您当前学者等级为 Lv${userLevel}，通过发表高质量文章与积累同行认可即可晋升解锁。`,
+                    action: {
+                        label: "查看特权",
+                        onClick: () => {
+                            window.location.href = "/vip";
+                        },
+                    },
+                });
+                return;
+            }
+            if (
                 err.message.includes("402") ||
                 err.message.includes("INSUFFICIENT_CREDITS")
             ) {
@@ -178,6 +202,9 @@ export default function PeerReviewPanel({
                     ];
                     setMessages(dbMessages);
                     setIsPublic(res.data.is_public);
+                    if (Number(res.data.authority_weight) >= 1.5) {
+                        setAuthorityWeight(1.5);
+                    }
                     setIsExpanded(true);
                 } else {
                     setMessages([]);
@@ -231,6 +258,19 @@ export default function PeerReviewPanel({
     const hasResult = status === "ready" && !!reviewText;
 
     const handleStartReview = async () => {
+        if (userLevel < 3) {
+            toast.info("撰写同行评审资格需学者等级达到 Lv3 解锁", {
+                description: `您当前学者等级为 Lv${userLevel}，通过发表高质量文章与积累同行认可即可晋升解锁。`,
+                action: {
+                    label: "查看特权",
+                    onClick: () => {
+                        window.location.href = "/vip";
+                    },
+                },
+            });
+            return;
+        }
+
         if (!content) {
             toast.error("请先输入文章内容");
             return;
@@ -270,7 +310,7 @@ export default function PeerReviewPanel({
 
     if (isLoadingDb) {
         return (
-            <div className="rounded-2xl border border-violet-200/60 dark:border-violet-950/40 p-4 bg-violet-50/20 dark:bg-violet-950/10 flex items-center justify-center gap-2 h-14">
+            <div className="rounded-2xl border-0 p-4 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center gap-2 h-14">
                 <Loader2 className="h-4 w-4 animate-spin text-violet-600 dark:text-violet-400" />
                 <span className="text-xs text-muted-foreground">正在加载学术评审数据...</span>
             </div>
@@ -285,7 +325,7 @@ export default function PeerReviewPanel({
         creditBalance !== null && creditBalance < MIN_REVIEW_CREDIT_COST;
 
     return (
-        <div className="rounded-2xl border border-violet-200/80 dark:border-violet-900/50 bg-gradient-to-br from-violet-50/50 via-white to-zinc-50/50 dark:from-violet-950/20 dark:via-zinc-900/60 dark:to-zinc-950/40 backdrop-blur-sm shadow-xs overflow-hidden transition-all">
+        <div className="rounded-2xl border-0 bg-white/75 dark:bg-zinc-900/60 backdrop-blur-xl shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_32px_-4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_8px_32px_-4px_rgba(0,0,0,0.4)] overflow-hidden transition-all">
             {/* 头部摘要栏 */}
             <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div
@@ -300,7 +340,7 @@ export default function PeerReviewPanel({
                     }}
                     className="flex items-start gap-3 text-left cursor-pointer select-none group flex-1"
                 >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-950/80 border border-violet-200/70 dark:border-violet-800/60 text-violet-600 dark:text-violet-400 shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-2xl bg-violet-100/80 dark:bg-violet-950/80 border-0 text-violet-600 dark:text-violet-400 shrink-0 group-hover:scale-105 transition-transform shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)]">
                         <Bot className="h-4 w-4" strokeWidth={1.75} />
                     </div>
                     <div className="space-y-1 min-w-0">
@@ -311,8 +351,14 @@ export default function PeerReviewPanel({
                                     Reviewer #2 · DeepSeek
                                 </span>
                             </h3>
+                            {authorityWeight >= 1.5 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-500/15 dark:text-amber-300 px-2 py-0.5 rounded-full border-0 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7)]">
+                                    <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                                    1.5x 权威系数
+                                </span>
+                            )}
                             {hasResult && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-100/80 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-100/80 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded-full border-0">
                                     <CheckCircle2 className="w-2.5 h-2.5" />
                                     评审完成
                                 </span>
@@ -321,15 +367,15 @@ export default function PeerReviewPanel({
 
                         {/* 评审维度能力小药丸 */}
                         <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-100/70 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-100/70 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 border-0">
                                 <Scale className="w-2.5 h-2.5" />
                                 论证自洽性
                             </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100/70 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100/70 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-0">
                                 <Cpu className="w-2.5 h-2.5" />
                                 算法与边界
                             </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100/70 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100/70 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-0">
                                 <ShieldCheck className="w-2.5 h-2.5" />
                                 学术规范
                             </span>
@@ -348,17 +394,21 @@ export default function PeerReviewPanel({
                                 handleStartReview();
                             }}
                             disabled={Boolean(insufficientCredits)}
-                            className="h-8 px-3.5 text-xs font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-xs gap-1.5 transition-all"
+                            className="h-8 px-3.5 text-xs font-medium bg-zinc-950/85 hover:bg-zinc-900/95 text-white dark:bg-white/90 dark:text-zinc-950 rounded-full border-0 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] gap-1.5 transition-all"
                         >
-                            <FileSearch className="h-3.5 w-3.5" strokeWidth={1.75} />
-                            发起初审
+                            {userLevel < 3 ? (
+                                <Lock className="h-3.5 w-3.5" strokeWidth={1.75} />
+                            ) : (
+                                <FileSearch className="h-3.5 w-3.5" strokeWidth={1.75} />
+                            )}
+                            {userLevel < 3 ? "Lv3 解锁初审" : "发起初审"}
                         </Button>
                     )}
 
                     <button
                         type="button"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-violet-100/40 dark:hover:bg-violet-950/40 transition-colors"
+                        className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-violet-100/40 dark:hover:bg-violet-950/40 transition-colors"
                     >
                         {isExpanded ? (
                             <ChevronUp className="h-4 w-4" strokeWidth={1.75} />
@@ -379,7 +429,8 @@ export default function PeerReviewPanel({
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                     >
-                        <div className="border-t border-violet-200/60 dark:border-violet-900/40">
+                        <div>
+                            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
                             {/* 积分与资费状态栏（仅作者可见） */}
                             {isAuthor && (
                                 <div className="flex items-center justify-between px-5 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 text-xs">
@@ -387,6 +438,7 @@ export default function PeerReviewPanel({
                                         <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
                                         <span>
                                             单次消耗提示：<strong className="text-violet-700 dark:text-violet-300">≥ {MIN_REVIEW_CREDIT_COST} 积分</strong>
+                                            {userLevel >= 5 && " · 已激活 Lv5 评审 1.5 倍权威系数加成"}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-1.5 relative">
@@ -427,7 +479,7 @@ export default function PeerReviewPanel({
                             {isAuthor && !hasStarted && !isActive && (
                                 <div className="px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <p className="text-xs text-muted-foreground leading-relaxed">
-                                        基于学术论文标准自动检测研究脉络、公式严谨性与潜在缺陷。建议在正文编写超过 50 字后执行。
+                                        基于学术论文标准自动检测研究脉络、公式严谨性与潜在缺陷。需学者等级达到 Lv3 解锁（建议正文超过 50 字后执行）。
                                     </p>
                                     {insufficientCredits ? (
                                         <Button
@@ -439,7 +491,7 @@ export default function PeerReviewPanel({
                                             }
                                             variant="outline"
                                             size="sm"
-                                            className="gap-1.5 text-xs text-amber-600 border-amber-500/30 hover:bg-amber-500/10 shrink-0 h-8"
+                                            className="gap-1.5 text-xs text-amber-600 rounded-full border-0 bg-amber-500/10 hover:bg-amber-500/20 shrink-0 h-8"
                                         >
                                             <Coins className="h-3.5 w-3.5" />
                                             余额不足，去充值
@@ -449,10 +501,14 @@ export default function PeerReviewPanel({
                                             type="button"
                                             onClick={handleStartReview}
                                             size="sm"
-                                            className="h-8 px-4 text-xs font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-xs gap-1.5 shrink-0"
+                                            className="h-8 px-4 text-xs font-medium bg-zinc-950/85 hover:bg-zinc-900/95 text-white dark:bg-white/90 dark:text-zinc-950 rounded-full border-0 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.28),inset_0_1px_1px_rgba(255,255,255,0.38)] gap-1.5 shrink-0"
                                         >
-                                            <FileSearch className="h-3.5 w-3.5" />
-                                            开始评审 (≥15 积分)
+                                            {userLevel < 3 ? (
+                                                <Lock className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <FileSearch className="h-3.5 w-3.5" />
+                                            )}
+                                            {userLevel < 3 ? "需 Lv3 学者解锁" : "开始评审 (≥15 积分)"}
                                         </Button>
                                     )}
                                 </div>
@@ -472,7 +528,7 @@ export default function PeerReviewPanel({
                                                 repeat: Infinity,
                                                 ease: "easeInOut",
                                             }}
-                                            className="flex items-center justify-center w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 border border-violet-300 dark:border-violet-800/80 text-violet-600 dark:text-violet-400"
+                                            className="flex items-center justify-center w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-950/60 border-0 text-violet-600 dark:text-violet-400"
                                         >
                                             <Brain className="h-6 w-6 animate-pulse" strokeWidth={1.75} />
                                         </motion.div>
@@ -496,10 +552,11 @@ export default function PeerReviewPanel({
 
                             {/* ====== 评审结果展示区 ====== */}
                             {(reviewText || (hasResult && reasoningText)) && (
-                                <div className="border-t border-violet-200/50 dark:border-violet-900/30">
+                                <div>
+                                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
                                     {/* 深度思考过程折叠 */}
                                     {reasoningText && (
-                                        <div className="border-b border-border/40">
+                                        <div>
                                             <button
                                                 type="button"
                                                 onClick={() => setShowReasoning(!showReasoning)}
@@ -526,7 +583,7 @@ export default function PeerReviewPanel({
                                                         transition={{ duration: 0.2 }}
                                                         className="overflow-hidden"
                                                     >
-                                                        <div className="max-h-[260px] overflow-y-auto px-5 py-3 bg-violet-500/5 border-t border-violet-500/10">
+                                                        <div className="max-h-[260px] overflow-y-auto px-5 py-3 bg-violet-500/5">
                                                             <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed break-words">
                                                                 {reasoningText}
                                                             </pre>
@@ -546,7 +603,7 @@ export default function PeerReviewPanel({
 
                                     {/* 正在生成流式状态 */}
                                     {isWritingReview && (
-                                        <div className="flex items-center gap-2 px-5 py-2 border-t border-border/30 bg-muted/10">
+                                        <div className="flex items-center gap-2 px-5 py-2 bg-muted/10">
                                             <motion.div
                                                 animate={{ opacity: [0.4, 1, 0.4] }}
                                                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -560,7 +617,7 @@ export default function PeerReviewPanel({
 
                                     {/* 公开/隐藏评审切换（仅作者可见） */}
                                     {hasResult && isAuthor && postId && (
-                                        <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/40 bg-muted/10">
+                                        <div className="flex items-center justify-between px-5 py-2.5 bg-muted/10">
                                             <div className="text-left pr-4">
                                                 <p className="text-xs font-semibold text-foreground">公开此审稿报告</p>
                                                 <p className="text-[10px] text-muted-foreground">
@@ -581,7 +638,7 @@ export default function PeerReviewPanel({
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "relative w-9 h-5 rounded-full p-0.5 transition-colors focus:outline-none shrink-0",
+                                                    "relative w-9 h-5 rounded-full p-0.5 transition-colors focus:outline-none shrink-0 border-0",
                                                     isPublic ? "bg-violet-600" : "bg-muted-foreground/30"
                                                 )}
                                             >
@@ -597,7 +654,7 @@ export default function PeerReviewPanel({
 
                                     {/* 重新评审入口（仅作者可见） */}
                                     {hasResult && isAuthor && (
-                                        <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/40 bg-violet-50/20 dark:bg-violet-950/10">
+                                        <div className="flex items-center justify-between px-5 py-2.5 bg-violet-50/20 dark:bg-violet-950/10">
                                             <span className="text-[11px] text-muted-foreground">
                                                 如已根据意见修改正文，可重新触发评审
                                             </span>
@@ -606,7 +663,7 @@ export default function PeerReviewPanel({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={handleStartReview}
-                                                className="h-7 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-100/50"
+                                                className="h-7 text-xs rounded-full border-0 text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-100/50"
                                             >
                                                 重新发起评审
                                             </Button>
@@ -621,4 +678,3 @@ export default function PeerReviewPanel({
         </div>
     );
 }
-

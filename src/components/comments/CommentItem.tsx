@@ -142,6 +142,12 @@ export function CommentItem({
     const isAiComment =
         comment.author.id === "00000000-0000-0000-0000-0000000000a1" ||
         comment.author.username === "Scholarly AI";
+    // Lv4+ 特权：优质解答专享流光高亮（作者达到 Lv4+ 且为被采纳或获赞认可的优质解答）
+    const authorVipLevel = comment.author.vip_level || 1;
+    const isLv4HighlightedAnswer =
+        !isAiComment &&
+        authorVipLevel >= 4 &&
+        (isAccepted || likeCount >= 1 || !isNested);
 
     // 自愈与规范化解析评论内容（支持 Markdown、单/双美元 LaTeX、旧版 doc 自动重构）
     const safeContent = useMemo(() => {
@@ -153,10 +159,15 @@ export function CommentItem({
             id={`comment-${comment.id}`}
             className={cn(
                 "scroll-mt-24 transition-all duration-200",
-                isNested && "ml-8 border-l-2 border-border/50 pl-4",
-                isAccepted && "bg-green-500/5 rounded-xl border border-green-500/20 p-2 -mx-2",
+                isNested && "ml-8 pl-4",
+                isAccepted &&
+                    "bg-emerald-500/8 dark:bg-emerald-500/10 rounded-2xl border-0 p-3 -mx-2 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_28px_-4px_rgba(16,185,129,0.14)]",
+                !isAccepted &&
+                    isLv4HighlightedAnswer &&
+                    "bg-white/75 dark:bg-zinc-900/55 backdrop-blur-xl rounded-2xl border-0 p-3 -mx-2 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_8px_28px_-4px_rgba(14,165,233,0.14)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.15),0_8px_28px_-4px_rgba(14,165,233,0.2)]",
                 // AI 评论：采用纯粹一体化的学术紫底色，消除白色断层与 UI 割裂
-                isAiComment && "bg-purple-50/80 dark:bg-purple-950/25 rounded-2xl border border-purple-200/80 dark:border-purple-800/50 p-4 -mx-2 shadow-xs ring-1 ring-purple-500/10"
+                isAiComment &&
+                    "bg-purple-50/80 dark:bg-purple-950/25 rounded-2xl border-0 p-4 -mx-2 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.85),0_8px_28px_-4px_rgba(168,85,247,0.15)]"
             )}
         >
             <div className="py-2 group/comment">
@@ -169,7 +180,7 @@ export function CommentItem({
                                 onClick={handleLike}
                                 disabled={isPending}
                                 className={cn(
-                                    "flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-md transition-all",
+                                    "flex flex-col items-center gap-0.5 px-2 py-1 rounded-full border-0 transition-all cursor-pointer",
                                     isLiked
                                         ? "text-primary bg-primary/10"
                                         : "text-muted-foreground hover:text-primary hover:bg-primary/5"
@@ -177,7 +188,7 @@ export function CommentItem({
                             >
                                 <ChevronUp className={cn("h-5 w-5", isLiked && "text-primary")} />
                                 <span className={cn(
-                                    "text-sm tabular-nums font-semibold",
+                                    "text-sm tabular-nums font-medium",
                                     isLiked && "text-primary"
                                     )}>
                                     {likeCount}
@@ -205,7 +216,7 @@ export function CommentItem({
                                 {comment.author.username}
                             </span>
                             {isAiComment ? (
-                                <span className="flex items-center gap-1 text-[10px] font-semibold text-purple-600 dark:text-purple-300 bg-purple-500/15 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-purple-600 dark:text-purple-300 bg-purple-500/15 border-0 px-2 py-0.5 rounded-full">
                                     <Sparkles className="h-2.5 w-2.5 text-purple-500 animate-pulse" />
                                     AI 学术智脑
                                 </span>
@@ -219,34 +230,40 @@ export function CommentItem({
                             )}
                             {/* 作者标记 */}
                             {isOriginalPoster && (
-                                <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.2 rounded border border-primary/20">
+                                <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full border-0">
                                     作者
                                 </span>
                             )}
                             {comment.author.title && (
-                                <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.2 rounded">
+                                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full border-0">
                                     {comment.author.title}
                                 </span>
                             )}
                             {comment.author.special_title && !isAiComment && (
-                                <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.2 rounded">
+                                <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 border-0 px-2 py-0.5 rounded-full">
                                     {comment.author.special_title}
                                 </span>
                             )}
+                            {isLv4HighlightedAnswer && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-sky-600 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border-0">
+                                    <Sparkles className="h-2.5 w-2.5" />
+                                    流光优解
+                                </span>
+                            )}
                             {isAccepted && (
-                                <span className="flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-500/10 px-1.5 py-0.2 rounded border border-green-500/20">
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border-0">
                                     <CheckCircle2 className="h-2.5 w-2.5" />
                                     已采纳
                                 </span>
                             )}
                             {comment.review_status === "pending" && (
-                                <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                                <span className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border-0">
                                     <Clock className="h-3 w-3" />
                                     审核中
                                 </span>
                             )}
                             {comment.review_status === "rejected" && (
-                                <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/30">
+                                <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border-0">
                                     <AlertCircle className="h-3 w-3" />
                                     未通过审核
                                 </span>
@@ -273,7 +290,7 @@ export function CommentItem({
                                     variant="ghost"
                                     size="sm"
                                     className={cn(
-                                        "h-7 px-2 gap-1.5 text-xs",
+                                        "h-7 px-2.5 gap-1.5 text-xs rounded-full border-0",
                                         isLiked ? "text-primary" : "text-muted-foreground"
                                     )}
                                     onClick={handleLike}
@@ -288,7 +305,7 @@ export function CommentItem({
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 px-2 gap-1.5 text-xs text-muted-foreground"
+                                    className="h-7 px-2.5 gap-1.5 text-xs text-muted-foreground rounded-full border-0"
                                     onClick={handleReply}
                                 >
                                     <CornerDownRight className="h-3.5 w-3.5" />
@@ -300,7 +317,7 @@ export function CommentItem({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2 gap-1.5 text-xs text-muted-foreground opacity-0 group-hover/comment:opacity-100 transition-opacity"
+                                className="h-7 px-2.5 gap-1.5 text-xs text-muted-foreground opacity-0 group-hover/comment:opacity-100 transition-opacity rounded-full border-0"
                                 onClick={() => shareCommentLink(comment.id)}
                             >
                                 <Link2 className="h-3.5 w-3.5" />
@@ -311,7 +328,7 @@ export function CommentItem({
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                                    className="h-7 px-2.5 gap-1.5 text-xs text-muted-foreground hover:text-destructive rounded-full border-0"
                                     onClick={handleDelete}
                                     disabled={isDeleting}
                                 >
@@ -325,10 +342,10 @@ export function CommentItem({
                                     variant="ghost"
                                     size="sm"
                                     className={cn(
-                                        "h-7 px-2 gap-1.5 text-xs",
+                                        "h-7 px-2.5 gap-1.5 text-xs rounded-full border-0",
                                         isAccepted
-                                            ? "text-green-600 hover:text-green-700 hover:bg-green-500/10"
-                                            : "text-muted-foreground hover:text-green-600"
+                                            ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                                            : "text-muted-foreground hover:text-emerald-600"
                                     )}
                                     onClick={handleAccept}
                                 >

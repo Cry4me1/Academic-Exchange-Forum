@@ -862,6 +862,7 @@ CREATE TABLE IF NOT EXISTS public.peer_reviews (
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     reviewer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     duel_id UUID REFERENCES public.duels(id) ON DELETE CASCADE,
+    authority_weight NUMERIC(4,2) DEFAULT 1.00 NOT NULL,
     score INT CHECK (score >= 1 AND score <= 10),
     reasoning_content TEXT,
     review_content TEXT NOT NULL,
@@ -878,16 +879,29 @@ CREATE INDEX IF NOT EXISTS idx_peer_reviews_user ON public.peer_reviews(user_id)
 CREATE INDEX IF NOT EXISTS idx_peer_reviews_reviewer ON public.peer_reviews(reviewer_id);
 
 CREATE OR REPLACE FUNCTION public.sync_peer_review_user_fields()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
+DECLARE
+    v_reviewer_level INT := 1;
 BEGIN
     IF NEW.user_id IS NULL AND NEW.reviewer_id IS NOT NULL THEN
         NEW.user_id := NEW.reviewer_id;
     ELSIF NEW.reviewer_id IS NULL AND NEW.user_id IS NOT NULL THEN
         NEW.reviewer_id := NEW.user_id;
     END IF;
+
+    SELECT COALESCE(vip_level, 1) INTO v_reviewer_level
+    FROM public.profiles
+    WHERE id = COALESCE(NEW.reviewer_id, NEW.user_id);
+
+    IF v_reviewer_level >= 5 THEN
+        NEW.authority_weight := 1.50;
+    ELSE
+        NEW.authority_weight := COALESCE(NULLIF(NEW.authority_weight, 0), 1.00);
+    END IF;
+
     RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS trg_sync_peer_review_user_fields ON public.peer_reviews;
 CREATE TRIGGER trg_sync_peer_review_user_fields
@@ -2323,6 +2337,13 @@ CREATE POLICY "post_annotations_select" ON public.post_annotations FOR SELECT US
 );
 CREATE POLICY "post_annotations_insert" ON public.post_annotations FOR INSERT WITH CHECK (
   auth.uid() = author_id
+  AND (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND COALESCE(p.vip_level, 1) >= 2
+    )
+    OR public.is_admin()
+  )
 );
 CREATE POLICY "post_annotations_update" ON public.post_annotations FOR UPDATE USING (
   auth.uid() = author_id 
@@ -2375,7 +2396,16 @@ CREATE POLICY "duel_bets_select_own" ON public.duel_bets FOR SELECT USING (auth.
 
 -- 7. Lab Rooms, Members, Links & Notes
 CREATE POLICY "lab_rooms_select_authenticated" ON public.lab_rooms FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "lab_rooms_insert_auth" ON public.lab_rooms FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "lab_rooms_insert_auth" ON public.lab_rooms FOR INSERT WITH CHECK (
+  auth.uid() = created_by
+  AND (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND COALESCE(p.vip_level, 1) >= 4
+    )
+    OR public.is_admin()
+  )
+);
 CREATE POLICY "lab_rooms_update_owner" ON public.lab_rooms FOR UPDATE USING (auth.uid() = created_by);
 
 CREATE POLICY "lab_members_select" ON public.lab_members FOR SELECT USING (auth.uid() IS NOT NULL);

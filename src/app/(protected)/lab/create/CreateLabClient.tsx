@@ -1,7 +1,6 @@
 "use client";
 
 import { createLabRoom } from "@/app/(protected)/lab/actions";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -15,7 +14,6 @@ import {
     Loader2,
     Lock,
     Pencil,
-    Shield,
     Sparkles,
     Users,
 } from "lucide-react";
@@ -86,6 +84,19 @@ export default function CreateLabClient() {
                 access_code: enablePassword ? accessCode.trim() : undefined,
             });
 
+            if ((res as any).code === "REQUIRES_SCHOLAR_LV4") {
+                toast.info(res.error || "解锁创建协作实验室需学者等级达到 Lv4", {
+                    description: "Lv1 ~ Lv3 学者仍可通过受邀链接加入已有研究室参与协作。",
+                    action: {
+                        label: "查看特权",
+                        onClick: () => {
+                            router.push("/vip");
+                        },
+                    },
+                });
+                return;
+            }
+
             if (res.error) {
                 toast.error(res.error);
             } else if (res.data?.id) {
@@ -131,7 +142,7 @@ export default function CreateLabClient() {
                                 创建新的学术研究室
                             </h2>
                             <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                                配置房间类型与学术研讨模式，邀请同侪展开无缝协同推演
+                                配置房间类型与学术研讨模式，邀请同侪展开无缝协同推演（需 Lv4+ 学者权限）
                             </p>
                         </div>
                     </div>
@@ -234,7 +245,7 @@ export default function CreateLabClient() {
                                         className={cn(
                                             "px-4 py-1.5 rounded-full text-xs font-medium border-0 transition-all cursor-pointer",
                                             maxMembers === num
-                                                ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-[0_2px_8px_rgba(0,0,0,0.15)] font-semibold"
+                                                ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
                                                 : "bg-zinc-100/70 dark:bg-zinc-800/60 text-muted-foreground hover:text-foreground hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.6)]"
                                         )}
                                     >

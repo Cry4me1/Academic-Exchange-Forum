@@ -113,14 +113,44 @@ export async function POST(req: Request): Promise<Response> {
         return new Response("请先登录", { status: 401 });
     }
 
-    // ====== 余额预检 ======
-    const { data: creditData } = await supabase
-        .from("user_credits")
-        .select("balance")
-        .eq("user_id", user.id)
-        .single();
+    // ====== 学者等级 Lv3 资格与余额预检 ======
+    const [{ data: creditData }, { data: profileData }, { data: adminRole }] = await Promise.all([
+        supabase
+            .from("user_credits")
+            .select("balance")
+            .eq("user_id", user.id)
+            .single(),
+        supabase
+            .from("profiles")
+            .select("vip_level")
+            .eq("id", user.id)
+            .single(),
+        supabase
+            .from("admin_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+    ]);
 
-    // 无积分记录或余额不足时拒绝（注册奖励由触发器发放，老用户补发已由迁移处理）
+    const userVipLevel = profileData?.vip_level ?? 1;
+    const isAdmin = !!adminRole;
+
+    // Lv3 特权：解锁撰写同行评审资格
+    if (!isAdmin && userVipLevel < 3) {
+        return new Response(
+            JSON.stringify({
+                error: "REQUIRES_SCHOLAR_LV3",
+                message: `撰写同行评审资格需学者等级达到 Lv3 解锁（当前等级 Lv${userVipLevel}）`,
+                level: userVipLevel,
+            }),
+            {
+                status: 403,
+                headers: { "Content-Type": "application/json" },
+            }
+        );
+    }
+
+    // 无积分记录或余额不足时拒绝
     if (!creditData || creditData.balance < MIN_REVIEW_CREDIT_COST) {
         return new Response(
             JSON.stringify({
@@ -148,31 +178,33 @@ export async function POST(req: Request): Promise<Response> {
             });
         }
 
-        // 构建用户消息
-        const userMessage = [
-            `## 文章标题\n${title}`,
-            tags?.length ? `## 学科领域\n${tags.join("、")}` : "",
-            `## 文章正文\n${content}`,
+        const userPrompt = [
+            `# 待评审文章`,
+            ``,
+            `**标题**: ${title}`,
+            tags.length > 0 ? `**标签**: ${tags.join(", ")}` : "",
+            ``,
+            `## 正文内容`,
+            ``,
+            content,
         ]
             .filter(Boolean)
-            .join("\n\n");
-
-        console.log(
-            `[AI Peer Review] 用户: ${user.id}, 内容长度: ${content.length} 字符`
-        );
+            .join("\n");
 
         const userId = user.id;
+        // Lv5 特权：同行评审 1.5 倍权威系数
+        const authorityWeight = userVipLevel >= 5 ? 1.5 : 1.0;
 
-        // 使用 deepseek-v4-flash 思考模式（评审）
         const result = streamText({
             model: deepseek("deepseek-v4-flash"),
             providerOptions: { deepseek: { thinking: { type: "enabled" } } },
             messages: [
                 { role: "system", content: REVIEWER_SYSTEM_PROMPT },
-                { role: "user", content: userMessage },
+                { role: "user", content: userPrompt },
             ],
-            // 思考模式不支持 temperature 参数
+            temperature: 0.6,
             onFinish: async ({ usage }) => {
+                // 流完成后根据实际 token 用量扣费
                 const totalTokens =
                     usage?.totalTokens ||
                     (usage?.inputTokens || 0) + (usage?.outputTokens || 0);
@@ -181,24 +213,24 @@ export async function POST(req: Request): Promise<Response> {
                 console.log(
                     `[AI Peer Review] Token 用量: input=${usage?.inputTokens}, output=${usage?.outputTokens}, total=${totalTokens}`
                 );
-                console.log(
-                    `[AI Peer Review] 积分消耗: ${creditCost}`
-                );
+                console.log(`[AI Peer Review] 积分消耗: ${creditCost}`);
 
                 try {
                     const { data: deductResult, error: deductError } =
                         await supabase.rpc("deduct_user_credits", {
                             p_user_id: userId,
                             p_amount: creditCost,
-                            p_description: "Ask AI · 同行评审",
+                            p_description: `AI 同行评审 · 《${title.slice(0, 20)}${title.length > 20 ? "…" : ""}》`,
                             p_metadata: {
                                 option: "peer_review",
-                                option_label: "同行评审 (Reasoner)",
+                                option_label: "AI 同行评审",
+                                post_title: title,
+                                user_level: userVipLevel,
+                                authority_weight: authorityWeight,
                                 input_tokens: usage?.inputTokens || 0,
                                 output_tokens: usage?.outputTokens || 0,
                                 total_tokens: totalTokens,
                                 credit_cost: creditCost,
-                                content_length: content.length,
                             },
                         });
 
@@ -231,8 +263,7 @@ export async function POST(req: Request): Promise<Response> {
             },
         });
 
-        console.log("[AI Peer Review] 开始流式输出（Reasoner 推理模式）");
-        // 使用 UIMessageStream 协议，发送推理过程
+        console.log("[AI Peer Review] streamText 调用成功，返回 UIMessage 流");
         return result.toUIMessageStreamResponse({
             sendReasoning: true,
         });
@@ -240,7 +271,7 @@ export async function POST(req: Request): Promise<Response> {
         console.error("[AI Peer Review] 错误:", error);
         return new Response(
             "审稿请求处理失败: " +
-            (error instanceof Error ? error.message : String(error)),
+                (error instanceof Error ? error.message : String(error)),
             { status: 500 }
         );
     }

@@ -88,7 +88,7 @@ export async function getPostAnnotations(postId: string): Promise<PostAnnotation
 }
 
 /**
- * 发表新的行间批注
+ * 发表新的行间批注 (需 Lv2+ 学者等级)
  */
 export async function createAnnotation(params: CreateAnnotationParams) {
     try {
@@ -110,18 +110,34 @@ export async function createAnnotation(params: CreateAnnotationParams) {
             return { error: "批注研讨内容不能为空" };
         }
 
-        // 检查用户禁言或封禁状态
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, is_banned, is_muted, muted_until")
-            .eq("id", user.id)
-            .single();
+        // 检查用户禁言、封禁状态及学者等级 (Lv2 解锁边缘学术批注权限)
+        const [{ data: profile }, { data: adminRole }] = await Promise.all([
+            supabase
+                .from("profiles")
+                .select("id, vip_level, is_banned, is_muted, muted_until")
+                .eq("id", user.id)
+                .single(),
+            supabase
+                .from("admin_roles")
+                .select("role")
+                .eq("user_id", user.id)
+                .maybeSingle(),
+        ]);
 
         if (profile?.is_banned) {
             return { error: "您的账号已被封禁，无法发表批注" };
         }
         if (profile?.is_muted && profile.muted_until && new Date(profile.muted_until) > new Date()) {
             return { error: "您当前处于禁言状态，暂无法发表批注" };
+        }
+
+        const isAdmin = !!adminRole;
+        const userLevel = profile?.vip_level ?? 1;
+        if (!isAdmin && userLevel < 2) {
+            return {
+                error: "边缘学术批注权限需学者等级达到 Lv2 解锁",
+                code: "REQUIRES_SCHOLAR_LV2",
+            };
         }
 
         // 内容敏感词检测
@@ -187,7 +203,7 @@ export async function createAnnotation(params: CreateAnnotationParams) {
 }
 
 /**
- * 回复已存在的批注微线程
+ * 回复已存在的批注微线程 (需 Lv2+ 学者等级)
  */
 export async function createAnnotationReply(
     annotationId: string,
@@ -205,6 +221,36 @@ export async function createAnnotationReply(
         const trimmedContent = content?.trim();
         if (!trimmedContent) {
             return { error: "回复内容不能为空" };
+        }
+
+        // 检查用户禁言、封禁状态及学者等级 (Lv2 解锁边缘学术批注权限)
+        const [{ data: profile }, { data: adminRole }] = await Promise.all([
+            supabase
+                .from("profiles")
+                .select("id, vip_level, is_banned, is_muted, muted_until")
+                .eq("id", user.id)
+                .single(),
+            supabase
+                .from("admin_roles")
+                .select("role")
+                .eq("user_id", user.id)
+                .maybeSingle(),
+        ]);
+
+        if (profile?.is_banned) {
+            return { error: "您的账号已被封禁，无法发表批注回复" };
+        }
+        if (profile?.is_muted && profile.muted_until && new Date(profile.muted_until) > new Date()) {
+            return { error: "您当前处于禁言状态，暂无法发表批注回复" };
+        }
+
+        const isAdmin = !!adminRole;
+        const userLevel = profile?.vip_level ?? 1;
+        if (!isAdmin && userLevel < 2) {
+            return {
+                error: "边缘学术批注与回复权限需学者等级达到 Lv2 解锁",
+                code: "REQUIRES_SCHOLAR_LV2",
+            };
         }
 
         // 敏感词快速过滤

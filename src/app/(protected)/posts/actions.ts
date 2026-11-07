@@ -677,7 +677,7 @@ export async function toggleAcceptAnswer(commentId: string) {
     return { success: true, status: data?.status };
 }
 
-// 保存同行评审
+// 保存同行评审 (需 Lv3+ 学者资格，Lv5+ 享受 1.5 倍权威系数)
 export async function savePeerReview(postId: string, reasoning: string, review: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -686,11 +686,30 @@ export async function savePeerReview(postId: string, reasoning: string, review: 
     }
 
     try {
-        const { error } = await supabase
+        const [{ data: profile }, { data: adminRole }] = await Promise.all([
+            supabase.from("profiles").select("vip_level").eq("id", user.id).maybeSingle(),
+            supabase.from("admin_roles").select("role").eq("user_id", user.id).maybeSingle(),
+        ]);
+
+        const isAdmin = !!adminRole;
+        const userLevel = profile?.vip_level ?? 1;
+
+        if (!isAdmin && userLevel < 3) {
+            return {
+                error: `撰写同行评审资格需学者等级达到 Lv3 解锁（当前等级 Lv${userLevel}）`,
+                code: "REQUIRES_SCHOLAR_LV3",
+            };
+        }
+
+        const authorityWeight = userLevel >= 5 ? 1.5 : 1.0;
+
+        let { error } = await supabase
             .from("peer_reviews")
             .upsert({
                 post_id: postId,
                 user_id: user.id,
+                reviewer_id: user.id,
+                authority_weight: authorityWeight,
                 reasoning_content: reasoning,
                 review_content: review,
                 updated_at: new Date().toISOString()
@@ -698,10 +717,33 @@ export async function savePeerReview(postId: string, reasoning: string, review: 
                 onConflict: "post_id"
             });
 
+        // 兼容尚未执行 authority_weight 列迁移的环境
+        if (error) {
+            const fallback = await supabase
+                .from("peer_reviews")
+                .upsert({
+                    post_id: postId,
+                    user_id: user.id,
+                    reasoning_content: reasoning,
+                    review_content: review,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: "post_id"
+                });
+            error = fallback.error;
+        }
+
         if (error) throw error;
 
+        try {
+            const adminClient = createAdminClient();
+            await adminClient.rpc("sync_scholar_level", { p_user_id: user.id });
+        } catch (syncErr) {
+            console.warn("Non-fatal: failed to sync scholar level after peer review:", syncErr);
+        }
+
         revalidatePath(`/posts/${postId}`);
-        return { success: true };
+        return { success: true, authorityWeight };
     } catch (error) {
         console.error("Save peer review error:", error);
         return { error: "保存同行评审失败" };
