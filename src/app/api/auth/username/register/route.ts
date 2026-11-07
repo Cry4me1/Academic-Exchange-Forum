@@ -8,7 +8,7 @@ import {
     validateInviteCodeServer,
     consumeInviteCodeServer,
 } from "@/lib/invite/service";
-import { getUsernamePseudoEmail } from "@/lib/auth-utils";
+import { getUsernamePseudoEmail, translateSupabaseAuthError } from "@/lib/auth-utils";
 
 export async function POST(request: Request) {
     try {
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
             if (createError.message.includes("already registered")) {
                 return NextResponse.json({ error: "该用户名对应的虚拟邮箱已被使用，请更换用户名" }, { status: 400 });
             }
-            return NextResponse.json({ error: createError.message }, { status: 400 });
+            return NextResponse.json({ error: translateSupabaseAuthError(createError.message, "创建新用户失败，请稍后重试") }, { status: 400 });
         }
 
         const userId = authData.user?.id;

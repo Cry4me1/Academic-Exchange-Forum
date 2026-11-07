@@ -875,6 +875,7 @@ CREATE TABLE IF NOT EXISTS public.peer_reviews (
 
 CREATE INDEX IF NOT EXISTS idx_peer_reviews_post ON public.peer_reviews(post_id);
 CREATE INDEX IF NOT EXISTS idx_peer_reviews_user ON public.peer_reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_peer_reviews_reviewer ON public.peer_reviews(reviewer_id);
 
 CREATE OR REPLACE FUNCTION public.sync_peer_review_user_fields()
 RETURNS TRIGGER AS $

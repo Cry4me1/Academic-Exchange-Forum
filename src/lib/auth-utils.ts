@@ -58,3 +58,72 @@ export function getUsernamePseudoEmail(username: string): string {
 
     return `${asciiPrefix}@scholarly.org`;
 }
+
+/**
+ * 将 Supabase Auth 返回的常见英文错误信息统一映射为规范中文提示
+ */
+export function translateSupabaseAuthError(
+    message?: string | null,
+    fallback = "认证服务暂时繁忙，请稍后重试"
+): string {
+    if (!message) return fallback;
+    const raw = message.trim();
+    const lower = raw.toLowerCase();
+
+    // 若已是包含中文的提示则直接保留
+    if (/[\u4e00-\u9fa5]/.test(raw)) {
+        return raw;
+    }
+
+    if (
+        lower.includes("already registered") ||
+        lower.includes("already been registered") ||
+        lower.includes("user already exists")
+    ) {
+        return "该账号或邮箱已被注册，请直接登录或更换后重试";
+    }
+
+    if (
+        lower.includes("database error creating new user") ||
+        lower.includes("database error saving new user")
+    ) {
+        return "创建新用户档案时发生数据库异常，请稍后重试";
+    }
+
+    if (lower.includes("invalid login credentials")) {
+        return "账号或密码错误，请检查后重试";
+    }
+
+    if (lower.includes("email not confirmed")) {
+        return "您的邮箱尚未完成验证，请先前往邮箱点击验证链接";
+    }
+
+    if (
+        lower.includes("rate limit") ||
+        lower.includes("too many requests") ||
+        lower.includes("for security purposes, you can only request this")
+    ) {
+        return "操作请求过于频繁，请稍后再试";
+    }
+
+    if (lower.includes("password should be at least")) {
+        return "密码长度不符合安全要求，请设置至少 6 位字符";
+    }
+
+    if (
+        lower.includes("unable to validate email address") ||
+        lower.includes("invalid email")
+    ) {
+        return "邮箱地址格式无效，请检查后重新输入";
+    }
+
+    if (lower.includes("error sending confirmation email")) {
+        return "验证邮件发送失败，请稍后重试或切换为用户名注册";
+    }
+
+    if (lower.includes("signups not allowed")) {
+        return "当前系统暂未开放自助注册";
+    }
+
+    return fallback;
+}

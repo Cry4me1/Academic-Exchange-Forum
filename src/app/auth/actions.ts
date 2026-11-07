@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getUsernamePseudoEmail } from '@/lib/auth-utils'
+import { getUsernamePseudoEmail, translateSupabaseAuthError } from '@/lib/auth-utils'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -17,7 +17,7 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-        return { error: error.message }
+        return { error: translateSupabaseAuthError(error.message) }
     }
 
     revalidatePath('/', 'layout')
@@ -42,7 +42,7 @@ export async function signup(formData: FormData) {
     })
 
     if (error) {
-        return { error: error.message }
+        return { error: translateSupabaseAuthError(error.message) }
     }
 
     revalidatePath('/', 'layout')
@@ -76,7 +76,7 @@ export async function signInWithMagicLink(formData: FormData) {
     })
 
     if (error) {
-        return { error: error.message }
+        return { error: translateSupabaseAuthError(error.message) }
     }
 
     return { success: true }
@@ -92,7 +92,7 @@ export async function forgotPassword(formData: FormData) {
     })
 
     if (error) {
-        return { error: error.message }
+        return { error: translateSupabaseAuthError(error.message) }
     }
 
     return { success: true }
@@ -107,7 +107,7 @@ export async function updatePassword(formData: FormData) {
     })
 
     if (error) {
-        return { error: error.message }
+        return { error: translateSupabaseAuthError(error.message) }
     }
 
     revalidatePath('/', 'layout')
@@ -160,7 +160,7 @@ export async function signupWithUsername(formData: FormData) {
         if (error.message.includes('already registered')) {
             return { error: '该用户名已被注册' }
         }
-        return { error: error.message }
+        return { error: translateSupabaseAuthError(error.message) }
     }
 
     if (authData.user && authData.user.identities && authData.user.identities.length === 0) {

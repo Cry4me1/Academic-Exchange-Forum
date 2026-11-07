@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { registerSchema } from "@/lib/validations/auth";
+import { translateSupabaseAuthError } from "@/lib/auth-utils";
 import { registerLimiter } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import {
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
 
         if (authError) {
             console.error("[Email Register API] Supabase auth error:", authError);
-            return NextResponse.json({ error: authError.message }, { status: 400 });
+            return NextResponse.json({ error: translateSupabaseAuthError(authError.message, "注册失败，请检查填写内容或稍后重试") }, { status: 400 });
         }
 
         if (authData.user && authData.user.identities && authData.user.identities.length === 0) {

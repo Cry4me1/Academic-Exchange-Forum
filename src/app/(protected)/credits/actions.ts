@@ -68,7 +68,7 @@ export async function getMyCredits() {
             const { count: peerReviewCount } = await supabase
                 .from("peer_reviews")
                 .select("id", { count: "exact", head: true })
-                .eq("reviewer_id", user.id);
+                .eq("user_id", user.id);
 
             const duelWins = profile?.duel_wins || 0;
 
