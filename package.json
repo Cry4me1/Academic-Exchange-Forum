@@ -60,6 +60,7 @@
     "@tiptap/starter-kit": "^2.27.1",
     "@tiptap/suggestion": "^2.27.1",
     "@tiptap/y-tiptap": "^3.0.2",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/og": "^0.8.6",
     "ai": "^6.0.5",
     "canvas-confetti": "^1.9.4",

@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
 import { I18nProvider } from "@/i18n/context";
+import { Analytics } from "@vercel/analytics/next";
 import "katex/dist/katex.min.css";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
@@ -53,6 +54,7 @@ export default function RootLayout({
         </I18nProvider>
         <AuthRedirectHandler />
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );
