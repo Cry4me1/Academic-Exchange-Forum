@@ -683,7 +683,7 @@ export function RegisterForm() {
                                 htmlFor="email-reg-email"
                                 className="text-zinc-800 dark:text-zinc-200"
                             >
-                                学术 / 个人邮箱
+                                个人邮箱
                             </Label>
                             <div className="group/field relative">
                                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
