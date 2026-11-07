@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,23 +13,35 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import {
     Camera,
     Loader2,
     ArrowLeft,
     ArrowRight,
-    UserCheck,
+    BadgeCheck,
     Globe,
     Clock,
     Languages,
     User,
+    Users,
     Sparkles,
+    type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/context";
 import { Locale } from "@/i18n/types";
+import {
+    PANEL,
+    DIVIDER_H,
+    REFLEX_GRADIENT,
+    REFLEX_LAYER,
+    TOP_SEAM,
+    AMBER_AURA_SHADOW,
+    SERIF_STACK,
+    trackPointer,
+} from "../components/welcome-glass";
 
 export interface ProfileFormData {
     username: string;
@@ -47,6 +58,39 @@ interface Step2ProfileQuickStartProps {
     initialData: ProfileFormData;
     onPrev: () => void;
     onNext: (data: ProfileFormData) => void;
+}
+
+/** 表单字段：中性图标 + 恒定字重标签 */
+function Field({
+    id,
+    icon: Icon,
+    label,
+    required,
+    aside,
+    children,
+    className,
+}: {
+    id: string;
+    icon: LucideIcon;
+    label: string;
+    required?: boolean;
+    aside?: ReactNode;
+    children: ReactNode;
+    className?: string;
+}) {
+    return (
+        <div className={cn("space-y-2", className)}>
+            <div className="flex items-center justify-between px-1">
+                <Label htmlFor={id} className="flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                    <Icon className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
+                    {label}
+                    {required && <span className="text-amber-600 dark:text-amber-400">*</span>}
+                </Label>
+                {aside}
+            </div>
+            {children}
+        </div>
+    );
 }
 
 export function Step2ProfileQuickStart({
@@ -70,6 +114,8 @@ export function Step2ProfileQuickStart({
     // 处理头像上传至 Supabase Storage
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        // 允许重复选择同一文件
+        e.target.value = "";
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
@@ -98,16 +144,17 @@ export function Step2ProfileQuickStart({
 
             setFormData((prev) => ({ ...prev, avatar_url: publicUrl }));
             toast.success(tStep.uploadSuccess);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Avatar upload failed:", error);
-            toast.error(tStep.uploadFail + (error.message || "未知错误"));
+            const message = error instanceof Error ? error.message : "未知错误";
+            toast.error(tStep.uploadFail + message);
         } finally {
             setUploading(false);
         }
     };
 
     const handleLanguageChange = (val: string) => {
-        setFormData({ ...formData, language: val });
+        setFormData((prev) => ({ ...prev, language: val }));
         if (val === "zh" || val === "en") {
             setLocale(val as Locale);
         }
@@ -118,7 +165,7 @@ export function Step2ProfileQuickStart({
             toast.error(tStep.usernameRequiredError);
             return;
         }
-        onNext(formData);
+        onNext({ ...formData, username: formData.username.trim() });
     };
 
     const initials = (formData.username || "U").charAt(0).toUpperCase();
@@ -126,101 +173,108 @@ export function Step2ProfileQuickStart({
     return (
         <div className="w-full max-w-3xl mx-auto space-y-6">
             {/* 头部介绍 */}
-            <div className="text-center space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/5 px-4 py-1.5 text-xs font-semibold text-violet-600 dark:text-violet-400">
-                    <UserCheck className="h-4 w-4" />
-                    {tStep.badge}
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            <div className="text-center space-y-2 px-2">
+                <h2
+                    style={{ fontFamily: SERIF_STACK }}
+                    className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
+                >
                     {tStep.title}
                 </h2>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
                     {tStep.description}
                 </p>
             </div>
 
-            <Card className="border-border/60 bg-card/75 backdrop-blur-md shadow-xl overflow-hidden">
-                <CardHeader className="pb-4 border-b border-border/40 bg-muted/20">
-                    <div className="flex flex-col sm:flex-row items-center gap-5">
-                        {/* 头像区域 */}
-                        <div className="relative group">
-                            <Avatar className="h-24 w-24 border-4 border-background shadow-xl ring-2 ring-primary/20 transition-transform group-hover:scale-105">
-                                <AvatarImage src={formData.avatar_url} alt="学者头像" />
-                                <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/30 via-violet-500/20 to-primary/10 text-primary">
+            <div onMouseMove={trackPointer} className={cn(PANEL, "group/panel")}>
+                <span aria-hidden className={TOP_SEAM} />
+                <div aria-hidden className={REFLEX_LAYER} style={{ background: REFLEX_GRADIENT }} />
+
+                <div className="relative z-10">
+                    {/* 名片预览：头像 + 昵称 */}
+                    <div className="flex flex-col sm:flex-row items-center gap-5 px-6 pt-7 pb-6">
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            aria-label={tStep.changeAvatar}
+                            className="group/avatar relative shrink-0 rounded-full outline-none transition-transform duration-150 ease-[var(--ease-out-snappy)] active:scale-[0.97] focus-visible:ring-[3px] focus-visible:ring-ring/40 cursor-pointer disabled:cursor-wait"
+                        >
+                            <Avatar className="size-20 border-0 shadow-[0_0_0_4px_rgba(255,255,255,0.9),0_12px_32px_-8px_rgba(0,0,0,0.22)] dark:shadow-[0_0_0_4px_rgba(255,255,255,0.08),0_12px_32px_-8px_rgba(0,0,0,0.6)]">
+                                <AvatarImage src={formData.avatar_url} alt="学者头像" className="object-cover" />
+                                <AvatarFallback
+                                    style={{ fontFamily: SERIF_STACK }}
+                                    className="text-2xl font-semibold bg-gradient-to-br from-amber-100 to-orange-50 text-amber-700 dark:from-amber-500/20 dark:to-orange-500/10 dark:text-amber-300"
+                                >
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
 
-                            {/* 上传覆盖层 */}
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={uploading}
-                                className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer shadow-inner"
-                                title="点击上传自定义头像"
-                            >
-                                {uploading ? (
-                                    <Loader2 className="h-6 w-6 animate-spin text-white" />
-                                ) : (
-                                    <>
-                                        <Camera className="h-6 w-6" />
-                                        <span className="text-[10px] mt-1 font-medium">{tStep.changeAvatar}</span>
-                                    </>
+                            {/* 桌面 hover 磨砂遮罩 */}
+                            <span
+                                aria-hidden
+                                className={cn(
+                                    "absolute inset-0 flex items-center justify-center rounded-full bg-zinc-950/45 text-white backdrop-blur-[2px] transition-opacity duration-200",
+                                    uploading
+                                        ? "opacity-100"
+                                        : "opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/avatar:opacity-100"
                                 )}
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                onChange={handleAvatarUpload}
-                                className="hidden"
-                            />
-                        </div>
+                            >
+                                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+                            </span>
 
-                        {/* 名字与提示 */}
-                        <div className="text-center sm:text-left space-y-1">
-                            <h3 className="text-lg font-bold text-foreground flex items-center justify-center sm:justify-start gap-2">
-                                {formData.username || (isZh ? "学者昵称预览" : "Scholar Handle Preview")}
-                                <Badge variant="secondary" className="text-[10px] py-0 px-2 font-normal">
+                            {/* 常驻相机胶囊（触屏可发现） */}
+                            <span
+                                aria-hidden
+                                className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-950/85 text-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.38)] dark:bg-white/90 dark:text-zinc-950"
+                            >
+                                <Camera className="h-3.5 w-3.5" />
+                            </span>
+                        </button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                            className="hidden"
+                        />
+
+                        <div className="min-w-0 text-center sm:text-left space-y-1.5">
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                                <h3 className="max-w-[16rem] truncate text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                                    {formData.username || (isZh ? "学者昵称预览" : "Scholar Handle Preview")}
+                                </h3>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,0.12)] px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.1)]">
+                                    <BadgeCheck className="h-3 w-3" />
                                     {tStep.scholarTag}
-                                </Badge>
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                                {tStep.modifyTip}
-                            </p>
+                                </span>
+                            </div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">{tStep.modifyTip}</p>
                         </div>
                     </div>
-                </CardHeader>
 
-                <CardContent className="p-6 space-y-5">
+                    <div className={cn(DIVIDER_H, "mx-auto max-w-[92%]")} />
+
                     {/* 表单网格 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-5 px-6 py-6">
                         {/* 用户名 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="username" className="text-xs font-semibold flex items-center gap-1.5">
-                                <User className="h-3.5 w-3.5 text-primary" />
-                                {tStep.usernameLabel} <span className="text-rose-500">*</span>
-                            </Label>
+                        <Field id="username" icon={User} label={tStep.usernameLabel} required>
                             <Input
                                 id="username"
                                 placeholder={tStep.usernamePlaceholder}
                                 value={formData.username}
-                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                className="h-10 bg-background/80"
+                                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
                                 maxLength={30}
+                                autoComplete="nickname"
                             />
-                        </div>
+                        </Field>
 
                         {/* 性别 */}
-                        <div className="space-y-2">
-                            <Label htmlFor="gender" className="text-xs font-semibold">
-                                {tStep.genderLabel}
-                            </Label>
+                        <Field id="gender" icon={Users} label={tStep.genderLabel}>
                             <Select
                                 value={formData.gender}
-                                onValueChange={(val) => setFormData({ ...formData, gender: val })}
+                                onValueChange={(val) => setFormData((prev) => ({ ...prev, gender: val }))}
                             >
-                                <SelectTrigger id="gender" className="h-10 bg-background/80">
+                                <SelectTrigger id="gender" className="h-10 w-full">
                                     <SelectValue placeholder={tStep.genderPlaceholder} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -230,135 +284,111 @@ export function Step2ProfileQuickStart({
                                     <SelectItem value="private">{tStep.genderPrivate}</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </Field>
 
-                        {/* 国家/地区 */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="country" className="text-xs font-semibold flex items-center gap-1.5">
-                                    <Globe className="h-3.5 w-3.5 text-blue-500" />
-                                    {tStep.countryLabel}
-                                </Label>
-                            </div>
+                        {/* 国家/地区（独占整行，快捷胶囊不挤压） */}
+                        <Field id="country" icon={Globe} label={tStep.countryLabel} className="md:col-span-2">
                             <Input
                                 id="country"
                                 placeholder={tStep.countryPlaceholder}
                                 value={formData.country}
-                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                                className="h-10 bg-background/80"
+                                onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
+                                autoComplete="country-name"
                             />
-                            {/* 快捷标签 */}
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                                {popularRegions.map((region) => (
-                                    <button
-                                        key={region}
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, country: region })}
-                                        className={`text-[11px] px-2.5 py-0.5 rounded-full border transition-all ${
-                                            formData.country === region
-                                                ? "bg-primary/10 border-primary/40 text-primary font-medium"
-                                                : "bg-muted/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-                                        }`}
-                                    >
-                                        {region}
-                                    </button>
-                                ))}
+                            <div className="flex flex-wrap gap-1.5 px-1 pt-1">
+                                {popularRegions.map((region) => {
+                                    const active = formData.country === region;
+                                    return (
+                                        <button
+                                            key={region}
+                                            type="button"
+                                            aria-pressed={active}
+                                            onClick={() => setFormData((prev) => ({ ...prev, country: region }))}
+                                            className={cn(
+                                                "rounded-full border-0 px-3 py-1 text-[11px] font-medium cursor-pointer select-none",
+                                                "transition-[background-color,color,box-shadow,transform] duration-150 ease-[var(--ease-out-snappy)] active:scale-[0.96]",
+                                                active
+                                                    ? cn("bg-white/95 text-amber-700 dark:bg-zinc-800/90 dark:text-amber-300", AMBER_AURA_SHADOW)
+                                                    : "bg-zinc-900/[0.04] text-zinc-500 hover:bg-zinc-900/[0.07] hover:text-zinc-800 dark:bg-white/[0.05] dark:text-zinc-400 dark:hover:bg-white/[0.09] dark:hover:text-zinc-100"
+                                            )}
+                                        >
+                                            {region}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        </div>
+                        </Field>
 
-                        {/* 语言与时区组合 */}
-                        <div className="space-y-4">
-                            {/* 语言 */}
-                            <div className="space-y-2">
-                                <Label htmlFor="language" className="text-xs font-semibold flex items-center gap-1.5">
-                                    <Languages className="h-3.5 w-3.5 text-emerald-500" />
-                                    {tStep.languageLabel}
-                                </Label>
-                                <Select
-                                    value={formData.language}
-                                    onValueChange={handleLanguageChange}
-                                >
-                                    <SelectTrigger id="language" className="h-10 bg-background/80">
-                                        <SelectValue placeholder={tStep.languagePlaceholder} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="zh">{t.common.chinese}</SelectItem>
-                                        <SelectItem value="en">{t.common.english}</SelectItem>
-                                        <SelectItem value="ja">{t.common.japanese}</SelectItem>
-                                        <SelectItem value="ko">{t.common.korean}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        {/* 语言 */}
+                        <Field id="language" icon={Languages} label={tStep.languageLabel}>
+                            <Select value={formData.language} onValueChange={handleLanguageChange}>
+                                <SelectTrigger id="language" className="h-10 w-full">
+                                    <SelectValue placeholder={tStep.languagePlaceholder} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="zh">{t.common.chinese}</SelectItem>
+                                    <SelectItem value="en">{t.common.english}</SelectItem>
+                                    <SelectItem value="ja">{t.common.japanese}</SelectItem>
+                                    <SelectItem value="ko">{t.common.korean}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </Field>
 
-                            {/* 时区 */}
-                            <div className="space-y-2">
-                                <Label htmlFor="timezone" className="text-xs font-semibold flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                    {tStep.timezoneLabel}
-                                </Label>
-                                <Select
-                                    value={formData.timezone}
-                                    onValueChange={(val) => setFormData({ ...formData, timezone: val })}
-                                >
-                                    <SelectTrigger id="timezone" className="h-10 bg-background/80">
-                                        <SelectValue placeholder={tStep.timezonePlaceholder} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Asia/Shanghai">{t.settings.timezones.beijing}</SelectItem>
-                                        <SelectItem value="Asia/Tokyo">{t.settings.timezones.tokyo}</SelectItem>
-                                        <SelectItem value="Europe/London">{t.settings.timezones.london}</SelectItem>
-                                        <SelectItem value="America/New_York">{t.settings.timezones.newYork}</SelectItem>
-                                        <SelectItem value="America/Los_Angeles">{t.settings.timezones.losAngeles}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
+                        {/* 时区 */}
+                        <Field id="timezone" icon={Clock} label={tStep.timezoneLabel}>
+                            <Select
+                                value={formData.timezone}
+                                onValueChange={(val) => setFormData((prev) => ({ ...prev, timezone: val }))}
+                            >
+                                <SelectTrigger id="timezone" className="h-10 w-full">
+                                    <SelectValue placeholder={tStep.timezonePlaceholder} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Asia/Shanghai">{t.settings.timezones.beijing}</SelectItem>
+                                    <SelectItem value="Asia/Tokyo">{t.settings.timezones.tokyo}</SelectItem>
+                                    <SelectItem value="Europe/London">{t.settings.timezones.london}</SelectItem>
+                                    <SelectItem value="America/New_York">{t.settings.timezones.newYork}</SelectItem>
+                                    <SelectItem value="America/Los_Angeles">{t.settings.timezones.losAngeles}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </Field>
 
-                    {/* 个人学术简介 */}
-                    <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="bio" className="text-xs font-semibold flex items-center gap-1.5">
-                                <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-                                {tStep.bioLabel}
-                            </Label>
-                            <span className="text-[11px] text-muted-foreground">
-                                {formData.bio.length} / 300
-                            </span>
-                        </div>
-                        <Textarea
+                        {/* 个人学术简介 */}
+                        <Field
                             id="bio"
-                            placeholder={tStep.bioPlaceholder}
-                            value={formData.bio}
-                            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                            rows={3}
-                            maxLength={300}
-                            className="bg-background/80 resize-none"
-                        />
+                            icon={Sparkles}
+                            label={tStep.bioLabel}
+                            className="md:col-span-2"
+                            aside={
+                                <span className="text-[11px] font-medium tabular-nums text-zinc-400 dark:text-zinc-500">
+                                    {formData.bio.length} / 300
+                                </span>
+                            }
+                        >
+                            <Textarea
+                                id="bio"
+                                placeholder={tStep.bioPlaceholder}
+                                value={formData.bio}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
+                                rows={3}
+                                maxLength={300}
+                                className="min-h-24 resize-none"
+                            />
+                        </Field>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* 操作控制栏 */}
-            <div className="flex items-center justify-between pt-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={onPrev}
-                    className="gap-2 text-muted-foreground hover:text-foreground"
-                >
-                    <ArrowLeft className="h-4 w-4" />
+            <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-1">
+                <Button type="button" variant="ghost" onClick={onPrev} className="group">
+                    <ArrowLeft className="h-4 w-4 transition-transform duration-200 ease-[var(--ease-out-snappy)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:-translate-x-0.5" />
                     {tStep.backToStep1}
                 </Button>
 
-                <Button
-                    type="button"
-                    size="lg"
-                    onClick={handleContinue}
-                    className="h-12 px-8 rounded-xl bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-white shadow-lg shadow-primary/20 font-semibold group"
-                >
+                <Button type="button" size="lg" onClick={handleContinue} className="group w-full sm:w-auto h-12 px-7">
                     {tStep.nextStep}
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 ease-[var(--ease-out-snappy)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:translate-x-0.5" />
                 </Button>
             </div>
         </div>

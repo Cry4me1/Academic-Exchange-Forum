@@ -56,6 +56,8 @@ export interface TranslationDictionary {
             openRulesWindow: string;
             termsTab: string;
             guidelinesTab: string;
+            reviewHint: string;
+            readProgress: string;
             termsNatureTitle: string;
             termsNatureDesc: string;
             sec1Title: string;
@@ -99,6 +101,7 @@ export interface TranslationDictionary {
             agreeCheckboxLabel: string;
             agreeTermsLink: string;
             agreeGuidelinesLink: string;
+            agreeConnector: string;
             submitButton: string;
             submittingButton: string;
             agreeError: string;
@@ -154,6 +157,7 @@ export interface TranslationDictionary {
             startTutorialBtn: string;
             enterDashboardBtn: string;
             successToast: string;
+            autoRedirect: string;
         };
         stepIndicator: {
             step1Title: string;
