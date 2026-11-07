@@ -28,6 +28,7 @@ import { createClient } from "@/lib/supabase/client";
 import { acceptDuel, rejectDuel, cancelDuel, deleteDuel } from "./actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { DEFAULT_DUEL_CONFIG, normalizeDuelConfig } from "@/lib/duel-config";
 
 interface Profile {
     id: string;
@@ -85,8 +86,30 @@ export default function DuelsPageClient({
     currentUser,
 }: DuelsPageClientProps) {
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [creationFee, setCreationFee] = useState<number>(DEFAULT_DUEL_CONFIG.economy.creation_fee);
+    const [autoRefund, setAutoRefund] = useState<boolean>(DEFAULT_DUEL_CONFIG.economy.auto_refund_on_pending_cancel);
     const router = useRouter();
     const supabase = createClient();
+
+    useEffect(() => {
+        let cancelled = false;
+        void (async () => {
+            const { data } = await supabase
+                .from("system_settings")
+                .select("value")
+                .eq("key", "duel_config")
+                .maybeSingle();
+            const row = data as { value?: unknown } | null;
+            if (!cancelled && row?.value) {
+                const cfg = normalizeDuelConfig(row.value);
+                setCreationFee(cfg.economy.creation_fee);
+                setAutoRefund(cfg.economy.auto_refund_on_pending_cancel);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [supabase]);
 
     // 实时监听决斗更新
     useEffect(() => {
@@ -124,21 +147,21 @@ export default function DuelsPageClient({
     };
 
     const handleReject = async (duelId: string, invitationId: string) => {
-        if (!confirm("确定要拒绝这场决斗吗？")) return;
+        if (!confirm("确定要婉拒这场决斗邀请吗？")) return;
         const result = await rejectDuel(duelId, invitationId);
         if (result.error) toast.error(result.error);
         else {
-            toast.success("已拒绝决斗");
+            toast.success(autoRefund ? "已婉拒决斗，挑战者预付积分已全额退还" : "已婉拒决斗");
             router.refresh();
         }
     };
 
     const handleCancel = async (duelId: string) => {
-        if (!confirm("确定要取消这场决斗吗？")) return;
+        if (!confirm("确定要取消这场等待应战的决斗吗？")) return;
         const result = await cancelDuel(duelId);
         if (result.error) toast.error(result.error);
         else {
-            toast.success("决斗已取消");
+            toast.success(autoRefund ? "决斗已取消，发起积分已全额退还" : "决斗已取消");
             router.refresh();
         }
     };
@@ -417,9 +440,9 @@ export default function DuelsPageClient({
                     <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
                         <Plus className="h-4 w-4" />
                         发起对决
-                        <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-semibold text-amber-300">
+                        <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-semibold text-amber-300 tabular-nums">
                             <Zap className="h-3 w-3" />
-                            100
+                            {creationFee}
                         </span>
                     </Button>
                 </header>
