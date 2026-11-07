@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { validateInviteCodeServer, getRegistrationMode } from "@/lib/invite/service";
 import { RateLimiter } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_STORE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+};
+
 // 邀请码防爆破限流器：单 IP 每分钟最多查 30 次
 const inviteLimiter = new RateLimiter({
     windowMs: 60 * 1000,
@@ -18,17 +25,23 @@ export async function GET(request: Request) {
         const mode = await getRegistrationMode();
 
         if (getModeOnly) {
-            return NextResponse.json({
-                registration_mode: mode,
-            });
+            return NextResponse.json(
+                {
+                    registration_mode: mode,
+                },
+                { headers: NO_STORE_HEADERS }
+            );
         }
 
         if (!code) {
-            return NextResponse.json({
-                valid: false,
-                error: "请提供邀请码",
-                registration_mode: mode,
-            }, { status: 400 });
+            return NextResponse.json(
+                {
+                    valid: false,
+                    error: "请提供邀请码",
+                    registration_mode: mode,
+                },
+                { status: 400, headers: NO_STORE_HEADERS }
+            );
         }
 
         // IP 限流检查
@@ -36,24 +49,33 @@ export async function GET(request: Request) {
         const ip = forwarded?.split(",")[0]?.trim() || "unknown";
         const { limited, resetIn } = inviteLimiter.check(ip);
         if (limited) {
-            return NextResponse.json({
-                valid: false,
-                error: `查询过于频繁，请 ${Math.ceil(resetIn / 1000)} 秒后再试`,
-                registration_mode: mode,
-            }, { status: 429 });
+            return NextResponse.json(
+                {
+                    valid: false,
+                    error: `查询过于频繁，请 ${Math.ceil(resetIn / 1000)} 秒后再试`,
+                    registration_mode: mode,
+                },
+                { status: 429, headers: NO_STORE_HEADERS }
+            );
         }
 
         const result = await validateInviteCodeServer(code);
 
-        return NextResponse.json({
-            ...result,
-            registration_mode: mode,
-        });
+        return NextResponse.json(
+            {
+                ...result,
+                registration_mode: mode,
+            },
+            { headers: NO_STORE_HEADERS }
+        );
     } catch (error: any) {
         console.error("[Invite Validate API] Error:", error);
-        return NextResponse.json({
-            valid: false,
-            error: "校验服务异常",
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                valid: false,
+                error: "校验服务异常",
+            },
+            { status: 500, headers: NO_STORE_HEADERS }
+        );
     }
 }

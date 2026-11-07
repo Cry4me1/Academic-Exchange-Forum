@@ -9,6 +9,7 @@ import {
     OBSIDIAN_CTA,
     SERIF_STACK,
 } from "@/components/landing/liquid-glass";
+import type { RegistrationMode } from "@/lib/invite/service";
 import { cn } from "@/lib/utils";
 import {
     registerSchema,
@@ -20,9 +21,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
     AlertCircle,
     ArrowRight,
-    ArrowUpRight,
     Check,
     CheckCircle2,
+    Globe,
     GraduationCap,
     KeyRound,
     Loader2,
@@ -36,7 +37,12 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Controller, FieldErrors, useForm } from "react-hook-form";
+import {
+    Controller,
+    type FieldErrors,
+    type UseFormRegisterReturn,
+    useForm,
+} from "react-hook-form";
 import { toast } from "sonner";
 import { TurnstileWidget, type TurnstileWidgetRef } from "./turnstile-widget";
 
@@ -47,12 +53,18 @@ interface InviteCheckState {
     rewardCredits?: number;
 }
 
+interface RegisterFormProps {
+    initialRegistrationMode?: RegistrationMode;
+}
+
 const REGISTER_TABS = [
     { value: "email", label: "邮箱注册" },
     { value: "username", label: "用户名注册" },
 ] as const;
 
-export function RegisterForm() {
+export function RegisterForm({
+    initialRegistrationMode = "INVITE_ONLY",
+}: RegisterFormProps) {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -61,8 +73,9 @@ export function RegisterForm() {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("email");
     const [renderedAt, setRenderedAt] = useState<number>(0);
-    const [registrationMode, setRegistrationMode] =
-        useState<string>("INVITE_ONLY");
+    const [registrationMode, setRegistrationMode] = useState<string>(
+        initialRegistrationMode
+    );
     const [inviteCheck, setInviteCheck] = useState<InviteCheckState>({
         status: "idle",
     });
@@ -77,6 +90,11 @@ export function RegisterForm() {
 
     const initialInviteCode =
         searchParams.get("invite") || searchParams.get("ref") || "";
+
+    // 同步服务端最新传入的注册模式
+    useEffect(() => {
+        setRegistrationMode(initialRegistrationMode);
+    }, [initialRegistrationMode]);
 
     // 邮箱注册表单
     const {
@@ -142,9 +160,14 @@ export function RegisterForm() {
 
         try {
             const res = await fetch(
-                `/api/auth/invite/validate?code=${encodeURIComponent(clean)}`
+                `/api/auth/invite/validate?code=${encodeURIComponent(clean)}`,
+                { cache: "no-store" }
             );
             const data = await res.json();
+
+            if (data.registration_mode) {
+                setRegistrationMode(data.registration_mode);
+            }
 
             if (data.valid) {
                 setInviteCheck({
@@ -193,14 +216,15 @@ export function RegisterForm() {
         };
     }, [currentInviteInput, checkInviteCode, activeTab]);
 
-    // 初始化：获取系统当前注册策略，若带入初始 invite 则校验
+    // 初始化：无缓存热校验系统当前注册策略，若带入初始 invite 则校验
     useEffect(() => {
         setRenderedAt(Date.now());
 
         async function fetchMode() {
             try {
                 const res = await fetch(
-                    "/api/auth/invite/validate?getMode=true"
+                    "/api/auth/invite/validate?getMode=true",
+                    { cache: "no-store" }
                 );
                 const data = await res.json();
                 if (data.registration_mode) {
@@ -495,6 +519,7 @@ export function RegisterForm() {
         );
     }
 
+    const isOpenMode = registrationMode === "OPEN";
     const isInviteMandatory =
         registrationMode === "INVITE_ONLY" ||
         (registrationMode === "INVITE_OR_EDU" && activeTab === "username");
@@ -523,18 +548,88 @@ export function RegisterForm() {
         </>
     );
 
+    const renderInviteField = (
+        inputId: string,
+        fieldRegistration: UseFormRegisterReturn
+    ) => (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label
+                    htmlFor={inputId}
+                    className="flex items-center gap-1.5 font-medium text-zinc-800 dark:text-zinc-200"
+                >
+                    <Ticket className="w-4 h-4 text-amber-600 dark:text-amber-300" />
+                    <span>学术邀请码</span>
+                    {isInviteMandatory ? (
+                        <span className="text-rose-500 text-xs font-medium">
+                            * 必填
+                        </span>
+                    ) : (
+                        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">
+                            {isOpenMode
+                                ? "(选填 · 留空可直接注册)"
+                                : "(高校邮箱可免填)"}
+                        </span>
+                    )}
+                </Label>
+            </div>
+            <div className="group/field relative">
+                <Ticket className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
+                <Input
+                    id={inputId}
+                    type="text"
+                    placeholder={
+                        isOpenMode
+                            ? "选填：如有邀请码可填写，留空直接注册"
+                            : registrationMode === "INVITE_OR_EDU"
+                            ? "如 SCHOLAR-2026 (.edu 可免填)"
+                            : "请输入 8-16 位学术邀请码"
+                    }
+                    className={cn(
+                        "uppercase font-mono tracking-wider placeholder:normal-case placeholder:font-sans placeholder:tracking-normal h-11 pl-10 pr-10",
+                        inviteInputGlowClass
+                    )}
+                    {...fieldRegistration}
+                />
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
+                    {inviteCheck.status === "checking" && (
+                        <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
+                    )}
+                    {inviteCheck.status === "valid" && (
+                        <Check className="w-4 h-4 text-emerald-500" />
+                    )}
+                    {inviteCheck.status === "invalid" && (
+                        <AlertCircle className="w-4 h-4 text-rose-500" />
+                    )}
+                </div>
+            </div>
+            {renderInviteFeedback()}
+        </div>
+    );
+
     return (
         <div className="space-y-5">
-            {/* 标题与无边框琥珀微光邀请徽章 */}
+            {/* 标题与无边框准入模式徽章 */}
             <div className="space-y-2 text-center">
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border-0 text-xs font-medium bg-[rgba(245,158,11,0.12)] text-amber-800 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_0_16px_rgba(245,158,11,0.14)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_0_16px_rgba(245,158,11,0.18)]">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
+                <div
+                    className={cn(
+                        "inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border-0 text-xs font-medium",
+                        isOpenMode
+                            ? "bg-emerald-500/[0.12] text-emerald-800 dark:text-emerald-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_0_16px_rgba(16,185,129,0.14)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_0_16px_rgba(16,185,129,0.18)]"
+                            : "bg-[rgba(245,158,11,0.12)] text-amber-800 dark:text-amber-300 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.7),0_0_16px_rgba(245,158,11,0.14)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.12),0_0_16px_rgba(245,158,11,0.18)]"
+                    )}
+                >
+                    {isOpenMode ? (
+                        <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
+                    ) : (
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
+                    )}
                     <span>
                         {registrationMode === "INVITE_ONLY"
                             ? "受邀同行研讨 · 邀请制入驻"
                             : registrationMode === "INVITE_OR_EDU"
                             ? "高校/科研机构直通 · 或凭邀请码入驻"
-                            : "Scholarly 学术学者社区"}
+                            : "开放注册通道 · 自由入驻研讨"}
                     </span>
                 </div>
                 <h1
@@ -592,64 +687,12 @@ export function RegisterForm() {
                             />
                         </div>
 
-                        {/* 学术邀请码输入 */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                                <Label
-                                    htmlFor="email-reg-invite"
-                                    className="flex items-center gap-1.5 font-medium text-zinc-800 dark:text-zinc-200"
-                                >
-                                    <Ticket className="w-4 h-4 text-amber-600 dark:text-amber-300" />
-                                    <span>学术邀请码</span>
-                                    {isInviteMandatory ? (
-                                        <span className="text-rose-500 text-xs font-medium">
-                                            * 必填
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-normal">
-                                            (高校邮箱可免填)
-                                        </span>
-                                    )}
-                                </Label>
-                                <Link
-                                    href="/invite-820"
-                                    target="_blank"
-                                    className="inline-flex items-center gap-0.5 rounded-full border-0 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.12)] hover:bg-[rgba(245,158,11,0.2)] transition-colors"
-                                >
-                                    <span>获取 820 公开通行码</span>
-                                    <ArrowUpRight className="w-3 h-3" />
-                                </Link>
-                            </div>
-                            <div className="group/field relative">
-                                <Ticket className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
-                                <Input
-                                    id="email-reg-invite"
-                                    type="text"
-                                    placeholder={
-                                        registrationMode === "INVITE_OR_EDU"
-                                            ? "如 SCHOLAR-2026 (.edu 可免填)"
-                                            : "请输入 8-16 位学术邀请码"
-                                    }
-                                    className={cn(
-                                        "uppercase font-mono tracking-wider h-11 pl-10 pr-10",
-                                        inviteInputGlowClass
-                                    )}
-                                    {...registerEmail("inviteCode")}
-                                />
-                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
-                                    {inviteCheck.status === "checking" && (
-                                        <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
-                                    )}
-                                    {inviteCheck.status === "valid" && (
-                                        <Check className="w-4 h-4 text-emerald-500" />
-                                    )}
-                                    {inviteCheck.status === "invalid" && (
-                                        <AlertCircle className="w-4 h-4 text-rose-500" />
-                                    )}
-                                </div>
-                            </div>
-                            {renderInviteFeedback()}
-                        </div>
+                        {/* 严格邀请制下，必填邀请码置顶展示 */}
+                        {!isOpenMode &&
+                            renderInviteField(
+                                "email-reg-invite",
+                                registerEmail("inviteCode")
+                            )}
 
                         {/* 用户名输入 */}
                         <div className="space-y-2">
@@ -757,6 +800,13 @@ export function RegisterForm() {
                             )}
                         </div>
 
+                        {/* 开放注册模式下，选填邀请码置于底部，不干扰主流程 */}
+                        {isOpenMode &&
+                            renderInviteField(
+                                "email-reg-invite",
+                                registerEmail("inviteCode")
+                            )}
+
                         {/* Cloudflare Turnstile 人机安全验证 */}
                         <Controller
                             name="turnstileToken"
@@ -805,7 +855,11 @@ export function RegisterForm() {
                                     </>
                                 ) : (
                                     <>
-                                        <span>完成受邀入驻</span>
+                                        <span>
+                                            {isOpenMode
+                                                ? "立即注册账号"
+                                                : "完成受邀入驻"}
+                                        </span>
                                         <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
                                     </>
                                 )}
@@ -836,54 +890,12 @@ export function RegisterForm() {
                             />
                         </div>
 
-                        {/* 学术邀请码输入 */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                                <Label
-                                    htmlFor="uname-reg-invite"
-                                    className="flex items-center gap-1.5 font-medium text-zinc-800 dark:text-zinc-200"
-                                >
-                                    <Ticket className="w-4 h-4 text-amber-600 dark:text-amber-300" />
-                                    <span>学术邀请码</span>
-                                    <span className="text-rose-500 text-xs font-medium">
-                                        * 必填
-                                    </span>
-                                </Label>
-                                <Link
-                                    href="/invite-820"
-                                    target="_blank"
-                                    className="inline-flex items-center gap-0.5 rounded-full border-0 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.12)] hover:bg-[rgba(245,158,11,0.2)] transition-colors"
-                                >
-                                    <span>获取 820 公开通行码</span>
-                                    <ArrowUpRight className="w-3 h-3" />
-                                </Link>
-                            </div>
-                            <div className="group/field relative">
-                                <Ticket className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within/field:text-zinc-700 dark:group-focus-within/field:text-zinc-200" />
-                                <Input
-                                    id="uname-reg-invite"
-                                    type="text"
-                                    placeholder="请输入 8-16 位学术邀请码"
-                                    className={cn(
-                                        "uppercase font-mono tracking-wider h-11 pl-10 pr-10",
-                                        inviteInputGlowClass
-                                    )}
-                                    {...registerUsername("inviteCode")}
-                                />
-                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
-                                    {inviteCheck.status === "checking" && (
-                                        <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
-                                    )}
-                                    {inviteCheck.status === "valid" && (
-                                        <Check className="w-4 h-4 text-emerald-500" />
-                                    )}
-                                    {inviteCheck.status === "invalid" && (
-                                        <AlertCircle className="w-4 h-4 text-rose-500" />
-                                    )}
-                                </div>
-                            </div>
-                            {renderInviteFeedback()}
-                        </div>
+                        {/* 严格邀请制下，必填邀请码置顶展示 */}
+                        {!isOpenMode &&
+                            renderInviteField(
+                                "uname-reg-invite",
+                                registerUsername("inviteCode")
+                            )}
 
                         {/* 用户名输入 */}
                         <div className="space-y-2">
@@ -965,6 +977,13 @@ export function RegisterForm() {
                             )}
                         </div>
 
+                        {/* 开放注册模式下，选填邀请码置于底部，不干扰主流程 */}
+                        {isOpenMode &&
+                            renderInviteField(
+                                "uname-reg-invite",
+                                registerUsername("inviteCode")
+                            )}
+
                         {/* Cloudflare Turnstile 人机安全验证 */}
                         <Controller
                             name="turnstileToken"
@@ -1015,7 +1034,11 @@ export function RegisterForm() {
                                     </>
                                 ) : (
                                     <>
-                                        <span>受邀立即入驻</span>
+                                        <span>
+                                            {isOpenMode
+                                                ? "立即注册入驻"
+                                                : "受邀立即入驻"}
+                                        </span>
                                         <ArrowRight className="w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5" />
                                     </>
                                 )}
@@ -1027,7 +1050,9 @@ export function RegisterForm() {
 
             {/* 服务条款 */}
             <p className="text-center text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                受邀注册即表示您同意恪守本站{" "}
+                {isOpenMode
+                    ? "注册即表示您同意恪守本站"
+                    : "受邀注册即表示您同意恪守本站"}{" "}
                 <Link
                     href="/rules?tab=terms"
                     target="_blank"

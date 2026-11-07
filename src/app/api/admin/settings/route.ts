@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAdminAction } from "@/lib/admin/permissions";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function verifySuperAdminAuth() {
     const supabase = await createClient();
@@ -53,7 +57,14 @@ export async function GET() {
             settingsMap.registration_mode = "INVITE_ONLY";
         }
 
-        return NextResponse.json({ settings: settingsMap });
+        return NextResponse.json(
+            { settings: settingsMap },
+            {
+                headers: {
+                    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                },
+            }
+        );
     } catch (error: any) {
         console.error("[Admin Settings API] Exception:", error);
         return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
@@ -92,6 +103,12 @@ export async function POST(request: NextRequest) {
             console.error("[Admin Settings API] Upsert error:", error);
             return NextResponse.json({ error: "更新系统设置失败" }, { status: 500 });
         }
+
+        // 即时刷新全站注册策略与缓存路由
+        revalidateTag("system-settings");
+        revalidatePath("/");
+        revalidatePath("/register");
+        revalidatePath("/login");
 
         await logAdminAction({
             actionType: "update_system_setting",

@@ -25,7 +25,7 @@ export function SettingsClient() {
     useEffect(() => {
         async function fetchSettings() {
             try {
-                const res = await fetch("/api/admin/settings");
+                const res = await fetch("/api/admin/settings", { cache: "no-store" });
                 const data = await res.json();
                 if (data.settings && data.settings.registration_mode) {
                     setRegistrationMode(data.settings.registration_mode);

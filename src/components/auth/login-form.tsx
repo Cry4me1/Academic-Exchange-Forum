@@ -37,6 +37,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import type { RegistrationMode } from "@/lib/invite/service";
 
 const LOGIN_TABS = [
     { value: "magic-link", label: "邮箱链接" },
@@ -45,7 +46,11 @@ const LOGIN_TABS = [
     { value: "luogu", label: "洛谷登录" },
 ] as const;
 
-export function LoginForm() {
+export function LoginForm({
+    initialRegistrationMode = "INVITE_ONLY",
+}: {
+    initialRegistrationMode?: RegistrationMode;
+}) {
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -883,7 +888,7 @@ export function LoginForm() {
                     href="/register"
                     className="inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-amber-700 dark:text-amber-300 bg-[rgba(245,158,11,0.10)] hover:bg-[rgba(245,158,11,0.18)] transition-colors"
                 >
-                    立即受邀注册
+                    {initialRegistrationMode === "OPEN" ? "立即注册账号" : "立即受邀注册"}
                 </Link>
             </p>
         </div>

@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/server";
 import { buildLandingShowcase, type LandingShowcase, type RawLandingPost } from "@/lib/landing-showcase";
+import type { RegistrationMode } from "@/lib/invite/service";
 
 /**
  * 缓存热门帖子列表 — 5 分钟刷新
@@ -296,4 +297,41 @@ export const getCachedLandingShowcase = unstable_cache(
   },
   ["landing-showcase-v1"],
   { revalidate: 300, tags: ["trending", "posts"] }
+);
+
+
+/**
+ * 缓存系统注册准入模式（供 Landing 落地页无 Cookie 静态渲染使用）
+ * 后台修改设置时会通过 revalidateTag("system-settings") 立即失效刷新。
+ */
+export const getCachedRegistrationMode = unstable_cache(
+  async (): Promise<RegistrationMode> => {
+    try {
+      const supabase = createPublicClient();
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "registration_mode")
+        .maybeSingle();
+
+      if (error || !data || !data.value) {
+        return "INVITE_ONLY";
+      }
+
+      const mode =
+        typeof data.value === "string"
+          ? data.value
+          : JSON.parse(JSON.stringify(data.value));
+
+      if (["OPEN", "INVITE_ONLY", "CLOSED"].includes(mode)) {
+        return mode as RegistrationMode;
+      }
+
+      return "INVITE_ONLY";
+    } catch {
+      return "INVITE_ONLY";
+    }
+  },
+  ["system-registration-mode-v1"],
+  { revalidate: 60, tags: ["system-settings"] }
 );

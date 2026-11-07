@@ -1,10 +1,14 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
+import { getRegistrationMode } from "@/lib/invite/service";
 import { Loader2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default function LoginPage() {
+export default async function LoginPage() {
+    const registrationMode = await getRegistrationMode();
+
     return (
         <Suspense
             fallback={
@@ -16,7 +20,7 @@ export default function LoginPage() {
                 </div>
             }
         >
-            <LoginForm />
+            <LoginForm initialRegistrationMode={registrationMode} />
         </Suspense>
     );
 }
