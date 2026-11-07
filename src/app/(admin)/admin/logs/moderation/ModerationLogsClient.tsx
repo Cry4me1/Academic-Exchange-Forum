@@ -415,32 +415,169 @@ export function ModerationLogsClient({
               </div>
             )}
 
-            {/* 正文快照渲染 */}
-            <div className="space-y-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">正文快照数据：</span>
-              {previewSnapshot?.content_snapshot ? (
-                <div className="p-4 rounded-2xl border-0 bg-card/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
-                  {typeof previewSnapshot.content_snapshot === "object" && previewSnapshot.content_snapshot?.type === "doc" ? (
-                    <NovelViewer initialValue={previewSnapshot.content_snapshot} />
-                  ) : (
-                    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                      {extractPlainTextFromContent(previewSnapshot.content_snapshot)}
+            {/* 百度 AI 图像审核违规明细面板 */}
+            {(() => {
+              const snap = previewSnapshot?.content_snapshot;
+              if (!snap || typeof snap !== "object") return null;
+
+              const isSingleImageAudit = snap.type === "baidu_image_audit" && !Array.isArray(snap.baiduImageAudit);
+              const multiItems: any[] = Array.isArray(snap.baiduImageAudit) ? snap.baiduImageAudit : [];
+              const singleViolations: any[] = Array.isArray(snap.violations) ? snap.violations : [];
+
+              if (!isSingleImageAudit && multiItems.length === 0) return null;
+
+              return (
+                <div className="space-y-3 p-4 rounded-2xl border-0 bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.06),inset_0_1px_0.5px_rgba(255,255,255,0.85)] dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.25),inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      <ImageIcon className="h-4 w-4 text-sky-500" />
+                      <span>百度 AI 图像审核明细</span>
+                    </div>
+                    {snap.baiduLogId && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-zinc-500/10 text-muted-foreground">
+                        log_id: {String(snap.baiduLogId)}
+                      </span>
+                    )}
+                  </div>
+
+                  {isSingleImageAudit && (
+                    <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                      {snap.fileName && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-zinc-500/10 font-medium text-foreground">
+                          文件：{snap.fileName}
+                        </span>
+                      )}
+                      {snap.fileType && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-zinc-500/10 font-medium">
+                          类型：{snap.fileType}
+                        </span>
+                      )}
+                      {typeof snap.fileSize === "number" && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-zinc-500/10 font-medium">
+                          大小：{(snap.fileSize / 1024).toFixed(1)} KB
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {isSingleImageAudit && (
+                    singleViolations.length > 0 ? (
+                      <div className="space-y-2">
+                        {singleViolations.map((v, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-2xl border-0 bg-red-500/5 dark:bg-red-500/10 space-y-1.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.06)]"
+                          >
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-red-500/15 text-red-600 dark:text-red-400">
+                                {v.typeLabel || "违规项"}
+                                {v.type !== undefined ? ` (type:${v.type}${v.subType !== undefined ? ` / sub:${v.subType}` : ""})` : ""}
+                              </span>
+                              {typeof v.probability === "number" && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                  置信度 {(v.probability * 100).toFixed(1)}%
+                                </span>
+                              )}
+                              {v.datasetName && (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-zinc-500/10 text-muted-foreground">
+                                  词库/图库：{v.datasetName}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-medium text-foreground">{v.msg}</p>
+                            {Array.isArray(v.stars) && v.stars.length > 0 && (
+                              <p className="text-[11px] text-muted-foreground">
+                                识别人物：{v.stars.join("、")}
+                              </p>
+                            )}
+                            {Array.isArray(v.words) && v.words.length > 0 && (
+                              <p className="text-[11px] text-red-500 font-medium">
+                                图文命中词：{v.words.join("、")}
+                              </p>
+                            )}
+                            {Array.isArray(v.codes) && v.codes.length > 0 && (
+                              <p className="text-[11px] text-muted-foreground break-all">
+                                条码/二维码解析：{v.codes.join("、")}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>未检出违规子项（{previewSnapshot?.reason || "审核通过"}）</span>
+                      </div>
+                    )
+                  )}
+
+                  {multiItems.length > 0 && (
+                    <div className="space-y-2">
+                      {multiItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-2xl border-0 bg-muted/40 space-y-1.5 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.5)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.06)]"
+                        >
+                          <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                            <span className="font-medium text-foreground truncate max-w-[380px]">
+                              图片 #{idx + 1}：{item.violationReason || "合规"}
+                            </span>
+                            {item.baiduLogId && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-500/10 text-muted-foreground">
+                                log_id: {String(item.baiduLogId)}
+                              </span>
+                            )}
+                          </div>
+                          {Array.isArray(item.violations) && item.violations.length > 0 && (
+                            <div className="flex gap-1.5 flex-wrap pt-0.5">
+                              {item.violations.map((v: any, vIdx: number) => (
+                                <span
+                                  key={vIdx}
+                                  className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-red-500/15 text-red-600 dark:text-red-400"
+                                >
+                                  [{v.typeLabel}] {v.msg}
+                                  {typeof v.probability === "number" ? ` (${(v.probability * 100).toFixed(1)}%)` : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              ) : (
-                <div className="p-6 rounded-2xl text-center text-xs text-muted-foreground bg-muted/20">
-                  暂无正文快照数据
-                </div>
-              )}
-            </div>
+              );
+            })()}
+
+            {/* 正文快照渲染（纯单图上传日志无需重复渲染空正文框） */}
+            {previewSnapshot?.content_snapshot?.type !== "baidu_image_audit" && (
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">正文快照数据：</span>
+                {previewSnapshot?.content_snapshot ? (
+                  <div className="p-4 rounded-2xl border-0 bg-card/60 shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.08)]">
+                    {typeof previewSnapshot.content_snapshot === "object" && previewSnapshot.content_snapshot?.type === "doc" ? (
+                      <NovelViewer initialValue={previewSnapshot.content_snapshot} />
+                    ) : (
+                      <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                        {extractPlainTextFromContent(previewSnapshot.content_snapshot)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-2xl text-center text-xs text-muted-foreground bg-muted/20">
+                    暂无正文快照数据
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 提取配图图表 */}
             {(() => {
               const images = extractImageUrls(previewSnapshot?.content_snapshot);
               if (images.length === 0) return null;
               return (
-                <div className="space-y-2 pt-2 border-t border-border/40">
+                <div className="space-y-2 pt-2">
+                  <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent mb-2" />
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                     <ImageIcon className="h-4 w-4 text-primary" />
                     <span>正文配图 ({images.length} 张)：</span>
@@ -470,7 +607,8 @@ export function ModerationLogsClient({
             })()}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200/80 dark:via-zinc-800/80 to-transparent" />
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
             <Button variant="outline" className="rounded-full border-0" onClick={() => setPreviewSnapshot(null)}>
               关闭
             </Button>

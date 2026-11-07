@@ -55,7 +55,10 @@ export async function POST(request: NextRequest) {
 
         // 5. 接入百度 AI 图像内容安全审核
         const startTime = Date.now();
-        const auditResult = await auditSingleImageBase64(base64Data);
+        const auditResult = await auditSingleImageBase64(base64Data, null, {
+            imgType: file.type === "image/gif" ? 1 : 0,
+            userId: user.id,
+        });
         const latencyMs = Date.now() - startTime;
 
         let finalAction: "auto_approved" | "auto_pending" | "auto_rejected" = "auto_approved";
@@ -98,16 +101,27 @@ export async function POST(request: NextRequest) {
                 risk_level: riskLevel,
                 reason: `${prefix}${reason}`,
                 detected_tags: detectedTags,
-                matched_sensitive_words: [],
+                matched_sensitive_words: auditResult.matchedWords || [],
                 final_action: finalAction,
                 cost_tokens: 0,
                 latency_ms: latencyMs,
                 is_cached: false,
                 title: `${prefix}${file.name}`,
+                content_snapshot: {
+                    type: "baidu_image_audit",
+                    fileName: file.name,
+                    fileType: file.type,
+                    fileSize: file.size,
+                    uploadType,
+                    baiduLogId: auditResult.baiduLogId ?? null,
+                    violations: auditResult.violations || [],
+                    rawResponse: auditResult.details || null,
+                },
             };
             const { error: insErr } = await supabase.from("content_moderation_logs").insert(uploadLogPayload);
-            if (insErr && insErr.message?.includes("title")) {
+            if (insErr && (insErr.message?.includes("title") || insErr.message?.includes("content_snapshot"))) {
                 delete uploadLogPayload.title;
+                delete uploadLogPayload.content_snapshot;
                 await supabase.from("content_moderation_logs").insert(uploadLogPayload);
             }
         } catch (logErr) {

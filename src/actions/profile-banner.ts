@@ -64,7 +64,10 @@ export async function uploadAndAuditBannerAction(
 
     // 4. 调用百度图片安全审核
     const startTime = Date.now();
-    const auditResult = await auditSingleImageBase64(base64Data);
+    const auditResult = await auditSingleImageBase64(base64Data, null, {
+      imgType: file.type === "image/gif" ? 1 : 0,
+      userId: user.id,
+    });
     const latencyMs = Date.now() - startTime;
 
     // 5. 判定风险等级与处置动作
@@ -92,7 +95,7 @@ export async function uploadAndAuditBannerAction(
 
     // 6. 【核心强制】所有百度图片审核的结果都要加到 AI 审核日志里面
     try {
-      await supabase.from("content_moderation_logs").insert({
+      const bannerLogPayload: Record<string, any> = {
         post_id: null,
         comment_id: null,
         author_id: user.id,
@@ -102,12 +105,29 @@ export async function uploadAndAuditBannerAction(
         risk_level: riskLevel,
         reason: reason,
         detected_tags: ["banner", "profile_banner"],
-        matched_sensitive_words: [],
+        matched_sensitive_words: auditResult.matchedWords || [],
         final_action: finalAction,
         cost_tokens: 0,
         latency_ms: latencyMs,
         is_cached: false,
-      });
+        title: `[主页横幅] ${file.name}`,
+        content_snapshot: {
+          type: "baidu_image_audit",
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          uploadType: "profile_banner",
+          baiduLogId: auditResult.baiduLogId ?? null,
+          violations: auditResult.violations || [],
+          rawResponse: auditResult.details || null,
+        },
+      };
+      const { error: insErr } = await supabase.from("content_moderation_logs").insert(bannerLogPayload);
+      if (insErr && (insErr.message?.includes("title") || insErr.message?.includes("content_snapshot"))) {
+        delete bannerLogPayload.title;
+        delete bannerLogPayload.content_snapshot;
+        await supabase.from("content_moderation_logs").insert(bannerLogPayload);
+      }
     } catch (logErr) {
       console.error("[ProfileBanner] 写入审核审计日志异常:", logErr);
     }

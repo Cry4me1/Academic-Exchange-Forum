@@ -119,11 +119,32 @@ export async function moderatePostContent(params: {
 
   if (imageUrls.length > 0) {
     try {
-      const imageAudit = await auditPostImages(imageUrls);
+      const imageAudit = await auditPostImages(imageUrls, { userId: authorId });
 
-      // 图片存在严重违规（色情/暴恐/违禁）
+      const attachImageAuditSnapshot = (rawContent: any) => {
+        const itemsSummary = imageAudit.itemResults.map((item) => ({
+          imageUrl: item.imageUrl,
+          isSafe: item.isSafe,
+          isSensitive: item.isSensitive,
+          isDangerous: item.isDangerous,
+          isDegraded: item.isDegraded,
+          baiduLogId: item.baiduLogId ?? null,
+          violationReason: item.violationReason,
+          violations: item.violations || [],
+        }));
+        if (rawContent && typeof rawContent === "object" && !Array.isArray(rawContent)) {
+          return { ...rawContent, baiduImageAudit: itemsSummary };
+        }
+        return {
+          type: "baidu_image_audit",
+          rawText: typeof rawContent === "string" ? rawContent : "",
+          baiduImageAudit: itemsSummary,
+        };
+      };
+
+      // 图片存在严重违规
       if (imageAudit.hasDangerous) {
-        const reason = imageAudit.reasons[0] || "文章配图或封面中包含严重违规内容";
+        const reason = imageAudit.reasons.join(" | ") || "文章配图或封面中包含严重违规内容";
         const latencyMs = Date.now() - startTime;
 
         const result: ModerationResult = {
@@ -132,7 +153,7 @@ export async function moderatePostContent(params: {
           score: 20,
           reason,
           suggestedTags: tags,
-          matchedSensitiveWords: [],
+          matchedSensitiveWords: imageAudit.matchedWords || [],
           finalAction: "auto_rejected",
           isCached: false,
           latencyMs,
@@ -147,6 +168,7 @@ export async function moderatePostContent(params: {
           result,
           modelName: "baidu-image-censor",
           ...snapshotPayload,
+          contentSnapshot: attachImageAuditSnapshot(content),
         });
 
         return result;
@@ -154,7 +176,7 @@ export async function moderatePostContent(params: {
 
       // 图片疑似敏感
       if (imageAudit.hasSensitive) {
-        const reason = imageAudit.reasons[0] || "文章配图或封面疑似存在违规风险，转入人工审核";
+        const reason = imageAudit.reasons.join(" | ") || "文章配图或封面疑似存在违规风险，转入人工审核";
         const latencyMs = Date.now() - startTime;
 
         const result: ModerationResult = {
@@ -163,7 +185,7 @@ export async function moderatePostContent(params: {
           score: 60,
           reason,
           suggestedTags: tags,
-          matchedSensitiveWords: [],
+          matchedSensitiveWords: imageAudit.matchedWords || [],
           finalAction: "auto_pending",
           isCached: false,
           latencyMs,
@@ -178,14 +200,18 @@ export async function moderatePostContent(params: {
           result,
           modelName: "baidu-image-censor",
           ...snapshotPayload,
+          contentSnapshot: attachImageAuditSnapshot(content),
         });
 
         return result;
       }
 
-      // 图片安全通过：记录百度图片审核合规审计日志
+      // 图片安全通过（或降级放行）：记录百度图片审核审计日志
       if (imageAudit.isAllSafe) {
         const latencyMs = Date.now() - startTime;
+        const passReason = imageAudit.hasDegraded
+          ? `文章配图审核已降级放行：${imageAudit.degradedReasons?.[0] || "接口异常降级"}`
+          : `文章包含的 ${imageAudit.imageCount} 张配图/封面经百度AI图像审核合规`;
         await logModerationRecord(supabase, {
           postId,
           authorId,
@@ -194,7 +220,7 @@ export async function moderatePostContent(params: {
             reviewStatus: "approved",
             riskLevel: "safe",
             score: 100,
-            reason: `文章包含的 ${imageAudit.imageCount} 张配图/封面经百度AI图像审核合规`,
+            reason: passReason,
             suggestedTags: tags,
             matchedSensitiveWords: [],
             finalAction: "auto_approved",
@@ -397,7 +423,7 @@ export async function moderateCommentContent(params: {
   const imageUrls = extractImageUrls(content);
   if (imageUrls.length > 0) {
     try {
-      const imageAudit = await auditPostImages(imageUrls);
+      const imageAudit = await auditPostImages(imageUrls, { userId: authorId });
 
       if (imageAudit.hasDangerous) {
         const reason = imageAudit.reasons[0] || "评论配图中包含严重违规内容";
@@ -461,9 +487,12 @@ export async function moderateCommentContent(params: {
         return result;
       }
 
-      // 评论配图安全通过：记录百度图片审核合规审计日志
+      // 评论配图安全通过（或降级放行）：记录百度图片审核审计日志
       if (imageAudit.isAllSafe) {
         const latencyMs = Date.now() - startTime;
+        const passReason = imageAudit.hasDegraded
+          ? `评论配图审核已降级放行：${imageAudit.degradedReasons?.[0] || "接口异常降级"}`
+          : `评论配图经百度AI图像审核合规`;
         await logModerationRecord(supabase, {
           commentId,
           postId,
@@ -473,7 +502,7 @@ export async function moderateCommentContent(params: {
             reviewStatus: "approved",
             riskLevel: "safe",
             score: 100,
-            reason: `评论配图经百度AI图像审核合规`,
+            reason: passReason,
             suggestedTags: ["学术评论"],
             matchedSensitiveWords: [],
             finalAction: "auto_approved",
