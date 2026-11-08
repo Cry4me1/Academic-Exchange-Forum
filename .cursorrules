@@ -16,3 +16,7 @@
 ## 3. Layout & Micro-interactions
 - **Layout**: Prefer asymmetrical 12-column Bento Grids (`col-span-12 lg:col-span-8`).
 - **Spring Motion**: Hover scaling `hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 ease-out`.
+
+
+## 4. Code Quality Gate (ai-quality-gate)
+- After writing or modifying code, automatically call the `quality_fix` tool (MCP) to run Phase 1 (ESLint + Prettier auto-fix).

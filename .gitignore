@@ -51,3 +51,6 @@ scripts/record_*.js
 *-evidence/
 
 /output/
+
+# turbo
+.turbo/

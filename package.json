@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "embed:sync": "node scripts/sync_embeddings.mjs",
-    "skills:update": "npx skills@latest update"
+    "skills:update": "npx skills@latest update",
+    "qc:scan": "vibe-gate scan .",
+    "qc:deploy": "vibe-gate url https://scholarly.wiki"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.2",

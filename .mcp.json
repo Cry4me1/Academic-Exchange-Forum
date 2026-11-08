@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "clenzer": {
+      "command": "npx",
+      "args": ["-y", "clenzer"],
+      "env": {}
+    },
+    "ai-quality-gate": {
+      "command": "npx",
+      "args": ["-y", "ai-quality-gate"],
+      "env": {
+        "PROJECT_ROOT": "d:/project/academic_forum"
+      }
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "probeRoutes": [
+    "/",
+    "/api/health",
+    "/admin",
+    "/login",
+    "/auth/callback",
+    "/settings",
+    "/profile",
+    "/notifications"
+  ],
+  "sensitiveSegments": [
+    "admin",
+    "dashboard",
+    "api",
+    "account",
+    "settings",
+    "profile",
+    "mod",
+    "manage"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    "build",
+    ".git",
+    ".next",
+    ".turbo",
+    ".vercel",
+    "coverage",
+    ".env*",
+    "*.log"
+  ],
+  "failBelow": "D",
+  "maxLoadTimeMs": 3500
+}

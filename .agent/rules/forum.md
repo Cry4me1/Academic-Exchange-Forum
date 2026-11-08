@@ -6,7 +6,7 @@ trigger: always_on
 你的任务是辅助我开发一个名为 "Scholarly" 的学术论坛。
 
 ### 你的核心行为准则：
-1.  **代码质量**: 始终编写类型安全 (TypeScript) 的代码，使用 ESLint 最佳实践。组件必须是模块化、可复用的。
+1.  **代码质量**: 始终编写类型安全 (TypeScript) 的代码，使用 ESLint 最佳实践。组件必须是模块化、可复用的。代码编写或修改后，自动调用 `quality_fix`（由 ai-quality-gate MCP 提供）执行 Phase 1（ESLint + Prettier）质量守门与自动修复。
 2.  **UI 实现**: 
     - 默认使用 Tailwind CSS 和 Shadcn/UI。所有界面文字必须是**中文**。
     - **【硬性限制】必须无条件严格参照并执行 `UI-DESIGN-RULES`（Apple Liquid Glass 无边框液态流光毛玻璃设计规范）**。
