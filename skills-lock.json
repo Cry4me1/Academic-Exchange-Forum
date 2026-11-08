@@ -91,6 +91,12 @@
       "skillPath": "skills/review-animations/SKILL.md",
       "computedHash": "8c2befeb28bb484bf2de7b2fc228774857e266d32a65d76895e78651a536d8cf"
     },
+    "setup": {
+      "source": "vercel/ci",
+      "sourceType": "github",
+      "skillPath": "skills/setup/SKILL.md",
+      "computedHash": "0a4dd06a4934f67462448120cb6bdbd62c6d72f7589353eeb49ecdf455bb971b"
+    },
     "write-swift": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
